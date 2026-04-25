@@ -6,7 +6,9 @@ import 'package:stpvelox/application/screensaver/screensaver_settings_provider.d
 import 'package:stpvelox/core/di/injection.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/utils/sudo_process.dart';
+import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
+import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
 
 class DisplaySettingsScreen extends ConsumerWidget {
   const DisplaySettingsScreen({super.key});
@@ -19,36 +21,28 @@ class DisplaySettingsScreen extends ConsumerWidget {
       backgroundColor: Colors.black87,
       appBar: createTopBar(context, 'Display'),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.6,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              _SettingTile(
-                icon: Icons.display_settings,
-                label: 'Calibrate',
-                color: Colors.purple,
-                onTap: () => context.push(AppRoutes.touchCalibration),
-              ),
-              _SettingTile(
-                icon: Icons.screen_rotation,
-                label: 'Rotate',
-                color: Colors.teal,
-                onTap: () => context.push(AppRoutes.screenRotation),
-              ),
-              _ScreensaverTile(prefs: prefs),
-              _SettingTile(
-                icon: Icons.remove_red_eye,
-                label: 'Hide UI',
-                color: Colors.blueGrey,
-                onTap: () => _confirmHideUi(context),
-              ),
-            ],
-          ),
+        child: ResponsiveGrid(
+          children: [
+            ResponsiveGridTile(
+              icon: Icons.display_settings,
+              label: 'Calibrate',
+              color: Colors.purple[600]!,
+              onPressed: () => context.push(AppRoutes.touchCalibration),
+            ),
+            ResponsiveGridTile(
+              icon: Icons.screen_rotation,
+              label: 'Rotate',
+              color: Colors.teal[600]!,
+              onPressed: () => context.push(AppRoutes.screenRotation),
+            ),
+            _ScreensaverTile(prefs: prefs),
+            ResponsiveGridTile(
+              icon: Icons.remove_red_eye,
+              label: 'Hide UI',
+              color: Colors.blueGrey[600]!,
+              onPressed: () => _confirmHideUi(context),
+            ),
+          ],
         ),
       ),
     );
@@ -150,94 +144,11 @@ class _ScreensaverTileState extends State<_ScreensaverTile> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.grey[850],
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: _toggle,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.cyan.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.face, color: Colors.cyan, size: 26),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Text(
-                  'Screensaver',
-                  style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w500),
-                ),
-              ),
-              Switch(
-                value: _enabled,
-                onChanged: (_) => _toggle(),
-                activeColor: Colors.cyan,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _SettingTile({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.grey[850],
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 26),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return ResponsiveGridTile(
+      icon: _enabled ? Icons.face : Icons.face_retouching_off,
+      label: _enabled ? 'Screensaver On' : 'Screensaver Off',
+      color: _enabled ? Colors.cyan[600]! : Colors.grey[700]!,
+      onPressed: _toggle,
     );
   }
 }

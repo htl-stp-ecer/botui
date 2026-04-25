@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/utils/sudo_process.dart';
+import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/settings/domain/usecases/reboot.dart';
+import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
 
 class SystemSettingsScreen extends StatelessWidget {
   const SystemSettingsScreen({super.key});
@@ -14,35 +16,27 @@ class SystemSettingsScreen extends StatelessWidget {
       backgroundColor: Colors.black87,
       appBar: createTopBar(context, 'System'),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.6,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              _SettingTile(
-                icon: Icons.analytics_outlined,
-                label: 'Services',
-                color: Colors.greenAccent,
-                onTap: () => context.push(AppRoutes.serviceStatus),
-              ),
-              _SettingTile(
-                icon: Icons.refresh,
-                label: 'Reboot',
-                color: Colors.orange,
-                onTap: () async => RebootDevice().call(),
-              ),
-              _SettingTile(
-                icon: Icons.power_settings_new,
-                label: 'Shutdown',
-                color: Colors.red,
-                onTap: () => _confirmShutdown(context),
-              ),
-            ],
-          ),
+        child: ResponsiveGrid(
+          children: [
+            ResponsiveGridTile(
+              icon: Icons.analytics_outlined,
+              label: 'Services',
+              color: Colors.green[600]!,
+              onPressed: () => context.push(AppRoutes.serviceStatus),
+            ),
+            ResponsiveGridTile(
+              icon: Icons.refresh,
+              label: 'Reboot',
+              color: Colors.orange[600]!,
+              onPressed: () => RebootDevice().call(),
+            ),
+            ResponsiveGridTile(
+              icon: Icons.power_settings_new,
+              label: 'Shutdown',
+              color: Colors.red[600]!,
+              onPressed: () => _confirmShutdown(context),
+            ),
+          ],
         ),
       ),
     );
@@ -114,58 +108,5 @@ class SystemSettingsScreen extends StatelessWidget {
     if (confirmed == true) {
       await SudoProcess.run('shutdown', ['-h', 'now']);
     }
-  }
-}
-
-class _SettingTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _SettingTile({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.grey[850],
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 26),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
