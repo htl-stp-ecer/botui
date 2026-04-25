@@ -224,7 +224,9 @@ class WidgetDecoder {
       'small' => 14.0,
       'medium' => 18.0,
       'large' => 24.0,
-      'title' => 32.0,
+      'title' => 48.0,
+      'xlarge' => 72.0,
+      'xxlarge' => 96.0,
       _ => 18.0,
     };
 

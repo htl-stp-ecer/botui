@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:stpvelox/core/service/raccoon_execution_client.dart';
@@ -13,9 +14,15 @@ class ProgramSession {
   late TerminalController terminalController;
   bool _isRunning = false;
 
+  // Raccoon execution client path
   String? _commandId;
   RaccoonExecutionClient? _client;
   StreamSubscription<String>? _outputSubscription;
+
+  // Direct process path (run.sh)
+  Process? _process;
+  StreamSubscription<List<int>>? _stdoutSubscription;
+  StreamSubscription<List<int>>? _stderrSubscription;
 
   ProgramSession._internal();
 
@@ -27,6 +34,92 @@ class ProgramSession {
     session.terminal = Terminal();
     session.terminalController = TerminalController();
 
+    // Check if run.sh exists in the program directory (resolve to absolute)
+    final parentDirAbsolute = Directory(program.parentDir).absolute.path;
+    final runShPath = '$parentDirAbsolute/${program.runScript}';
+    final runShFile = File(runShPath);
+
+    if (await runShFile.exists()) {
+      // Run run.sh directly
+      await _startDirectProcess(session, program, args, extraFlags);
+    } else {
+      // Fall back to raccoon execution client
+      await _startViaRaccoon(session, program, args, extraFlags);
+    }
+
+    return session;
+  }
+
+  static Future<void> _startDirectProcess(
+    ProgramSession session,
+    Program program,
+    Map<String, String> args,
+    List<String> extraFlags,
+  ) async {
+    // Resolve to absolute path so bash can find the script regardless of cwd
+    final parentDirAbsolute = Directory(program.parentDir).absolute.path;
+    final runShAbsolute = '$parentDirAbsolute/${program.runScript}';
+    _log.info('[startDirect] Running $runShAbsolute in $parentDirAbsolute');
+
+    // Build argument list: --key=value pairs then bare flags
+    final argsList = [
+      ...args.entries.map((e) => '--${e.key}=${e.value}'),
+      ...extraFlags,
+    ];
+
+    final process = await Process.start(
+      'bash',
+      [runShAbsolute, ...argsList],
+      workingDirectory: parentDirAbsolute,
+    );
+    session._process = process;
+    session._isRunning = true;
+
+    // Stream stdout into the terminal widget
+    session._stdoutSubscription = process.stdout.listen(
+      (data) {
+        final text = utf8.decode(data, allowMalformed: true);
+        session.terminal.write(text.replaceAll('\n', '\r\n'));
+        final clean =
+            text.replaceAll(RegExp(r'\x1B\[[0-9;]*[a-zA-Z]'), '').trim();
+        if (clean.isNotEmpty) _log.info(clean);
+      },
+      onError: (e) {
+        _log.warning('stdout error: $e');
+        session.terminal.write('\r\n[stdout error: $e]\r\n');
+      },
+    );
+
+    // Stream stderr into the terminal widget
+    session._stderrSubscription = process.stderr.listen(
+      (data) {
+        final text = utf8.decode(data, allowMalformed: true);
+        session.terminal.write(text.replaceAll('\n', '\r\n'));
+        final clean =
+            text.replaceAll(RegExp(r'\x1B\[[0-9;]*[a-zA-Z]'), '').trim();
+        if (clean.isNotEmpty) _log.warning(clean);
+      },
+      onError: (e) {
+        _log.warning('stderr error: $e');
+        session.terminal.write('\r\n[stderr error: $e]\r\n');
+      },
+    );
+
+    // Handle process exit
+    process.exitCode.then((exitCode) {
+      session.terminal
+          .write('\r\nProcess exited (exit code: $exitCode)\r\n');
+      session._isRunning = false;
+      _log.info('Program finished: exitCode=$exitCode');
+    });
+  }
+
+  static Future<void> _startViaRaccoon(
+    ProgramSession session,
+    Program program,
+    Map<String, String> args,
+    List<String> extraFlags,
+  ) async {
     final client = await RaccoonExecutionClient.create();
     session._client = client;
 
@@ -76,11 +169,28 @@ class ProgramSession {
         session._isRunning = false;
       },
     );
-
-    return session;
   }
 
   Future<int> kill({bool force = false}) async {
+    // Direct process path
+    if (_process != null) {
+      terminal.write('\r\nStopping program...\r\n');
+
+      await _stdoutSubscription?.cancel();
+      _stdoutSubscription = null;
+      await _stderrSubscription?.cancel();
+      _stderrSubscription = null;
+
+      _process!.kill(ProcessSignal.sigterm);
+      final exitCode = await _process!.exitCode;
+      terminal.write('\r\nProgram stopped (exit code: $exitCode).\r\n');
+
+      _isRunning = false;
+      _process = null;
+      return exitCode;
+    }
+
+    // Raccoon execution client path
     if (_commandId == null) return -1;
 
     terminal.write('\r\nStopping program...\r\n');

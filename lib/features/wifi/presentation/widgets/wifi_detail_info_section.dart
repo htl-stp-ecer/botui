@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_encryption_type.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_network.dart';
 
-class WifiDetailInfoSection extends StatelessWidget {
+class WifiDetailInfoSection extends StatefulWidget {
   final WifiNetwork network;
   final TextEditingController passwordController;
 
@@ -13,7 +13,15 @@ class WifiDetailInfoSection extends StatelessWidget {
   });
 
   @override
+  State<WifiDetailInfoSection> createState() => _WifiDetailInfoSectionState();
+}
+
+class _WifiDetailInfoSectionState extends State<WifiDetailInfoSection> {
+  bool _obscurePassword = true;
+
+  @override
   Widget build(BuildContext context) {
+    final network = widget.network;
     final enc = network.encryptionType;
     final needsPwd =
         _needsPassword(enc) && !network.isKnown && !network.isConnected;
@@ -34,11 +42,18 @@ class WifiDetailInfoSection extends StatelessWidget {
             const SizedBox(height: 24),
             const Text('Password:'),
             TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
+              controller: widget.passwordController,
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
                 hintText: 'Enter password',
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility_off
+                      : Icons.visibility),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
               ),
             ),
           ],

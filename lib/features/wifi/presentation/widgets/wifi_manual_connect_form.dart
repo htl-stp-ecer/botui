@@ -18,6 +18,7 @@ class _WifiManualConnectFormState extends ConsumerState<WifiManualConnectForm> {
   final _usernameController = TextEditingController();
   final _caCertController = TextEditingController();
   WifiEncryptionType _encryptionType = WifiEncryptionType.wpa2Personal;
+  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -70,10 +71,17 @@ class _WifiManualConnectFormState extends ConsumerState<WifiManualConnectForm> {
               const Text('Password:', style: TextStyle(fontSize: 16)),
               TextField(
                 controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
                   hintText: 'Enter password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword
+                        ? Icons.visibility_off
+                        : Icons.visibility),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
                 ),
               ),
             ],
@@ -93,10 +101,17 @@ class _WifiManualConnectFormState extends ConsumerState<WifiManualConnectForm> {
               const Text('EAP Password:', style: TextStyle(fontSize: 16)),
               TextField(
                 controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
                   hintText: 'Enter password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword
+                        ? Icons.visibility_off
+                        : Icons.visibility),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

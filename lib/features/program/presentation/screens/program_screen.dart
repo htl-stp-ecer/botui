@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logging/logging.dart';
+import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/program/domain/entities/program.dart';
+import 'package:stpvelox/features/program/domain/entities/program_session.dart';
 import 'package:stpvelox/features/program/domain/services/program_lifecycle_service.dart';
 import 'package:stpvelox/features/program/presentation/providers/program_providers.dart';
 import 'package:stpvelox/features/program/presentation/widgets/program_sync_widgets.dart';
@@ -22,6 +25,15 @@ class ProgramScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final overlayEntry = useState<OverlayEntry?>(null);
     final state = ref.watch(programLifecycleServiceProvider);
+
+    // Navigate to dashboard when a running program stops.
+    ref.listen<ProgramSession?>(programLifecycleServiceProvider,
+        (previous, next) {
+      if (previous != null && next == null) {
+        _log.info('[listen] Program stopped — navigating to dashboard');
+        context.go(AppRoutes.dashboard);
+      }
+    });
 
     // Watch the programs list so file-watcher updates flow in automatically.
     // Resolve the current entry by parentDir (the stable on-disk identifier)

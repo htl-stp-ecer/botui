@@ -18,6 +18,7 @@ class _WifiEnterpriseCredentialScreenState
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _caCertController = TextEditingController();
+  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +37,17 @@ class _WifiEnterpriseCredentialScreenState
             const Text('Password:'),
             TextField(
               controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(border: OutlineInputBorder()),
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePassword
+                      ? Icons.visibility_off
+                      : Icons.visibility),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
             ),
             const SizedBox(height: 16),
             const Text('CA Certificate (optional):'),

@@ -92,26 +92,37 @@ class LinuxNetworkManager {
 
   Future<void> connect(String ssid, WifiEncryptionType encType,
       WifiCredentials credentials) async {
-    List<String> cmd = ['device', 'wifi', 'connect', ssid];
+    // Remove any existing connection for this SSID first to avoid
+    // key-mgmt property conflicts when reconnecting or changing settings.
+    await _deleteExistingConnection(ssid);
+
+    final wifiInterface = await _getWifiInterface();
+    if (wifiInterface == null) {
+      throw Exception('No WiFi interface found');
+    }
 
     switch (encType) {
       case WifiEncryptionType.open:
+        final result = await SudoProcess.run(
+            'nmcli', ['device', 'wifi', 'connect', ssid]);
+        if (result.exitCode != 0) {
+          throw Exception('Failed to connect: ${result.stderr}');
+        }
         break;
       case WifiEncryptionType.wpa2Personal:
       case WifiEncryptionType.wpa3Personal:
         final passCred = credentials as PersonalCredentials;
-        cmd.addAll(['password', passCred.password]);
+        final result = await SudoProcess.run('nmcli',
+            ['device', 'wifi', 'connect', ssid, 'password', passCred.password]);
+        if (result.exitCode != 0) {
+          throw Exception('Failed to connect: ${result.stderr}');
+        }
         break;
       case WifiEncryptionType.wpa2Enterprise:
       case WifiEncryptionType.wpa3Enterprise:
         final entCred = credentials as EnterpriseCredentials;
 
-        final wifiInterface = await _getWifiInterface();
-        if (wifiInterface == null) {
-          throw Exception('No WiFi interface found');
-        }
-
-        await SudoProcess.run('nmcli', [
+        final addArgs = [
           'connection',
           'add',
           'type',
@@ -130,17 +141,64 @@ class LinuxNetworkManager {
           entCred.username,
           '802-1x.password',
           entCred.password,
-          if (entCred.caCertificatePath != null) '802-1x.ca-cert' else '',
-          if (entCred.caCertificatePath != null) entCred.caCertificatePath!,
-        ]);
+        ];
 
-        await SudoProcess.run('nmcli', ['connection', 'up', ssid]);
-        return;
+        if (entCred.caCertificatePath != null) {
+          addArgs.addAll(['802-1x.ca-cert', entCred.caCertificatePath!]);
+        }
+
+        final addResult = await SudoProcess.run('nmcli', addArgs);
+        if (addResult.exitCode != 0) {
+          throw Exception(
+              'Failed to create connection: ${addResult.stderr}');
+        }
+
+        final upResult =
+            await SudoProcess.run('nmcli', ['connection', 'up', ssid]);
+        if (upResult.exitCode != 0) {
+          // Clean up the connection we just created
+          await SudoProcess.run('nmcli', ['connection', 'delete', ssid]);
+          throw Exception('Failed to connect: ${upResult.stderr}');
+        }
+        break;
     }
+  }
 
-    final result = await SudoProcess.run('nmcli', cmd);
-    if (result.exitCode != 0) {
-      throw Exception('Failed to connect: ${result.stderr}');
+  /// Delete any existing nmcli connection profile for [ssid].
+  /// Silently ignores errors (e.g. if no connection exists).
+  Future<void> _deleteExistingConnection(String ssid) async {
+    // Try direct delete by connection name first
+    final result =
+        await SudoProcess.run('nmcli', ['connection', 'delete', ssid]);
+    if (result.exitCode == 0) return;
+
+    // Fallback: find by SSID property in case the con-name differs
+    final listResult = await SudoProcess.run(
+        'nmcli', ['-t', '-f', 'UUID,TYPE', 'connection', 'show']);
+    if (listResult.exitCode != 0) return;
+
+    final lines = (listResult.stdout as String).split('\n');
+    for (final line in lines) {
+      final parts = line.split(':');
+      if (parts.length < 2) continue;
+      final uuid = parts[0].trim();
+      if (uuid.isEmpty) continue;
+      // Only check wifi connections
+      if (!parts[1].contains('wireless') && !parts[1].contains('wifi')) {
+        continue;
+      }
+
+      final showResult = await SudoProcess.run(
+        'nmcli',
+        ['-t', '-f', '802-11-wireless.ssid', 'connection', 'show', uuid],
+      );
+      if (showResult.exitCode != 0) continue;
+      final connSsid =
+          (showResult.stdout as String).split(':').last.trim();
+      if (connSsid == ssid) {
+        await SudoProcess.run(
+            'nmcli', ['connection', 'delete', 'uuid', uuid]);
+      }
     }
   }
 
