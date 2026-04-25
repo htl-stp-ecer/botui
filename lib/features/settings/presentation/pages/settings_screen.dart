@@ -1,71 +1,140 @@
-// presentation/screens/settings_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:stpvelox/features/settings/application/settings_providers.dart';
-import 'package:stpvelox/features/settings/domain/entities/setting.dart';
-import 'package:stpvelox/core/widgets/responsive_grid.dart';
+import 'package:go_router/go_router.dart';
+import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settingsAsync = ref.watch(settingsProvider);
-
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black87,
-      appBar: createTopBar(context, "Settings"),
+      appBar: createTopBar(context, 'Settings'),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: settingsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(
-              child: Text(
-                e.toString(),
-                style: const TextStyle(color: Colors.red, fontSize: 18),
+          padding: const EdgeInsets.all(12),
+          child: GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.6,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [
+              _CategoryTile(
+                icon: Icons.wifi,
+                label: 'Network',
+                subtitle: 'Wi-Fi',
+                color: Colors.green,
+                onTap: () => context.push(AppRoutes.wifi),
               ),
-            ),
-            data: (settings) => ResponsiveGrid(
-              children: settings.map((setting) {
-                return _buildSettingItem(context, ref, setting);
-              }).toList(),
-            ),
+              _CategoryTile(
+                icon: Icons.videocam,
+                label: 'Camera',
+                subtitle: 'Live view',
+                color: Colors.blue,
+                onTap: () => context.push(AppRoutes.camera),
+              ),
+              _CategoryTile(
+                icon: Icons.display_settings,
+                label: 'Display',
+                subtitle: 'Rotate, Calibrate, Screensaver',
+                color: Colors.purple,
+                onTap: () => context.push(AppRoutes.displaySettings),
+              ),
+              _CategoryTile(
+                icon: Icons.tune,
+                label: 'System',
+                subtitle: 'Shutdown, Reboot, Services',
+                color: Colors.orange,
+                onTap: () => context.push(AppRoutes.systemSettings),
+              ),
+              _CategoryTile(
+                icon: Icons.info_outline,
+                label: 'App Status',
+                subtitle: 'Versions',
+                color: Colors.tealAccent,
+                onTap: () => context.push(AppRoutes.appStatus),
+              ),
+              _CategoryTile(
+                icon: Icons.emoji_emotions,
+                label: 'Robot',
+                subtitle: 'Personality',
+                color: Colors.pinkAccent,
+                onTap: () => context.push(AppRoutes.personality),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildSettingItem(BuildContext context, WidgetRef ref, Setting setting) {
-    final notifier = ref.read(settingsProvider.notifier);
+class _CategoryTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[800],
-        borderRadius: BorderRadius.circular(8.0),
-      ),
+  const _CategoryTile({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.grey[850],
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8.0),
-        onTap: () => notifier.tapSetting(setting, context),
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
             children: [
-              Icon(setting.icon, size: 48, color: setting.color),
-              const SizedBox(height: 8),
-              Text(
-                setting.label,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-              ),
-              if (setting.type == SettingType.toggle)
-                Switch(
-                  value: setting.value!(),
-                  onChanged: (_) => notifier.tapSetting(setting, context),
-                  activeColor: setting.color,
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 12,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Colors.grey[600], size: 20),
             ],
           ),
         ),

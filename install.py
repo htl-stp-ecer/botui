@@ -11,9 +11,22 @@ Env vars:
 """
 
 import os
+import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+
+def _read_pubspec_version(script_dir: Path) -> str:
+    pubspec = script_dir / "pubspec.yaml"
+    if not pubspec.exists():
+        return "unknown"
+    for line in pubspec.read_text().splitlines():
+        m = re.match(r"^version:\s*([^\s+]+)", line)
+        if m:
+            return m.group(1)
+    return "unknown"
 
 
 def ssh(host: str, user: str, command: str, check: bool = True) -> int:
@@ -79,10 +92,18 @@ def main() -> None:
     ssh(rpi_host, rpi_user, f"sudo systemctl stop {service_name} || true")
 
     # --- Upload build ---
-    print(f"Uploading build to {rpi_host}:{remote_app_dir}...")
+    version = _read_pubspec_version(script_dir)
+    print(f"Uploading build ({version}) to {rpi_host}:{remote_app_dir}...")
     ssh(rpi_host, rpi_user, f"mkdir -p {remote_app_dir}")
     # Use scp -r as cross-platform replacement for rsync
     scp(f"{build_dir}/.", f"{remote}:{remote_app_dir}", recursive=True)
+
+    # --- Write version file so raccoon-server can report it ---
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as tmp:
+        tmp.write(version)
+        tmp_path = tmp.name
+    scp(tmp_path, f"{remote}:{remote_app_dir}/version")
+    Path(tmp_path).unlink(missing_ok=True)
 
     # --- Install systemd unit ---
     print("Installing systemd service...")
