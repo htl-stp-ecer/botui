@@ -29,7 +29,7 @@ class ScreenRenderProvider extends _$ScreenRenderProvider with HasLogger {
 
   void _startSubscription() {
     final lcm = ref.read(lcmServiceProvider);
-    log.info('[ScreenRenderProvider] Starting LCM subscription on libstp/screen_render');
+    log.info('[ScreenRenderProvider] Starting LCM subscription on ${Channels.screenRender}');
 
     _subscription = lcm
         .subscribeAs<ScreenRenderT>(

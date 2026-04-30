@@ -113,7 +113,7 @@ class TiltMazeScreen extends HookConsumerWidget {
               if (controller.biasInitialized && !controller.imuAvailable)
                 const _OverlayBanner(
                   title: 'Waiting for IMU…',
-                  subtitle: 'No orientation data yet from libstp/imu/quaternion',
+                  subtitle: 'No orientation data yet from raccoon/imu/quaternion',
                 ),
             ],
           );
@@ -671,7 +671,7 @@ class _StartOverlay extends StatelessWidget {
                 const SizedBox(height: 10),
                 if (!imuAvailable)
                   const Text(
-                    'No IMU data yet (libstp/imu/quaternion).',
+                    'No IMU data yet (raccoon/imu/quaternion).',
                     style: TextStyle(color: Colors.redAccent, fontSize: 12),
                   ),
               ],
