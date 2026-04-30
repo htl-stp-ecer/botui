@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:raccoon_transport/raccoon_transport.dart';
 import 'package:stpvelox/core/service/sensors/quaternion_sensor.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 
@@ -111,9 +112,9 @@ class TiltMazeScreen extends HookConsumerWidget {
                   },
                 ),
               if (controller.biasInitialized && !controller.imuAvailable)
-                const _OverlayBanner(
+                _OverlayBanner(
                   title: 'Waiting for IMU…',
-                  subtitle: 'No orientation data yet from raccoon/imu/quaternion',
+                  subtitle: 'No orientation data yet from ${Channels.orientation}',
                 ),
             ],
           );
@@ -670,9 +671,9 @@ class _StartOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 if (!imuAvailable)
-                  const Text(
-                    'No IMU data yet (raccoon/imu/quaternion).',
-                    style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                  Text(
+                    'No IMU data yet (${Channels.orientation}).',
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 12),
                   ),
               ],
             ),
