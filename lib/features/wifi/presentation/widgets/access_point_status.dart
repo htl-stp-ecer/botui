@@ -1,14 +1,15 @@
-
 import 'package:flutter/material.dart';
 
 class AccessPointStatus extends StatelessWidget {
   final bool isStarted;
   final String ssid;
+  final String? ipAddress;
 
   const AccessPointStatus({
     super.key,
     required this.isStarted,
     required this.ssid,
+    this.ipAddress,
   });
 
   @override
@@ -53,14 +54,16 @@ class AccessPointStatus extends StatelessWidget {
                   color: Colors.white,
                   fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              'IP Address: 192.168.4.1',
-              style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500),
-            ),
+            if (ipAddress != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'IP Address: $ipAddress',
+                style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500),
+              ),
+            ],
           ],
         ],
       ),

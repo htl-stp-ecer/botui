@@ -1,5 +1,6 @@
 import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_band.dart';
+import 'package:stpvelox/features/wifi/domain/enities/wifi_channel_scan.dart';
 import 'package:stpvelox/features/wifi/domain/repositories/i_wifi_repository.dart';
 
 class ManageAccessPoint {
@@ -29,5 +30,9 @@ class ManageAccessPoint {
 
   Future<int> findBestChannel(WifiBand band) async {
     return await repository.findBestChannel(band);
+  }
+
+  Future<WifiChannelScan> scanAccessPointChannels(WifiBand band) async {
+    return await repository.scanAccessPointChannels(band);
   }
 }

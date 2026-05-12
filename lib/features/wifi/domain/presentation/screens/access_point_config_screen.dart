@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 import 'package:stpvelox/features/wifi/domain/application/access_point_state.dart';
-import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/access_point_form.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/access_point_status.dart';
 
@@ -17,33 +16,19 @@ class AccessPointConfigScreen extends ConsumerStatefulWidget {
 
 class _AccessPointConfigScreenState
     extends ConsumerState<AccessPointConfigScreen> {
-  bool _isStarted = false;
-  AccessPointConfig? _config;
-
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
-      ref.read(accessPointProvider.notifier).loadAccessPointConfig();
+      ref.read(accessPointProvider.notifier).refreshStatus();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     ref.listen<AccessPointState>(accessPointProvider, (previous, state) {
-      // Update config if loaded
-      if (state.config != null && state.config != _config) {
-        setState(() {
-          _config = state.config!;
-        });
-      }
-
       // Only show snackbar if isStarted actually changed
       if (previous != null && previous.isStarted != state.isStarted) {
-        setState(() {
-          _isStarted = state.isStarted;
-        });
-
         if (state.isStarted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Hotspot started successfully')),
@@ -53,11 +38,6 @@ class _AccessPointConfigScreenState
             const SnackBar(content: Text('Hotspot stopped')),
           );
         }
-      } else if (previous == null) {
-        // First time - just update the state without snackbar
-        setState(() {
-          _isStarted = state.isStarted;
-        });
       }
 
       // Show error message only if it's new
@@ -82,13 +62,14 @@ class _AccessPointConfigScreenState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AccessPointStatus(
-              isStarted: _isStarted,
-              ssid: _config?.ssid ?? '',
+              isStarted: state.isStarted,
+              ssid: state.config?.ssid ?? '',
+              ipAddress: state.ipAddress,
             ),
             const SizedBox(height: 16),
             AccessPointForm(
-              initialConfig: _config,
-              isStarted: _isStarted,
+              initialConfig: state.config,
+              isStarted: state.isStarted,
               isLoading: state.isLoading,
               onStart: (config) {
                 ref.read(accessPointProvider.notifier).startAccessPoint(config);
