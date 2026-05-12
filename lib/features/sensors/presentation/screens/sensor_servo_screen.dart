@@ -12,6 +12,7 @@ import 'package:raccoon_transport/raccoon_transport.dart';
 class ServoUtils {
   static const double minAngle = 0.0;
   static const double maxAngle = 180.0;
+  static const double dangerMinAngle = -50.0;
   static const double dangerMaxAngle = 360.0;
   static const double servoSpeedDps = 60 / 0.3;
 
@@ -38,6 +39,7 @@ class SensorServoScreen extends HookConsumerWidget {
     final dangerMode = useState<bool>(false);
     final localAngle = useState<double>(servoPosition ?? 0.0);
     final mountedSlider = useState<bool>(false);
+    final currentMin = dangerMode.value ? ServoUtils.dangerMinAngle : ServoUtils.minAngle;
     final currentMax = dangerMode.value ? ServoUtils.dangerMaxAngle : ServoUtils.maxAngle;
 
     useEffect(() {
@@ -105,9 +107,9 @@ class SensorServoScreen extends HookConsumerWidget {
                         bottom: dangerMode.value ? -60 : -180,
                         child: SleekCircularSlider(
                           key: ValueKey(dangerMode.value),
-                          min: ServoUtils.minAngle,
+                          min: currentMin,
                           max: currentMax,
-                          initialValue: localAngle.value.clamp(ServoUtils.minAngle, currentMax),
+                          initialValue: localAngle.value.clamp(currentMin, currentMax),
                           onChange: onSliderChange,
                           onChangeEnd: onSliderChangeEnd,
                           appearance: CircularSliderAppearance(
@@ -137,7 +139,7 @@ class SensorServoScreen extends HookConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.bold,
-                                    color: dangerMode.value && value > 180 ? Colors.red : null,
+                                    color: dangerMode.value && (value > 180 || value < 0) ? Colors.red : null,
                                   ),
                                 ),
                                 Text(
@@ -196,9 +198,12 @@ class SensorServoScreen extends HookConsumerWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         dangerMode.value = !dangerMode.value;
-                        if (!dangerMode.value && localAngle.value > ServoUtils.maxAngle) {
-                          localAngle.value = ServoUtils.maxAngle;
-                          setServoPosition(ServoUtils.maxAngle);
+                        if (!dangerMode.value) {
+                          final clamped = localAngle.value.clamp(ServoUtils.minAngle, ServoUtils.maxAngle);
+                          if (clamped != localAngle.value) {
+                            localAngle.value = clamped;
+                            setServoPosition(clamped);
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
