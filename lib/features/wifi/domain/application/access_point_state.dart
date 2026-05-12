@@ -2,27 +2,38 @@ import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
 
 class AccessPointState {
   bool isStarted;
-  late AccessPointConfig? config;
-  late String? errorMessage;
+  AccessPointConfig? config;
+  String? errorMessage;
+  String? ipAddress;
   bool isLoading;
+
+  static const Object _unset = Object();
 
   AccessPointState({
     this.isStarted = false,
     this.config,
     this.errorMessage,
+    this.ipAddress,
     this.isLoading = false,
   });
 
   AccessPointState copyWith({
     bool? isStarted,
-    AccessPointConfig? config,
-    String? errorMessage,
+    Object? config = _unset,
+    Object? errorMessage = _unset,
+    Object? ipAddress = _unset,
     bool? isLoading,
   }) {
     return AccessPointState(
       isStarted: isStarted ?? this.isStarted,
-      config: config ?? this.config,
-      errorMessage: errorMessage ?? this.errorMessage,
+      config: identical(config, _unset)
+          ? this.config
+          : config as AccessPointConfig?,
+      errorMessage: identical(errorMessage, _unset)
+          ? this.errorMessage
+          : errorMessage as String?,
+      ipAddress:
+          identical(ipAddress, _unset) ? this.ipAddress : ipAddress as String?,
       isLoading: isLoading ?? this.isLoading,
     );
   }

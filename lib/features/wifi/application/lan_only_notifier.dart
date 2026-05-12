@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:stpvelox/core/di/injection.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 import 'package:stpvelox/features/wifi/domain/application/lan_only_state.dart';
@@ -29,7 +28,8 @@ class LanOnlyNotifier extends Notifier<LanOnlyState> with HasLogger {
     log.info('Starting LAN cable monitoring');
 
     // Check cable status every 3 seconds
-    _cableMonitorTimer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+    _cableMonitorTimer =
+        Timer.periodic(const Duration(seconds: 3), (timer) async {
       await _checkCableStatus();
     });
   }
@@ -56,7 +56,8 @@ class LanOnlyNotifier extends Notifier<LanOnlyState> with HasLogger {
 
       if (!isCableConnected && state.isCableConnected) {
         // Cable was just disconnected
-        log.warning('LAN cable disconnected, triggering automatic switch to client mode');
+        log.warning(
+            'LAN cable disconnected, triggering automatic switch to client mode');
         state = state.copyWith(isCableConnected: false);
 
         // Notify that cable was disconnected - the network mode notifier will handle the switch
@@ -88,12 +89,12 @@ class LanOnlyNotifier extends Notifier<LanOnlyState> with HasLogger {
 
       if (isActive) {
         final deviceInfo = await _repository.getDeviceInfo();
-        final macAddress = await ref.read(macAddressProvider.future);
         state = state.copyWith(
           isActive: isActive,
-          isCableConnected: isCableConnected,
-          ipAddress: deviceInfo.ipAddress,
-          macAddress: macAddress,
+          isCableConnected:
+              deviceInfo.ethernetCableConnected || isCableConnected,
+          ipAddress: deviceInfo.ethernetIpAddress ?? deviceInfo.ipAddress,
+          macAddress: deviceInfo.ethernetMacAddress ?? deviceInfo.macAddress,
           isLoading: false,
           errorMessage: null,
         );
@@ -122,11 +123,13 @@ class LanOnlyNotifier extends Notifier<LanOnlyState> with HasLogger {
 
       if (!isCableConnected) {
         state = state.copyWith(
-          errorMessage: 'No ethernet cable detected. Please connect a LAN cable before enabling LAN only mode.',
+          errorMessage:
+              'No ethernet cable detected. Please connect a LAN cable before enabling LAN only mode.',
           isLoading: false,
           isCableConnected: false,
         );
-        log.warning('Attempted to enable LAN only mode without cable connected');
+        log.warning(
+            'Attempted to enable LAN only mode without cable connected');
         return;
       }
 
@@ -171,4 +174,3 @@ class LanOnlyNotifier extends Notifier<LanOnlyState> with HasLogger {
     }
   }
 }
-

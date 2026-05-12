@@ -37,7 +37,8 @@ class WifiClientNotifier extends Notifier<WifiClientState> {
     }
   }
 
-  Future<void> connectToNetwork(String ssid, WifiEncryptionType encryptionType, WifiCredentials credentials) async {
+  Future<void> connectToNetwork(String ssid, WifiEncryptionType encryptionType,
+      WifiCredentials credentials) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       await _connectToWifi(ssid, encryptionType, credentials);
@@ -82,11 +83,16 @@ class WifiClientNotifier extends Notifier<WifiClientState> {
   }
 
   Future<void> loadDeviceInfo() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final deviceInfo = await _getDeviceInfo();
-      state = state.copyWith(deviceInfo: deviceInfo);
+      state = state.copyWith(
+        isLoading: false,
+        deviceInfo: deviceInfo,
+        errorMessage: null,
+      );
     } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
-import 'package:stpvelox/features/wifi/domain/application/wifi_client_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_credentials.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_encryption_type.dart';
 
@@ -9,7 +8,8 @@ class WifiManualConnectForm extends ConsumerStatefulWidget {
   const WifiManualConnectForm({super.key});
 
   @override
-  ConsumerState<WifiManualConnectForm> createState() => _WifiManualConnectFormState();
+  ConsumerState<WifiManualConnectForm> createState() =>
+      _WifiManualConnectFormState();
 }
 
 class _WifiManualConnectFormState extends ConsumerState<WifiManualConnectForm> {

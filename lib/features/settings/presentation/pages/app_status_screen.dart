@@ -7,7 +7,7 @@ import 'package:stpvelox/core/widgets/top_bar.dart';
 const _serverUrl = 'http://localhost:8421';
 
 // Injected at build time via --dart-define=APP_VERSION=x.y.z, falls back to pubspec value.
-const _botuiVersion = String.fromEnvironment('APP_VERSION', defaultValue: '1.0.0');
+const _uiVersion = String.fromEnvironment('APP_VERSION', defaultValue: '1.0.0');
 
 class AppStatusScreen extends StatefulWidget {
   const AppStatusScreen({super.key});
@@ -22,7 +22,7 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
   bool _loading = true;
 
   static const _componentOrder = [
-    ('botui', 'botui', Icons.phone_android),
+    ('ui', 'ui', Icons.phone_android),
     ('raccoon-cli', 'raccoon-cli', Icons.terminal),
     ('raccoon-lib', 'raccoon-lib', Icons.library_books),
     ('raccoon-transport', 'raccoon-transport', Icons.swap_horiz),
@@ -53,11 +53,10 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(body) as Map<String, dynamic>;
         final versions = <String, String?>{
-          for (final e in data.entries)
-            e.key: e.value as String?,
+          for (final e in data.entries) e.key: e.value as String?,
         };
-        // botui version is known locally — override what the server reports
-        versions['botui'] = _botuiVersion;
+        // ui version is known locally — override what the server reports
+        versions['ui'] = _uiVersion;
         setState(() {
           _versions = versions;
           _loading = false;
@@ -69,9 +68,9 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
         });
       }
     } catch (e) {
-      // Server unreachable — still show botui version locally
+      // Server unreachable — still show ui version locally
       setState(() {
-        _versions = {'botui': _botuiVersion};
+        _versions = {'ui': _uiVersion};
         _error = 'raccoon-server not reachable';
         _loading = false;
       });
@@ -89,7 +88,8 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
               ? const SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
                 )
               : const Icon(Icons.refresh, color: Colors.white),
           iconSize: 32,
@@ -111,14 +111,16 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
                           const SizedBox(width: 8),
                           Text(
                             _error!,
-                            style: const TextStyle(color: Colors.orange, fontSize: 13),
+                            style: const TextStyle(
+                                color: Colors.orange, fontSize: 13),
                           ),
                         ],
                       ),
                     ),
                   Expanded(
                     child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       itemCount: _componentOrder.length,
                       separatorBuilder: (_, __) =>
                           Divider(color: Colors.grey[800], height: 1),

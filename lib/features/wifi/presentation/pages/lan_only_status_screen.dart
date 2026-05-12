@@ -43,20 +43,40 @@ class _LanOnlyStatusScreenState extends ConsumerState<LanOnlyStatusScreen> {
                   if (lanState.errorMessage != null) ...[
                     const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.red[900],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red[400]!, width: 1),
+                        color: const Color(0xFFFFE3E0),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFD93025),
+                          width: 2,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x332B0D0A),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.error, color: Colors.red),
+                          const Icon(
+                            Icons.error_rounded,
+                            color: Color(0xFFD93025),
+                            size: 24,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               lanState.errorMessage!,
-                              style: const TextStyle(color: Colors.white),
+                              style: const TextStyle(
+                                color: Color(0xFF5F1A16),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                height: 1.35,
+                              ),
                             ),
                           ),
                         ],
@@ -69,4 +89,3 @@ class _LanOnlyStatusScreenState extends ConsumerState<LanOnlyStatusScreen> {
     );
   }
 }
-

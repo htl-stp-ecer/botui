@@ -34,6 +34,7 @@ import 'package:stpvelox/features/settings/presentation/pages/app_status_screen.
 
 // WiFi
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_home_screen.dart';
+import 'package:stpvelox/features/wifi/presentation/pages/wifi_menu_screen.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_scan_list_screen.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_detail_screen.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_manual_connect_screen.dart';
@@ -41,6 +42,7 @@ import 'package:stpvelox/features/wifi/presentation/pages/wifi_enterprise_creden
 import 'package:stpvelox/features/wifi/presentation/pages/device_info_screen.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/access_point_status_screen.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/lan_only_status_screen.dart';
+import 'package:stpvelox/features/wifi/presentation/pages/wifi_channel_scan_screen.dart';
 import 'package:stpvelox/features/wifi/domain/presentation/screens/saved_networks_screen.dart';
 import 'package:stpvelox/features/wifi/domain/presentation/screens/access_point_config_screen.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_network.dart';
@@ -49,7 +51,8 @@ import 'package:stpvelox/features/wifi/domain/enities/wifi_network.dart';
 import 'package:stpvelox/features/dynamic_ui/presentation/dynamic_ui_screen.dart';
 
 // Camera
-import 'package:stpvelox/features/camera/presentation/pages/camera_viewer_screen.dart' show CameraViewerScreen;
+import 'package:stpvelox/features/camera/presentation/pages/camera_viewer_screen.dart'
+    show CameraViewerScreen;
 
 // Other
 import 'package:stpvelox/presentation/screens/robot_face_screen.dart';
@@ -91,6 +94,7 @@ abstract class AppRoutes {
 
   // WiFi
   static const wifi = '/wifi';
+  static const wifiManage = '/wifi/manage';
   static const wifiScan = '/wifi/scan';
   static const wifiDetail = '/wifi/detail';
   static const wifiManualConnect = '/wifi/manual-connect';
@@ -98,6 +102,7 @@ abstract class AppRoutes {
   static const wifiSavedNetworks = '/wifi/saved';
   static const wifiAccessPointConfig = '/wifi/ap-config';
   static const wifiAccessPointStatus = '/wifi/ap-status';
+  static const wifiChannelScan = '/wifi/channel-scan';
   static const wifiLanStatus = '/wifi/lan-status';
   static const wifiDeviceInfo = '/wifi/device-info';
 
@@ -269,6 +274,11 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: AppRoutes.wifi,
         name: 'wifi',
+        builder: (context, state) => const WifiMenuScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.wifiManage,
+        name: 'wifiManage',
         builder: (context, state) => const WifiHomeScreen(),
       ),
       GoRoute(
@@ -311,6 +321,11 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.wifiAccessPointStatus,
         name: 'wifiAccessPointStatus',
         builder: (context, state) => const AccessPointStatusScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.wifiChannelScan,
+        name: 'wifiChannelScan',
+        builder: (context, state) => const WifiChannelScanScreen(),
       ),
       GoRoute(
         path: AppRoutes.wifiLanStatus,
