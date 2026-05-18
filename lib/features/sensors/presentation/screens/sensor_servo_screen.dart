@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sleek_circular_slider/sleek_circular_slider.dart';
 import 'package:stpvelox/core/lcm/domain/providers.dart';
+import 'package:stpvelox/core/service/sensors/servo_command_sensor.dart';
 import 'package:stpvelox/core/service/sensors/servo_position_sensor.dart';
 import 'package:stpvelox/core/service/sensors/servo_sensor.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
@@ -34,11 +35,13 @@ class SensorServoScreen extends HookConsumerWidget {
     final lcmService = ref.watch(lcmServiceProvider);
     final servoPosition = ref.watch(servoPositionSensorProvider(port));
     final servoMode = ref.watch(servoModeSensorProvider(port));
+    final externalCommand = ref.watch(servoCommandSensorProvider(port));
 
     final isDragging = useState<bool>(false);
     final dangerMode = useState<bool>(false);
     final localAngle = useState<double>(servoPosition ?? 0.0);
     final mountedSlider = useState<bool>(false);
+    final lastManualMove = useRef<DateTime?>(null);
     final currentMin = dangerMode.value ? ServoUtils.dangerMinAngle : ServoUtils.minAngle;
     final currentMax = dangerMode.value ? ServoUtils.dangerMaxAngle : ServoUtils.maxAngle;
 
@@ -50,11 +53,25 @@ class SensorServoScreen extends HookConsumerWidget {
     }, []);
 
     useEffect(() {
-      if (!isDragging.value && servoPosition != null) {
+      if (servoPosition == null || isDragging.value) return null;
+      final last = lastManualMove.value;
+      final cooldownExpired = last == null ||
+          DateTime.now().difference(last) > const Duration(milliseconds: 1500);
+      if (cooldownExpired) {
         localAngle.value = servoPosition;
       }
       return null;
     }, [servoPosition]);
+
+    useEffect(() {
+      if (!isDragging.value && externalCommand != null) {
+        localAngle.value = externalCommand.clamp(
+          dangerMode.value ? ServoUtils.dangerMinAngle : ServoUtils.minAngle,
+          dangerMode.value ? ServoUtils.dangerMaxAngle : ServoUtils.maxAngle,
+        );
+      }
+      return null;
+    }, [externalCommand]);
 
     const reliable = PublishOptions(reliable: true);
 
@@ -79,6 +96,7 @@ class SensorServoScreen extends HookConsumerWidget {
 
     void onSliderChange(double value) {
       isDragging.value = true;
+      lastManualMove.value = DateTime.now();
       localAngle.value = value;
       setServoPosition(value);
     }
@@ -150,7 +168,24 @@ class SensorServoScreen extends HookConsumerWidget {
                                     color: dangerMode.value ? Colors.red : null,
                                   ),
                                 ),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 12),
+                                if (externalCommand != null)
+                                  Text(
+                                    'CMD ${externalCommand.toStringAsFixed(1)}°',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.blue[300],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                Text(
+                                  'ACT ${servoPosition?.toStringAsFixed(1) ?? "--"}°',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
                                 Text(
                                   'Mode: ${servoMode?.name ?? "N/A"}',
                                   style: const TextStyle(
