@@ -63,18 +63,21 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
 
     showDialog<void>(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
       builder: (ctx) {
-        return AlertDialog(
-          icon: const Icon(Icons.error_outline, color: Colors.redAccent, size: 36),
-          title: const Text('Error'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Dismiss'),
-              onPressed: () => Navigator.of(ctx).pop(),
-            ),
-          ],
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            icon: const Icon(Icons.error_outline, color: Colors.redAccent, size: 36),
+            title: const Text('Error'),
+            content: Text(message),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Acknowledge'),
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ],
+          ),
         );
       },
     ).whenComplete(() {
