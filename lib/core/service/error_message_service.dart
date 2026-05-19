@@ -34,7 +34,11 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
   void _startSubscription() {
     final lcm = ref.read(lcmServiceProvider);
     _subscription = lcm
-        .subscribeAs<StringT>(Channels.errorMessages, StringT.decode)
+        .subscribeAs<StringT>(
+          Channels.errorMessages,
+          StringT.decode,
+          options: const SubscribeOptions(requestRetained: true),
+        )
         .listen(
       (decoded) {
         final message = decoded.value.value;
