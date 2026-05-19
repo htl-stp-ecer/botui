@@ -10,6 +10,7 @@ import 'package:stpvelox/core/logging/logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/error_message_service.dart';
 import 'package:stpvelox/core/service/sensors/battery_voltage_sensor.dart';
+import 'package:stpvelox/core/service/shutdown_status_service.dart';
 import 'package:stpvelox/features/settings/domain/usecases/reboot.dart';
 import 'package:stpvelox/core/service/button10_monitor_widget.dart';
 import 'package:stpvelox/core/service/sensors/imu_accuracy_sensor.dart';
@@ -210,11 +211,86 @@ class _AppServicesStarter extends ConsumerWidget {
     final isLow = voltage != null && voltage > 0 && voltage < 5.5;
     final showWarning = isLow && !ignored;
 
+    final shutdownStatus = ref.watch(shutdownStatusProvider);
+    final showWatchdog =
+        shutdownStatus.triggeredByWatchdog && shutdownStatus.isAnyShutdown;
+
     return Stack(
       children: [
         child,
         if (showWarning) _LowBatteryOverlay(voltage: voltage),
+        if (showWatchdog) const _WatchdogShutdownOverlay(),
       ],
+    );
+  }
+}
+
+class _WatchdogShutdownOverlay extends ConsumerWidget {
+  const _WatchdogShutdownOverlay();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ColoredBox(
+      color: Colors.black87,
+      child: Center(
+        child: Material(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.shield_moon_rounded,
+                  color: Colors.orange,
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Hardware Watchdog Tripped',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No heartbeat from the user program — motors and servos '
+                  'have been shut off as a safety measure.\n'
+                  'Heartbeats may have resumed by now. Recovering will '
+                  're-enable outputs and re-arm the watchdog.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 56,
+                  width: 220,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await ref
+                          .read(shutdownStatusServiceProvider.notifier)
+                          .setShutdown(false);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Recover',
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

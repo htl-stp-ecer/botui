@@ -14,12 +14,17 @@ part 'shutdown_status_service.g.dart';
 class ShutdownFlags {
   static const int servoShutdown = 0x01; // bit 0
   static const int motorShutdown = 0x02; // bit 1
+  static const int watchdogTriggered = 0x04; // bit 2 — source = heartbeat watchdog
 
   /// Check if servo shutdown is enabled
   static bool isServoShutdown(int flags) => (flags & servoShutdown) != 0;
 
   /// Check if motor shutdown is enabled
   static bool isMotorShutdown(int flags) => (flags & motorShutdown) != 0;
+
+  /// Check if the shutdown was triggered by the heartbeat watchdog
+  /// (else: user-initiated via SHUTDOWN_CMD).
+  static bool isWatchdogTriggered(int flags) => (flags & watchdogTriggered) != 0;
 
   /// Check if any shutdown is enabled
   static bool isAnyShutdown(int flags) => flags != 0;
@@ -29,10 +34,12 @@ class ShutdownFlags {
 class ShutdownStatus {
   final bool servoShutdown;
   final bool motorShutdown;
+  final bool triggeredByWatchdog;
 
   const ShutdownStatus({
     this.servoShutdown = false,
     this.motorShutdown = false,
+    this.triggeredByWatchdog = false,
   });
 
   bool get isAnyShutdown => servoShutdown || motorShutdown;
@@ -40,16 +47,19 @@ class ShutdownStatus {
   ShutdownStatus copyWith({
     bool? servoShutdown,
     bool? motorShutdown,
+    bool? triggeredByWatchdog,
   }) {
     return ShutdownStatus(
       servoShutdown: servoShutdown ?? this.servoShutdown,
       motorShutdown: motorShutdown ?? this.motorShutdown,
+      triggeredByWatchdog: triggeredByWatchdog ?? this.triggeredByWatchdog,
     );
   }
 
   @override
   String toString() =>
-      'ShutdownStatus(servo: $servoShutdown, motor: $motorShutdown)';
+      'ShutdownStatus(servo: $servoShutdown, motor: $motorShutdown, '
+      'watchdog: $triggeredByWatchdog)';
 
   @override
   bool operator ==(Object other) =>
@@ -57,10 +67,14 @@ class ShutdownStatus {
       other is ShutdownStatus &&
           runtimeType == other.runtimeType &&
           servoShutdown == other.servoShutdown &&
-          motorShutdown == other.motorShutdown;
+          motorShutdown == other.motorShutdown &&
+          triggeredByWatchdog == other.triggeredByWatchdog;
 
   @override
-  int get hashCode => servoShutdown.hashCode ^ motorShutdown.hashCode;
+  int get hashCode =>
+      servoShutdown.hashCode ^
+      motorShutdown.hashCode ^
+      triggeredByWatchdog.hashCode;
 }
 
 /// Helper function to get shutdown status
@@ -92,6 +106,7 @@ class ShutdownStatusService extends _$ShutdownStatusService with HasLogger {
         _currentStatus = ShutdownStatus(
           servoShutdown: ShutdownFlags.isServoShutdown(flags),
           motorShutdown: ShutdownFlags.isMotorShutdown(flags),
+          triggeredByWatchdog: ShutdownFlags.isWatchdogTriggered(flags),
         );
         log.info('Shutdown status updated: $_currentStatus');
         state = _currentStatus;
