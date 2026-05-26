@@ -101,7 +101,7 @@ final class CamFrameStreamProvider
   }
 }
 
-String _$camFrameStreamHash() => r'918b58c17bedf486ab24b1c470ba9a5bcd7571d7';
+String _$camFrameStreamHash() => r'e6efb64137fe394b9a73a788033f94236b9a3963';
 
 /// Provider that streams camera frames from LCM (active only when viewer is open)
 
