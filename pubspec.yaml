@@ -30,6 +30,10 @@ dependencies:
   logging: ^1.3.0
   raccoon_transport:
     path: packages/raccoon-transport/dart
+  rxdart: ^0.28.0
+  iceoryx2_transport:
+    path: packages/iceoryx2_transport
+  ffi: ^2.1.0
 
 
 dev_dependencies:

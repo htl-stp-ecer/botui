@@ -22,3 +22,18 @@ if [ -n "$FVM_VERSION" ] && [ -d "$FVM_CACHE/$FVM_VERSION/bin" ]; then
 fi
 $DART pub global activate flutterpi_tool
 flutterpi_tool build --arch=arm64 --cpu=pi3 --release
+
+# Copy iceoryx2 native libraries into the build output
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_DIR="$SCRIPT_DIR/build/flutter-pi/pi3-64"
+SO_DIR="$SCRIPT_DIR/packages/iceoryx2_transport/native"
+if [ -d "$BUILD_DIR" ]; then
+  for so in libiox2_bridge.so libiceoryx2_ffi_c.so; do
+    if [ -f "$SO_DIR/$so" ]; then
+      cp "$SO_DIR/$so" "$BUILD_DIR/"
+      echo "Copied $so to build output"
+    else
+      echo "WARNING: $so not found in $SO_DIR — the app will fail at runtime without it"
+    fi
+  done
+fi

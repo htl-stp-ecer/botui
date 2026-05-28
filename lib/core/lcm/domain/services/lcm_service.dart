@@ -1,25 +1,35 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:raccoon_transport/raccoon_transport.dart';
+import 'package:iceoryx2_transport/iceoryx2_transport.dart';
+import 'package:raccoon_transport/raccoon_transport.dart'
+    show LcmBuffer, LcmMessage, PublishOptions, SubscribeOptions;
+import 'package:rxdart/rxdart.dart';
 import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 
-/// LCM Service - uses RaccoonTransport for retain + reliable delivery
+/// Default throttle window for UI-bound sensor streams. ~60 Hz matches the
+/// display refresh — emitting faster only burns CPU without ever being seen.
+const Duration kUiSensorSampleRate = Duration(milliseconds: 16);
+
+/// Transport service using iceoryx2 shared-memory IPC.
+///
+/// Subscriptions are lazy: the underlying transport subscription is only
+/// established while at least one listener is attached to the returned
+/// broadcast stream. When the last listener cancels, the transport
+/// subscription is torn down so packets stop being dispatched for channels
+/// nobody is watching.
 class LcmService with HasLogger {
-  RaccoonTransport? _transport;
+  Iceoryx2Transport? _transport;
   Completer<void>? _initCompleter;
   final Map<String, StreamController<LcmDecodedRaw>> _controllers = {};
-  final Map<String, LcmSubscription> _subscriptions = {};
+  final Map<String, TransportSubscription> _subscriptions = {};
   final Map<String, SubscribeOptions> _subscribeOptions = {};
 
-  /// Check if initialized
   bool get isInitialized => _transport != null;
 
-  /// Future that completes when initialized
   Future<void> get ready => _initCompleter?.future ?? Future.value();
 
-  /// Initialize transport connection
   Future<void> init({String? provider}) async {
     if (_transport != null) {
       log.warning('Transport already initialized');
@@ -27,15 +37,16 @@ class LcmService with HasLogger {
     }
 
     if (_initCompleter != null) {
-      // Already initializing, wait for it
       return _initCompleter!.future;
     }
 
     _initCompleter = Completer<void>();
 
     try {
-      _transport = await RaccoonTransport.create(provider);
-      log.info('Transport initialized: ${provider ?? "default"}');
+      final nodeName = provider ?? 'stpvelox';
+      _transport = await Iceoryx2Transport.create(nodeName);
+      _transport!.startSpin(intervalMs: 10);
+      log.info('iceoryx2 transport initialized: $nodeName');
       _initCompleter!.complete();
     } catch (e, st) {
       log.severe('Transport init failed: $e', st);
@@ -45,7 +56,6 @@ class LcmService with HasLogger {
     }
   }
 
-  /// Ensure transport is ready before use
   Future<void> _ensureReady() async {
     if (_transport != null) return;
     if (_initCompleter != null) {
@@ -55,25 +65,22 @@ class LcmService with HasLogger {
     }
   }
 
-  /// Subscribe to raw messages on a channel
   Stream<LcmDecodedRaw> subscribe(String channel,
       {SubscribeOptions options = const SubscribeOptions()}) {
-    // Return existing stream if already subscribed
-    if (_controllers.containsKey(channel)) {
-      return _controllers[channel]!.stream;
+    final existing = _controllers[channel];
+    if (existing != null) {
+      _subscribeOptions[channel] = options;
+      return existing.stream;
     }
 
     _subscribeOptions[channel] = options;
 
-    final controller = StreamController<LcmDecodedRaw>.broadcast(
+    late StreamController<LcmDecodedRaw> controller;
+    controller = StreamController<LcmDecodedRaw>.broadcast(
       onListen: () => _setupSubscription(channel),
+      onCancel: () => _teardownSubscription(channel),
     );
     _controllers[channel] = controller;
-
-    // If already initialized, set up immediately
-    if (_transport != null) {
-      _setupSubscription(channel);
-    }
 
     return controller.stream;
   }
@@ -81,16 +88,14 @@ class LcmService with HasLogger {
   void _setupSubscription(String channel) {
     if (_subscriptions.containsKey(channel)) return;
     if (_transport == null) {
-      // Wait for init and retry
       _initCompleter?.future.then((_) => _setupSubscription(channel));
       return;
     }
 
     final controller = _controllers[channel];
-    if (controller == null) return;
+    if (controller == null || !controller.hasListener) return;
 
-    final options =
-        _subscribeOptions[channel] ?? const SubscribeOptions();
+    final options = _subscribeOptions[channel] ?? const SubscribeOptions();
 
     final sub = _transport!.subscribe(channel, (ch, data) {
       if (!controller.isClosed) {
@@ -100,15 +105,30 @@ class LcmService with HasLogger {
           data: data,
         ));
       }
-    }, options: options);
+    });
     _subscriptions[channel] = sub;
     log.fine('Subscribed to: $channel (retain=${options.requestRetained})');
   }
 
-  /// Subscribe and decode messages to a specific type
+  void _teardownSubscription(String channel) {
+    final controller = _controllers[channel];
+    if (controller != null && controller.hasListener) return;
+
+    final sub = _subscriptions.remove(channel);
+    if (sub != null) {
+      _transport?.unsubscribe(sub);
+      log.fine('Transport subscription released for idle channel: $channel');
+    }
+  }
+
   Stream<LcmDecoded<T>> subscribeAs<T>(String channel, LcmDecoder<T> decode,
-      {SubscribeOptions options = const SubscribeOptions()}) {
-    return subscribe(channel, options: options).map((raw) {
+      {SubscribeOptions options = const SubscribeOptions(),
+      Duration? throttle}) {
+    var raw = subscribe(channel, options: options);
+    if (throttle != null) {
+      raw = raw.throttleTime(throttle, trailing: true);
+    }
+    return raw.map((raw) {
       final buffer = LcmBuffer.fromUint8List(raw.data);
       return LcmDecoded<T>(
         topic: raw.topic,
@@ -119,7 +139,6 @@ class LcmService with HasLogger {
     });
   }
 
-  /// Unsubscribe from a channel
   void unsubscribe(String channel) {
     final sub = _subscriptions.remove(channel);
     if (sub != null) {
@@ -133,21 +152,28 @@ class LcmService with HasLogger {
     log.fine('Unsubscribed from: $channel');
   }
 
-  /// Publish a typed message
   Future<void> publish(String channel, LcmMessage message,
       {PublishOptions options = const PublishOptions()}) async {
     await _ensureReady();
-    _transport!.publishMessage(channel, message, options: options);
+    try {
+      final dyn = message as dynamic;
+      if (dyn.timestamp == 0) {
+        dyn.timestamp = DateTime.now().microsecondsSinceEpoch;
+      }
+    } catch (_) {}
+
+    final buf = LcmBuffer(65536);
+    message.encode(buf);
+    final data = Uint8List.sublistView(buf.uint8List, 0, buf.position);
+    _transport!.publish(channel, data);
   }
 
-  /// Publish raw data
   Future<void> publishRaw(String channel, Uint8List data,
       {PublishOptions options = const PublishOptions()}) async {
     await _ensureReady();
-    _transport!.publish(channel, data, options: options);
+    _transport!.publish(channel, data);
   }
 
-  /// Dispose
   void dispose() {
     for (final controller in _controllers.values) {
       controller.close();

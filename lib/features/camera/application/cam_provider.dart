@@ -10,11 +10,6 @@ import 'package:raccoon_transport/raccoon_transport.dart';
 part 'cam_provider.g.dart';
 
 final _log = getLogger('CameraViewer');
-const _defaultCamFrameProvider = 'udpm://239.255.76.68:7668?ttl=0';
-const _camFrameProvider = String.fromEnvironment(
-  'CAM_FRAME_LCM_PROVIDER',
-  defaultValue: _defaultCamFrameProvider,
-);
 
 /// Wrapper class for camera detection data
 class CamDetectionData {
@@ -77,7 +72,6 @@ class CamDetectionStream extends _$CamDetectionStream {
 class CamFrameStream extends _$CamFrameStream {
   StreamSubscription<LcmDecoded<CamFrameT>>? _subscription;
   CamFrameData? _currentFrame;
-  LcmService? _frameLcm;
   bool _disposed = false;
 
   @override
@@ -90,29 +84,24 @@ class CamFrameStream extends _$CamFrameStream {
   }
 
   void _startSubscription() {
-    _frameLcm = LcmService();
-    _frameLcm!.init(provider: _camFrameProvider).then((_) {
-      if (_disposed) return;
+    final lcm = ref.read(lcmServiceProvider);
 
-      _log.info(
-          'Starting frame subscription to channel: ${Channels.camFrame} on $_camFrameProvider');
-      _subscription = _frameLcm!
-          .subscribeAs<CamFrameT>(Channels.camFrame, CamFrameT.decode)
-          .listen(
-        (decoded) {
-          _log.fine(
-              'Received frame: ${decoded.value.frame_width}x${decoded.value.frame_height}, ${decoded.value.num_detections} detections');
-          _currentFrame = CamFrameData(decoded.value);
-          state = _currentFrame;
-        },
-        onError: (error, stackTrace) {
-          _log.severe('Error in frame subscription: $error', stackTrace);
-        },
-      );
-      _log.info('Frame subscription created successfully');
-    }).catchError((error, stackTrace) {
-      _log.severe('Failed to initialize frame transport: $error', stackTrace);
-    });
+    _log.info(
+        'Starting frame subscription to channel: ${Channels.camFrame}');
+    _subscription = lcm
+        .subscribeAs<CamFrameT>(Channels.camFrame, CamFrameT.decode)
+        .listen(
+      (decoded) {
+        _log.fine(
+            'Received frame: ${decoded.value.frame_width}x${decoded.value.frame_height}, ${decoded.value.num_detections} detections');
+        _currentFrame = CamFrameData(decoded.value);
+        state = _currentFrame;
+      },
+      onError: (error, stackTrace) {
+        _log.severe('Error in frame subscription: $error', stackTrace);
+      },
+    );
+    _log.info('Frame subscription created successfully');
   }
 
   void _dispose() {
@@ -120,8 +109,6 @@ class CamFrameStream extends _$CamFrameStream {
     _log.info('Disposing CamFrameStream subscription');
     _subscription?.cancel();
     _subscription = null;
-    _frameLcm?.dispose();
-    _frameLcm = null;
   }
 }
 
