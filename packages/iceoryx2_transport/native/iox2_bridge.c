@@ -65,6 +65,20 @@ static iox2_port_factory_pub_sub_h create_service(
     iox2_service_builder_pub_sub_set_subscriber_max_buffer_size(
         &pub_sub_builder, 64);
 
+    // Payload type MUST match the publisher's service definition exactly —
+    // iceoryx2 incorporates message_type_details into the service hash, so a
+    // mismatch silently creates a SECOND service with the same name. The
+    // raccoon backend publishes every channel as `Dynamic u8` (LCM-encoded
+    // bytes as a slice of u8), so we declare the same here.
+    const char* payload_type_name = "u8";
+    ret = iox2_service_builder_pub_sub_set_payload_type_details(
+        &pub_sub_builder,
+        iox2_type_variant_e_DYNAMIC,
+        payload_type_name, strlen(payload_type_name),
+        1,   // sizeof(u8)
+        1);  // alignof(u8)
+    if (ret != IOX2_OK) return NULL;
+
     iox2_port_factory_pub_sub_h factory = NULL;
     ret = iox2_service_builder_pub_sub_open_or_create(
         pub_sub_builder, NULL, &factory);
