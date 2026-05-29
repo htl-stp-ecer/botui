@@ -3,10 +3,15 @@ Description=Flutter UI with flutter-pi
 After=network.target
 
 [Service]
+# Stale /dev/shm/iox2_* segments from prior crashes leave service definitions
+# that the new flutter run can't reopen — `open_or_create` returns -2 and
+# every Iox2Subscriber throws, leaving the UI rendered-but-frozen. Wipe them
+# before each start so the node always boots into a clean shared-memory state.
+ExecStartPre=/usr/bin/sh -c 'rm -f /dev/shm/iox2_* ; rm -rf /tmp/iceoryx2'
 ExecStart=flutter-pi -r 0 --videomode 800x480 --release /home/pi/stp-velox/
 WorkingDirectory=/home/pi
-User=pi
-Group=pi
+User=root
+Group=root
 Restart=always
 RestartSec=5
 StandardOutput=tty

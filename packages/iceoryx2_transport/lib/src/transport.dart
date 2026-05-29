@@ -39,7 +39,7 @@ class Iceoryx2Transport {
   TransportSubscription subscribe(String channel, MessageHandler handler) {
     final entry = _subscribers.putIfAbsent(channel, () {
       final sub = Iox2Subscriber(_node, channel);
-      return _SubEntry(sub);
+      return _SubEntry(sub, channel);
     });
 
     entry._addHandler(handler);
@@ -110,7 +110,7 @@ class _SubEntry {
   final String _channel;
   final List<MessageHandler> _handlers = [];
 
-  _SubEntry(this.sub) : _channel = '';
+  _SubEntry(this.sub, this._channel);
 
   void _addHandler(MessageHandler handler) {
     _handlers.add(handler);

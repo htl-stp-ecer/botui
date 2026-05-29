@@ -91,10 +91,10 @@ final _SubCreateDart _subCreate = _lib
     .lookupFunction<_SubCreateNative, _SubCreateDart>('iox2_bridge_subscriber_create');
 
 final _SubReceiveDart _subReceive = _lib
-    .lookupFunction<_SubReceiveNative, _SubReceiveDart>('iox2_subscriber_receive');
+    .lookupFunction<_SubReceiveNative, _SubReceiveDart>('iox2_bridge_subscriber_receive');
 
 final _SubDestroyDart _subDestroy = _lib
-    .lookupFunction<_SubDestroyNative, _SubDestroyDart>('iox2_subscriber_destroy');
+    .lookupFunction<_SubDestroyNative, _SubDestroyDart>('iox2_bridge_subscriber_destroy');
 
 class Iox2Node {
   final Pointer<Void> _handle;
