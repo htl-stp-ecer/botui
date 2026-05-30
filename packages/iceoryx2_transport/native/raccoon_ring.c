@@ -1,5 +1,7 @@
 // raccoon_ring.c — implementation. See raccoon_ring.h for design rationale.
 
+// Need _POSIX_C_SOURCE for ftruncate visibility under -std=c11.
+#define _POSIX_C_SOURCE 200809L
 #include "raccoon_ring.h"
 
 #include <errno.h>

@@ -1,26 +1,20 @@
-// iox2_bridge.cpp — thin C ABI shim around raccoon::Transport for Dart FFI.
+// iox2_bridge.cpp — Dart FFI shim around raccoon_ring (the SHM ring
+// buffer that replaced iceoryx2 in raccoon-transport).
 //
-// Background: the previous pure-C bridge (iox2_bridge.c) talked directly to
-// the iceoryx2 C API. On the deployed Pi every subscribe came back with
-// OpenIsMarkedForDestruction (error 19) even though python+raccoon-lib's
-// C++ Transport could subscribe to the same channels fine. We never tracked
-// down the exact iox2 C-vs-C++ ABI discrepancy that made the bridge see
-// tombstones the C++ wrapper transparently recovers from. Since the cli on
-// Pi proves raccoon::Transport works against the live reader, just reuse
-// that implementation here.
+// History: this was originally a thin pure-C wrapper around the iceoryx2
+// C API; then a C++ wrapper around raccoon::Transport (which itself
+// wrapped iceoryx2); now a direct wrapper around raccoon_ring. Each
+// step gained reliability — the iceoryx2 backend reproducibly broke
+// new-node creation on the Pi once the reader had ~100 publishers open,
+// and frames sporadically didn't reach subscribers. raccoon_ring is a
+// fileless-per-channel SHM ring buffer: no daemon, no service
+// descriptors, no state machine to wedge.
 //
-// Threading model: subscribeRaw callbacks fire from raccoon::Transport's
-// spin loop, which we own. Each subscribe handler pushes the bytes onto a
-// per-channel mutex-protected vector. Dart polls via subscriber_receive at
-// its 10 ms spin tick and dequeues a single frame per call (matches the
-// previous per-frame iox2 receive semantics).
-//
-// Public C ABI exactly matches the previous bridge (return codes, struct
-// pointers, fn names) so iox2_bridge_ffi.dart needs no changes.
+// We deliberately keep the exact same iox2_bridge_* C ABI that
+// iox2_bridge_ffi.dart expects — no Dart-side changes needed.
 
 #include "iox2_bridge.h"
-
-#include "raccoon/Transport.h"
+#include "raccoon_ring.h"
 
 #include <atomic>
 #include <chrono>
@@ -37,8 +31,6 @@
 
 namespace {
 
-// One-line stderr log helper. Keeps prefix consistent so users grep
-// "iox2_bridge" in flutter-pi journal output the same as before.
 void log_line(const char* fmt, ...) {
     char buf[512];
     va_list ap;
@@ -49,43 +41,87 @@ void log_line(const char* fmt, ...) {
     fflush(stderr);
 }
 
-struct SubscriberState {
+struct SubChannelState {
+    rrb_reader_t* reader = nullptr;
     std::mutex mtx;
-    // Bounded queue — drop oldest on overflow so a slow Dart consumer
-    // doesn't grow memory unboundedly. 64 matches the iox2 subscriber
-    // buffer the previous bridge requested; same Hz tolerance for the UI.
     std::deque<std::vector<uint8_t>> queue;
     static constexpr size_t kMaxQueue = 64;
 };
 
 struct BridgeNode {
-    // shared_ptr so subscribers/publishers can hold a back-ref without
-    // worrying about the node going away under them. We control the only
-    // shared_ptr from C-land (the Dart Iox2Node) and drop it on destroy.
-    std::shared_ptr<raccoon::Transport> transport;
+    // Background thread polls every subscribed reader and pushes frames
+    // into per-channel queues. Dart's subscriber_receive then drains the
+    // queue without blocking on the actual SHM read.
+    std::thread poll_thread;
+    std::atomic<bool> stop{false};
 
-    // Background thread that drives Transport::spinOnce so subscribe
-    // callbacks fire while Dart is between its own poll ticks.
-    std::thread spin_thread;
-    std::atomic<bool> stop_spin{false};
-
-    // We keep per-channel SubscriberState refs alive on the node so the
-    // Transport callback lambda can capture them safely even if the Dart
-    // subscriber handle outlives any single call. Indexed by channel name.
+    // Channel name → shared subscriber state. Multiple Iox2BridgeSubscriber
+    // handles on the same channel reuse the same state + queue, matching
+    // the previous bridge's semantics. Held under subs_mtx for inserts
+    // and lookups; the poll thread takes it briefly to snapshot the
+    // current channel set.
     std::mutex subs_mtx;
-    std::unordered_map<std::string, std::shared_ptr<SubscriberState>> subs;
+    std::unordered_map<std::string, std::shared_ptr<SubChannelState>> subs;
+
+    // Per-channel publisher writers. Lazy-create on first publish, then
+    // reused (raccoon_ring is single-producer per channel, so multiple
+    // Dart Iox2BridgePublisher handles on the same channel must share
+    // one rrb_writer).
+    std::mutex pubs_mtx;
+    std::unordered_map<std::string, rrb_writer_t*> pubs;
 };
 
 struct BridgePublisher {
-    std::shared_ptr<raccoon::Transport> transport;
+    BridgeNode* node;
     std::string channel;
 };
 
 struct BridgeSubscriber {
-    std::shared_ptr<raccoon::Transport> transport;
+    BridgeNode* node;
     std::string channel;
-    std::shared_ptr<SubscriberState> state;
+    std::shared_ptr<SubChannelState> state;
 };
+
+// Background poll loop: scratch buffer big enough for any ring writerFor
+// would have sized in raccoon-transport (max 512 KiB for camera frames).
+void poll_loop(BridgeNode* node) {
+    std::vector<uint8_t> scratch(512u * 1024u);
+    while (!node->stop.load(std::memory_order_relaxed)) {
+        // Snapshot the channel set so we don't hold subs_mtx during the
+        // (potentially blocking) reads.
+        std::vector<std::shared_ptr<SubChannelState>> states;
+        {
+            std::lock_guard<std::mutex> lk(node->subs_mtx);
+            states.reserve(node->subs.size());
+            for (auto& [_, s] : node->subs) states.push_back(s);
+        }
+
+        bool any = false;
+        for (auto& s : states) {
+            for (;;) {
+                size_t out_len = 0;
+                int rc = rrb_reader_recv(s->reader,
+                                         scratch.data(),
+                                         scratch.size(),
+                                         &out_len);
+                if (rc != 0) break;
+                any = true;
+                std::lock_guard<std::mutex> lk(s->mtx);
+                if (s->queue.size() >= SubChannelState::kMaxQueue) {
+                    s->queue.pop_front();
+                }
+                s->queue.emplace_back(scratch.begin(),
+                                      scratch.begin() + out_len);
+            }
+        }
+
+        // Idle sleep when no data — caps poll CPU at ~1 kHz, plenty of
+        // headroom for UI's 30-60 Hz consumption.
+        if (!any) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+}
 
 } // namespace
 
@@ -93,30 +129,16 @@ extern "C" {
 
 int iox2_bridge_node_create(void** out_node, const char* name) {
     if (!out_node || !name) return -1;
-
     try {
-        auto node = std::make_unique<BridgeNode>();
-        node->transport = std::make_shared<raccoon::Transport>(
-            raccoon::Transport::create());
-
-        // Spin daemon: pump callbacks at ~10 ms. raccoon::Transport's
-        // spinOnce is already adaptive (sleeps longer when idle) so this
-        // is safe to leave running.
-        BridgeNode* raw_node = node.get();
-        node->spin_thread = std::thread([raw_node]() {
-            while (!raw_node->stop_spin.load(std::memory_order_relaxed)) {
-                raw_node->transport->spinOnce(10);
-            }
-        });
-
-        log_line("node_create('%s') ok", name);
-        *out_node = node.release();
+        auto* node = new BridgeNode();
+        node->poll_thread = std::thread(poll_loop, node);
+        log_line("node_create('%s') ok (rrb backend)", name);
+        *out_node = node;
         return 0;
     } catch (const std::exception& e) {
         log_line("node_create('%s') threw: %s", name, e.what());
         return -2;
     } catch (...) {
-        log_line("node_create('%s') threw unknown", name);
         return -3;
     }
 }
@@ -124,14 +146,21 @@ int iox2_bridge_node_create(void** out_node, const char* name) {
 void iox2_bridge_node_destroy(void* n) {
     if (!n) return;
     auto* node = static_cast<BridgeNode*>(n);
-    node->stop_spin.store(true, std::memory_order_relaxed);
-    if (node->transport) {
-        // stop() flips the spin loop's internal stop flag too — defensive
-        // in case our atomic check is read after the next iteration starts.
-        node->transport->stop();
+    node->stop.store(true);
+    if (node->poll_thread.joinable()) node->poll_thread.join();
+    {
+        std::lock_guard<std::mutex> lk(node->subs_mtx);
+        for (auto& [_, s] : node->subs) {
+            if (s->reader) rrb_reader_close(s->reader);
+        }
+        node->subs.clear();
     }
-    if (node->spin_thread.joinable()) {
-        node->spin_thread.join();
+    {
+        std::lock_guard<std::mutex> lk(node->pubs_mtx);
+        for (auto& [_, w] : node->pubs) {
+            if (w) rrb_writer_destroy(w);
+        }
+        node->pubs.clear();
     }
     delete node;
 }
@@ -139,15 +168,11 @@ void iox2_bridge_node_destroy(void* n) {
 int iox2_bridge_publisher_create(void* n, const char* channel, void** out_pub) {
     if (!n || !channel || !out_pub) return -1;
     auto* node = static_cast<BridgeNode*>(n);
-
     try {
-        auto pub = std::make_unique<BridgePublisher>();
-        pub->transport = node->transport;
-        pub->channel = channel;
-        *out_pub = pub.release();
+        auto* pub = new BridgePublisher{node, std::string(channel)};
+        *out_pub = pub;
         return 0;
     } catch (...) {
-        log_line("publisher_create('%s') threw", channel);
         return -2;
     }
 }
@@ -155,102 +180,87 @@ int iox2_bridge_publisher_create(void* n, const char* channel, void** out_pub) {
 int iox2_bridge_publisher_send(void* p, const uint8_t* data, size_t len) {
     if (!p || !data || len == 0) return -1;
     auto* pub = static_cast<BridgePublisher*>(p);
-    if (!pub->transport) return -2;
-    try {
-        bool ok = pub->transport->publishRaw(
-            pub->channel, data, static_cast<int>(len));
-        return ok ? 0 : -3;
-    } catch (...) {
-        return -4;
+    rrb_writer_t* w;
+    {
+        std::lock_guard<std::mutex> lk(pub->node->pubs_mtx);
+        auto it = pub->node->pubs.find(pub->channel);
+        if (it == pub->node->pubs.end()) {
+            // Size the ring on first publish: 2× the first payload as
+            // headroom, ~128 KiB total memory budget, ≥4 slots. Matches
+            // the policy in raccoon::Transport::Impl::writerFor so a
+            // bridge-published channel ends up with the same shape a
+            // reader-published one would.
+            size_t want = len * 2;
+            if (want < RRB_DEFAULT_MAX_PAYLOAD) want = RRB_DEFAULT_MAX_PAYLOAD;
+            want = ((want + 255) / 256) * 256;
+            size_t slots = (128u * 1024u) / want;
+            if (slots < 4) slots = 4;
+            if (slots > RRB_DEFAULT_SLOT_COUNT) slots = RRB_DEFAULT_SLOT_COUNT;
+            w = rrb_writer_create(pub->channel.c_str(),
+                                  (uint32_t)slots, (uint32_t)want);
+            if (!w) {
+                log_line("publisher_send: rrb_writer_create('%s') failed",
+                         pub->channel.c_str());
+                return -2;
+            }
+            pub->node->pubs[pub->channel] = w;
+        } else {
+            w = it->second;
+        }
     }
+    int rc = rrb_writer_publish(w, data, len);
+    if (rc != 0) {
+        log_line("publisher_send('%s') rejected %zu-byte payload",
+                 pub->channel.c_str(), len);
+        return -3;
+    }
+    return 0;
 }
 
 void iox2_bridge_publisher_destroy(void* p) {
     if (!p) return;
     delete static_cast<BridgePublisher*>(p);
+    // The underlying rrb_writer stays alive — multiple Dart publishers
+    // can share one writer, and the node teardown is what closes them.
 }
 
 int iox2_bridge_subscriber_create(void* n, const char* channel, void** out_sub) {
     if (!n || !channel || !out_sub) return -1;
     auto* node = static_cast<BridgeNode*>(n);
-
     try {
-        std::string ch = channel;
-
-        // Reuse a single SubscriberState per channel so callers that wrap
-        // the same channel get the same in-flight queue. raccoon::Transport
-        // already coalesces underlying iox2 ports per channel; we mirror
-        // that here to avoid double-buffering.
-        std::shared_ptr<SubscriberState> state;
-        bool already_attached = false;
+        std::shared_ptr<SubChannelState> state;
         {
             std::lock_guard<std::mutex> lk(node->subs_mtx);
-            auto& slot = node->subs[ch];
+            auto& slot = node->subs[channel];
             if (!slot) {
-                slot = std::make_shared<SubscriberState>();
-            } else {
-                already_attached = true;
+                slot = std::make_shared<SubChannelState>();
+                slot->reader = rrb_reader_open(channel);
+                if (!slot->reader) {
+                    node->subs.erase(channel);
+                    log_line("subscriber_create('%s') — rrb_reader_open failed",
+                             channel);
+                    return -2;
+                }
+                log_line("subscriber_create('%s') ok", channel);
             }
             state = slot;
         }
-
-        if (!already_attached) {
-            // request_retained=true matches the previous bridge's default
-            // semantics — UI widgets expect the last value when they first
-            // subscribe (e.g. servo position, motor enable). The reader's
-            // retain machinery will replay it.
-            raccoon::SubscribeOptions options{};
-            options.requestRetained = true;
-            std::weak_ptr<SubscriberState> weak_state = state;
-            bool ok = node->transport->subscribeRaw(
-                ch,
-                [weak_state](const void* data, int data_len) {
-                    auto s = weak_state.lock();
-                    if (!s) return;
-                    std::lock_guard<std::mutex> lk(s->mtx);
-                    if (s->queue.size() >= SubscriberState::kMaxQueue) {
-                        s->queue.pop_front();
-                    }
-                    auto& dest = s->queue.emplace_back();
-                    dest.resize(static_cast<size_t>(data_len));
-                    std::memcpy(dest.data(), data, static_cast<size_t>(data_len));
-                },
-                options);
-            if (!ok) {
-                std::lock_guard<std::mutex> lk(node->subs_mtx);
-                node->subs.erase(ch);
-                log_line("subscriber_create('%s') — subscribeRaw rejected",
-                         ch.c_str());
-                return -2;
-            }
-            log_line("subscriber_create('%s') ok", ch.c_str());
-        } else {
-            log_line("subscriber_create('%s') ok (shared)", ch.c_str());
-        }
-
-        auto sub = std::make_unique<BridgeSubscriber>();
-        sub->transport = node->transport;
-        sub->channel = ch;
-        sub->state = state;
-        *out_sub = sub.release();
+        auto* sub = new BridgeSubscriber{node, std::string(channel), state};
+        *out_sub = sub;
         return 0;
     } catch (const std::exception& e) {
         log_line("subscriber_create('%s') threw: %s", channel, e.what());
         return -3;
     } catch (...) {
-        log_line("subscriber_create('%s') threw unknown", channel);
         return -4;
     }
 }
 
-int iox2_bridge_subscriber_receive(
-    void* s, uint8_t* buf, size_t* out_len, size_t max_len) {
+int iox2_bridge_subscriber_receive(void* s, uint8_t* buf,
+                                   size_t* out_len, size_t max_len) {
     if (!s || !buf || !out_len) return -1;
     auto* sub = static_cast<BridgeSubscriber*>(s);
-    if (!sub->state) {
-        *out_len = 0;
-        return 1; // no data — same as old bridge's "ret == 1"
-    }
+    if (!sub->state) { *out_len = 0; return 1; }
     std::vector<uint8_t> frame;
     {
         std::lock_guard<std::mutex> lk(sub->state->mtx);
@@ -270,12 +280,10 @@ int iox2_bridge_subscriber_receive(
 
 void iox2_bridge_subscriber_destroy(void* s) {
     if (!s) return;
-    // We intentionally do NOT unsubscribe at the underlying Transport level
-    // here: raccoon::Transport doesn't expose a per-handler unsubscribe and
-    // tearing down the iox2 port would also kill any other Dart Iox2Subscriber
-    // for the same channel. The state stays alive (held by the node's map)
-    // until node destroy, mirroring the previous bridge's lifecycle.
     delete static_cast<BridgeSubscriber*>(s);
+    // Same as publisher_destroy: SubChannelState stays alive until node
+    // teardown so other Dart subscribers on the same channel keep getting
+    // frames.
 }
 
 } // extern "C"
