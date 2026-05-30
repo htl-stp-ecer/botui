@@ -45,7 +45,9 @@ class LcmService with HasLogger {
     try {
       final nodeName = provider ?? 'stpvelox';
       _transport = await Iceoryx2Transport.create(nodeName);
-      _transport!.startSpin(intervalMs: 10);
+      // 2 ms = sub-millisecond p50 inbound latency; rrb_reader_recv is
+      // an atomic load + memcpy, idle polling cost is negligible.
+      _transport!.startSpin(intervalMs: 2);
       log.info('iceoryx2 transport initialized: $nodeName');
       _initCompleter!.complete();
     } catch (e, st) {

@@ -46,20 +46,27 @@ struct SubChannelState {
     std::mutex mtx;
     std::deque<std::vector<uint8_t>> queue;
     static constexpr size_t kMaxQueue = 64;
+    // First-frame-per-channel logging so we can tell from the journal
+    // whether the bridge is actually getting data on each subscribed
+    // channel. Quiet after the first frame.
+    std::atomic<uint64_t> frames_received{0};
+    std::string channel_name;
+    // Per-subscriber poll thread. Parks in rrb_reader_recv_wait() on the
+    // ring's futex word — when the producer publishes, the kernel wakes
+    // us in ~us with no busy polling. One thread per channel keeps the
+    // hot path independent: a stalled handler on channel A doesn't
+    // starve channel B, and Linux schedules them across cores naturally.
+    std::thread poll_thread;
+    std::atomic<bool> stop_thread{false};
 };
 
 struct BridgeNode {
-    // Background thread polls every subscribed reader and pushes frames
-    // into per-channel queues. Dart's subscriber_receive then drains the
-    // queue without blocking on the actual SHM read.
-    std::thread poll_thread;
     std::atomic<bool> stop{false};
 
     // Channel name → shared subscriber state. Multiple Iox2BridgeSubscriber
-    // handles on the same channel reuse the same state + queue, matching
-    // the previous bridge's semantics. Held under subs_mtx for inserts
-    // and lookups; the poll thread takes it briefly to snapshot the
-    // current channel set.
+    // handles on the same channel reuse the same state + queue (matching
+    // the previous bridge's semantics) and share one underlying poll
+    // thread + rrb_reader.
     std::mutex subs_mtx;
     std::unordered_map<std::string, std::shared_ptr<SubChannelState>> subs;
 
@@ -82,44 +89,42 @@ struct BridgeSubscriber {
     std::shared_ptr<SubChannelState> state;
 };
 
-// Background poll loop: scratch buffer big enough for any ring writerFor
-// would have sized in raccoon-transport (max 512 KiB for camera frames).
-void poll_loop(BridgeNode* node) {
+// Per-subscriber poll thread. Parks in rrb_reader_recv_wait — wakes in
+// ~us when the producer publishes (no idle CPU). 50 ms timeout is just
+// a heartbeat so the shutdown flag is observed promptly when the node
+// is destroyed.
+void sub_poll_loop(std::shared_ptr<SubChannelState> s) {
+    // Scratch big enough for any ring writerFor would size — max ~512 KiB
+    // for camera frames. One-time per-thread cost, kept on the stack of
+    // the thread for cache locality.
     std::vector<uint8_t> scratch(512u * 1024u);
-    while (!node->stop.load(std::memory_order_relaxed)) {
-        // Snapshot the channel set so we don't hold subs_mtx during the
-        // (potentially blocking) reads.
-        std::vector<std::shared_ptr<SubChannelState>> states;
+
+    while (!s->stop_thread.load(std::memory_order_relaxed)) {
+        size_t out_len = 0;
+        int rc = rrb_reader_recv_wait(s->reader,
+                                      scratch.data(),
+                                      scratch.size(),
+                                      &out_len,
+                                      /*timeout_us=*/50 * 1000);
+        if (rc != 0) continue;  // timeout / no-data / error → loop and re-park
+
+        uint64_t prev = s->frames_received.fetch_add(1);
+        if (prev == 0) {
+            log_line("first frame on '%s' (%zu bytes)",
+                     s->channel_name.c_str(), out_len);
+        }
+
         {
-            std::lock_guard<std::mutex> lk(node->subs_mtx);
-            states.reserve(node->subs.size());
-            for (auto& [_, s] : node->subs) states.push_back(s);
-        }
-
-        bool any = false;
-        for (auto& s : states) {
-            for (;;) {
-                size_t out_len = 0;
-                int rc = rrb_reader_recv(s->reader,
-                                         scratch.data(),
-                                         scratch.size(),
-                                         &out_len);
-                if (rc != 0) break;
-                any = true;
-                std::lock_guard<std::mutex> lk(s->mtx);
-                if (s->queue.size() >= SubChannelState::kMaxQueue) {
-                    s->queue.pop_front();
-                }
-                s->queue.emplace_back(scratch.begin(),
-                                      scratch.begin() + out_len);
+            std::lock_guard<std::mutex> lk(s->mtx);
+            if (s->queue.size() >= SubChannelState::kMaxQueue) {
+                s->queue.pop_front();
             }
+            s->queue.emplace_back(scratch.begin(),
+                                  scratch.begin() + out_len);
         }
-
-        // Idle sleep when no data — caps poll CPU at ~1 kHz, plenty of
-        // headroom for UI's 30-60 Hz consumption.
-        if (!any) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
+        // Loop back and try another recv_wait — when the producer is
+        // bursty (e.g. 200 Hz reader catching up after a stall) we drain
+        // multiple frames before parking again.
     }
 }
 
@@ -131,8 +136,10 @@ int iox2_bridge_node_create(void** out_node, const char* name) {
     if (!out_node || !name) return -1;
     try {
         auto* node = new BridgeNode();
-        node->poll_thread = std::thread(poll_loop, node);
-        log_line("node_create('%s') ok (rrb backend)", name);
+        // No central poll thread any more — one is spawned per subscriber
+        // inside iox2_bridge_subscriber_create so each channel can park
+        // in its own futex_wait and wake independently in ~us.
+        log_line("node_create('%s') ok (rrb backend, event-driven)", name);
         *out_node = node;
         return 0;
     } catch (const std::exception& e) {
@@ -147,10 +154,18 @@ void iox2_bridge_node_destroy(void* n) {
     if (!n) return;
     auto* node = static_cast<BridgeNode*>(n);
     node->stop.store(true);
-    if (node->poll_thread.joinable()) node->poll_thread.join();
+    // Stop + join every subscriber's poll thread first so they aren't
+    // touching their reader during rrb_reader_close below.
     {
         std::lock_guard<std::mutex> lk(node->subs_mtx);
         for (auto& [_, s] : node->subs) {
+            s->stop_thread.store(true);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lk(node->subs_mtx);
+        for (auto& [_, s] : node->subs) {
+            if (s->poll_thread.joinable()) s->poll_thread.join();
             if (s->reader) rrb_reader_close(s->reader);
         }
         node->subs.clear();
@@ -229,11 +244,13 @@ int iox2_bridge_subscriber_create(void* n, const char* channel, void** out_sub) 
     auto* node = static_cast<BridgeNode*>(n);
     try {
         std::shared_ptr<SubChannelState> state;
+        bool fresh = false;
         {
             std::lock_guard<std::mutex> lk(node->subs_mtx);
             auto& slot = node->subs[channel];
             if (!slot) {
                 slot = std::make_shared<SubChannelState>();
+                slot->channel_name = channel;
                 slot->reader = rrb_reader_open(channel);
                 if (!slot->reader) {
                     node->subs.erase(channel);
@@ -241,9 +258,18 @@ int iox2_bridge_subscriber_create(void* n, const char* channel, void** out_sub) 
                              channel);
                     return -2;
                 }
+                fresh = true;
                 log_line("subscriber_create('%s') ok", channel);
             }
             state = slot;
+        }
+        if (fresh) {
+            // Spawn the per-subscriber poll thread AFTER releasing
+            // subs_mtx — the thread itself doesn't need the mutex, and
+            // starting it under the lock would block any concurrent
+            // subscriber_create on the same node for the duration of
+            // pthread_create.
+            state->poll_thread = std::thread(sub_poll_loop, state);
         }
         auto* sub = new BridgeSubscriber{node, std::string(channel), state};
         *out_sub = sub;

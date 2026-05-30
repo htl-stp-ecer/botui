@@ -126,11 +126,23 @@ bool isDashboardRoute(String location) {
   return location == AppRoutes.dashboard || location == '/';
 }
 
+// Global navigator key so services that fire from outside the widget tree
+// (LCM-driven error dialogs, watchdog overlays, …) have a long-lived
+// BuildContext they can reach without holding the original
+// `BuildContext` they were started with. Holding the latter blew up with
+// "Null check operator used on a null value" the moment the registering
+// widget rebuilt — Navigator.of(context) then returned null because the
+// context no longer had a Navigator ancestor. The GlobalKey is owned by
+// GoRouter for the full lifetime of the app so .currentContext stays
+// valid.
+final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'rootNavigator');
+
 @riverpod
 GoRouter appRouter(Ref ref) {
   return GoRouter(
     initialLocation: AppRoutes.dashboard,
     debugLogDiagnostics: true,
+    navigatorKey: rootNavigatorKey,
     routes: [
       // Dashboard
       GoRoute(
