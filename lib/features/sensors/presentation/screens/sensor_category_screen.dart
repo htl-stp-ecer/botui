@@ -46,7 +46,10 @@ class SensorCategoryScreen extends ConsumerWidget {
 
     Future<void> disableAllServos() async {
       for (int i = 0; i < 4; i++) {
-        lcmService.publish(Channels.servoMode(i), ScalarI8T(timestamp: DateTime.now().microsecondsSinceEpoch, dir: ServoMode.fullyDisabled.value), options: reliable);
+        // servoModeCommand is the dedicated COMMAND channel — using
+        // servoMode here would round-trip through the reader's own
+        // state publisher (5 ms self-loopback floor).
+        lcmService.publish(Channels.servoModeCommand(i), ScalarI8T(timestamp: DateTime.now().microsecondsSinceEpoch, dir: ServoMode.fullyDisabled.value), options: reliable);
       }
     }
 

@@ -29,6 +29,11 @@ class Channels {
   static const shutdownStatus = 'raccoon/system/shutdown_status';
 
   static String servoMode(int port) => 'raccoon/servo/$port/mode';
+  // Commands go here, state on servoMode — split so the reader is not
+  // subscribed to its own state publishes (which used to add a ~5 ms
+  // self-loopback floor to inbound LCM latency).
+  static String servoModeCommand(int port) =>
+      'raccoon/servo/$port/mode_cmd';
   static String servoPosition(int port) => 'raccoon/servo/$port/position';
   static String servoPositionCommand(int port) =>
       'raccoon/servo/$port/position_cmd';

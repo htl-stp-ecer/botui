@@ -86,9 +86,11 @@ class SensorServoScreen extends HookConsumerWidget {
 
     void disableServo() {
       localAngle.value = 0.0;
-      // Disable the servo mode (not just set position to 0)
+      // Disable the servo mode (not just set position to 0).
+      // Publish on the COMMAND channel so the reader can't echo our
+      // request back to itself via its state-feedback publisher.
       lcmService.publish(
-        Channels.servoMode(port),
+        Channels.servoModeCommand(port),
         ScalarI8T(timestamp: DateTime.now().microsecondsSinceEpoch, dir: ServoMode.fullyDisabled.value),
         options: reliable,
       );
