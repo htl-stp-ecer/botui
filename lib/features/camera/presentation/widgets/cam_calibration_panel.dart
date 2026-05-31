@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/features/camera/application/cam_provider.dart';
 
 /// A color range entry for HSV-based blob detection calibration.
@@ -330,8 +330,8 @@ class _CamCalibrationPanelState extends ConsumerState<CamCalibrationPanel> {
       'min_area': _minArea.round(),
     };
     final configJson = jsonEncode(config);
-    final lcm = ref.read(lcmServiceProvider);
-    publishCamConfig(lcm, configJson);
+    final transport = ref.read(transportServiceProvider);
+    publishCamConfig(transport, configJson);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

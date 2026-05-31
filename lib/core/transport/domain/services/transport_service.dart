@@ -5,7 +5,7 @@ import 'package:iceoryx2_transport/iceoryx2_transport.dart';
 import 'package:raccoon_transport/raccoon_transport.dart'
     show LcmBuffer, LcmMessage, PublishOptions, SubscribeOptions;
 import 'package:rxdart/rxdart.dart';
-import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
+import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 
 /// Default throttle window for UI-bound sensor streams. ~60 Hz matches the
@@ -19,10 +19,10 @@ const Duration kUiSensorSampleRate = Duration(milliseconds: 16);
 /// broadcast stream. When the last listener cancels, the transport
 /// subscription is torn down so packets stop being dispatched for channels
 /// nobody is watching.
-class LcmService with HasLogger {
+class TransportService with HasLogger {
   Iceoryx2Transport? _transport;
   Completer<void>? _initCompleter;
-  final Map<String, StreamController<LcmDecodedRaw>> _controllers = {};
+  final Map<String, StreamController<TransportDecodedRaw>> _controllers = {};
   final Map<String, TransportSubscription> _subscriptions = {};
   final Map<String, SubscribeOptions> _subscribeOptions = {};
 
@@ -68,7 +68,7 @@ class LcmService with HasLogger {
     }
   }
 
-  Stream<LcmDecodedRaw> subscribe(String channel,
+  Stream<TransportDecodedRaw> subscribe(String channel,
       {SubscribeOptions options = const SubscribeOptions()}) {
     final existing = _controllers[channel];
     if (existing != null) {
@@ -78,8 +78,8 @@ class LcmService with HasLogger {
 
     _subscribeOptions[channel] = options;
 
-    late StreamController<LcmDecodedRaw> controller;
-    controller = StreamController<LcmDecodedRaw>.broadcast(
+    late StreamController<TransportDecodedRaw> controller;
+    controller = StreamController<TransportDecodedRaw>.broadcast(
       onListen: () => _setupSubscription(channel),
       onCancel: () => _teardownSubscription(channel),
     );
@@ -102,7 +102,7 @@ class LcmService with HasLogger {
 
     final sub = _transport!.subscribe(channel, (ch, data) {
       if (!controller.isClosed) {
-        controller.add(LcmDecodedRaw(
+        controller.add(TransportDecodedRaw(
           topic: ch,
           utime: DateTime.now().microsecondsSinceEpoch,
           data: data,
@@ -124,7 +124,7 @@ class LcmService with HasLogger {
     }
   }
 
-  Stream<LcmDecoded<T>> subscribeAs<T>(String channel, LcmDecoder<T> decode,
+  Stream<TransportDecoded<T>> subscribeAs<T>(String channel, TransportDecoder<T> decode,
       {SubscribeOptions options = const SubscribeOptions(),
       Duration? throttle}) {
     var raw = subscribe(channel, options: options);
@@ -133,7 +133,7 @@ class LcmService with HasLogger {
     }
     return raw.map((raw) {
       final buffer = LcmBuffer.fromUint8List(raw.data);
-      return LcmDecoded<T>(
+      return TransportDecoded<T>(
         topic: raw.topic,
         utime: raw.utime,
         raw: raw.data,
@@ -191,12 +191,12 @@ class LcmService with HasLogger {
 }
 
 /// Raw message (before decoding)
-class LcmDecodedRaw {
+class TransportDecodedRaw {
   final String topic;
   final int utime;
   final Uint8List data;
 
-  LcmDecodedRaw({
+  TransportDecodedRaw({
     required this.topic,
     required this.utime,
     required this.data,

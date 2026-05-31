@@ -59,7 +59,7 @@ final class ServoCommandSensorProvider
 }
 
 String _$servoCommandSensorHash() =>
-    r'672d89d0064432fa7bd921e35cbc1040873c2ad6';
+    r'd128e4431f119cdb1d517c31c888ccfbec2e274e';
 
 final class ServoCommandSensorFamily extends $Family
     with

@@ -42,7 +42,7 @@ final class ScreenRenderProviderProvider
 }
 
 String _$screenRenderProviderHash() =>
-    r'f9ea03904c8fa1c02b843f1ee4bdf698b546c528';
+    r'6244afec1e8262619a49e32d5963f843f785fa30';
 
 abstract class _$ScreenRenderProvider extends $Notifier<Map<String, dynamic>?> {
   Map<String, dynamic>? build();

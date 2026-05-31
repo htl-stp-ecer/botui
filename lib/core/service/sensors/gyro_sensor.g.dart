@@ -40,7 +40,7 @@ final class GyroSensorProvider extends $NotifierProvider<GyroSensor, Gyro?> {
   }
 }
 
-String _$gyroSensorHash() => r'50e9cef04599a7db32b8c6d1604763085d0512a6';
+String _$gyroSensorHash() => r'a63d7a39362c3527e505681c0e6e64538f12d389';
 
 abstract class _$GyroSensor extends $Notifier<Gyro?> {
   Gyro? build();

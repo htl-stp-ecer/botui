@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_menu_screen.dart';
 
+import '../../../../helpers/fake_lcm.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -24,8 +26,11 @@ void main() {
   testWidgets('shows manage connection and network scan entries',
       (tester) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
+      ProviderScope(
+        // The top bar's BatteryStatus indirectly reads lcmServiceProvider;
+        // without an override it tries to dlopen the iceoryx2 bridge.
+        overrides: fakeLcmOverrides(),
+        child: const MaterialApp(
           home: WifiMenuScreen(),
         ),
       ),

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
@@ -26,8 +26,8 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      final lcm = ref.read(lcmServiceProvider);
-      publishStreamCtl(lcm, enabled: true);
+      final transport = ref.read(transportServiceProvider);
+      publishStreamCtl(transport, enabled: true);
     });
   }
 
@@ -35,8 +35,8 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
   void dispose() {
     // Request stream stop
     try {
-      final lcm = ref.read(lcmServiceProvider);
-      publishStreamCtl(lcm, enabled: false);
+      final transport = ref.read(transportServiceProvider);
+      publishStreamCtl(transport, enabled: false);
     } catch (_) {}
     super.dispose();
   }
@@ -45,7 +45,7 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
   Widget build(BuildContext context) {
     final frame = ref.watch(camFrameStreamProvider);
     final detections = ref.watch(camDetectionStreamProvider);
-    final lcm = ref.watch(lcmServiceProvider);
+    final transport = ref.watch(transportServiceProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -63,7 +63,7 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
       body: SafeArea(
         child: frame != null
             ? _buildFrameView(frame, detections)
-            : _buildLoadingView(lcm.isInitialized, detections),
+            : _buildLoadingView(transport.isInitialized, detections),
       ),
     );
   }
@@ -102,7 +102,7 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
   }
 
   Widget _buildLoadingView(
-      bool lcmInitialized, CamDetectionData? detections) {
+      bool transportInitialized, CamDetectionData? detections) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -120,9 +120,9 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'LCM Status: ${lcmInitialized ? "Initialized" : "Initializing..."}',
+            'Transport Status: ${transportInitialized ? "Initialized" : "Initializing..."}',
             style: TextStyle(
-              color: lcmInitialized ? Colors.green[300] : Colors.orange[300],
+              color: transportInitialized ? Colors.green[300] : Colors.orange[300],
               fontSize: 12,
             ),
           ),
@@ -142,8 +142,8 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
           ElevatedButton.icon(
             onPressed: () {
               ref.invalidate(camFrameStreamProvider);
-              final lcm = ref.read(lcmServiceProvider);
-              publishStreamCtl(lcm, enabled: true);
+              final transport = ref.read(transportServiceProvider);
+              publishStreamCtl(transport, enabled: true);
             },
             icon: Icon(Icons.refresh),
             label: Text('Refresh'),

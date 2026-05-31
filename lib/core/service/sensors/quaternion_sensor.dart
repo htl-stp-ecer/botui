@@ -5,8 +5,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:raccoon_transport/messages/types/quaternion_t.g.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
-import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
+import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/service/sensors/sensor_reading_strategy.dart';
 
@@ -47,7 +47,7 @@ Quaternion? useQuaternion(WidgetRef ref) {
 
 @riverpod
 class QuaternionSensor extends _$QuaternionSensor with HasLogger {
-  StreamSubscription<LcmDecoded<QuaternionT>>? _subscription;
+  StreamSubscription<TransportDecoded<QuaternionT>>? _subscription;
   Quaternion? _currentValue;
 
   @override
@@ -58,8 +58,8 @@ class QuaternionSensor extends _$QuaternionSensor with HasLogger {
   }
 
   void _startSubscription() {
-    final lcmService = ref.read(lcmServiceProvider);
-    _subscription = lcmService
+    final transportService = ref.read(transportServiceProvider);
+    _subscription = transportService
         .subscribeAs<QuaternionT>(Channels.orientation, QuaternionT.decode)
         .listen(
       (decoded) {

@@ -1,15 +1,15 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stpvelox/core/lcm/domain/services/lcm_service.dart';
+import 'package:stpvelox/core/transport/domain/services/transport_service.dart';
 import 'package:stpvelox/core/logging/logging.dart';
 
 part 'providers.g.dart';
 
 @Riverpod(keepAlive: true)
-LcmService lcmService(Ref ref) {
-  final service = LcmService();
+TransportService transportService(Ref ref) {
+  final service = TransportService();
 
   service.init().catchError((e) {
-    getLogger("LCM").severe('Failed to initialize LCM service: $e');
+    getLogger("Transport").severe('Failed to initialize transport service: $e');
   });
 
   ref.onDispose(() {

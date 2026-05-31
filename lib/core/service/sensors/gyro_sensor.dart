@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
-import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
+import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/service/sensors/sensor_reading_strategy.dart';
 import 'package:raccoon_transport/messages/types/vector3f_t.g.dart';
@@ -22,7 +22,7 @@ Gyro? useGyro(WidgetRef ref) {
 
 @riverpod
 class GyroSensor extends _$GyroSensor with HasLogger {
-  StreamSubscription<LcmDecoded<Vector3fT>>? _subscription;
+  StreamSubscription<TransportDecoded<Vector3fT>>? _subscription;
   Gyro? _currentValue;
 
   @override
@@ -33,8 +33,8 @@ class GyroSensor extends _$GyroSensor with HasLogger {
   }
 
   void _startSubscription() {
-    final lcm = ref.read(lcmServiceProvider);
-    _subscription = lcm
+    final transport = ref.read(transportServiceProvider);
+    _subscription = transport
         .subscribeAs<Vector3fT>(Channels.gyro, Vector3fT.decode)
         .listen(
           (decoded) {

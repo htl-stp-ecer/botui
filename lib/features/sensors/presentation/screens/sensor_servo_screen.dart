@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sleek_circular_slider/sleek_circular_slider.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/service/sensors/servo_command_sensor.dart';
 import 'package:stpvelox/core/service/sensors/servo_position_sensor.dart';
 import 'package:stpvelox/core/service/sensors/servo_sensor.dart';
@@ -32,7 +32,7 @@ class SensorServoScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lcmService = ref.watch(lcmServiceProvider);
+    final transportService = ref.watch(transportServiceProvider);
     final servoPosition = ref.watch(servoPositionSensorProvider(port));
     final servoMode = ref.watch(servoModeSensorProvider(port));
     final externalCommand = ref.watch(servoCommandSensorProvider(port));
@@ -77,7 +77,7 @@ class SensorServoScreen extends HookConsumerWidget {
 
     void setServoPosition(double degrees) {
       // Position command automatically enables the servo on the STM32 side
-      lcmService.publish(
+      transportService.publish(
         Channels.servoPositionCommand(port),
         ScalarFT(timestamp: DateTime.now().microsecondsSinceEpoch, value: degrees),
         options: reliable,
@@ -89,7 +89,7 @@ class SensorServoScreen extends HookConsumerWidget {
       // Disable the servo mode (not just set position to 0).
       // Publish on the COMMAND channel so the reader can't echo our
       // request back to itself via its state-feedback publisher.
-      lcmService.publish(
+      transportService.publish(
         Channels.servoModeCommand(port),
         ScalarI8T(timestamp: DateTime.now().microsecondsSinceEpoch, dir: ServoMode.fullyDisabled.value),
         options: reliable,

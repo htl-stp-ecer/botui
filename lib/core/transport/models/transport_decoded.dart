@@ -1,15 +1,15 @@
 import 'dart:typed_data';
 import 'package:raccoon_transport/raccoon_transport.dart';
 
-typedef LcmDecoder<T> = T Function(LcmBuffer buffer);
+typedef TransportDecoder<T> = T Function(LcmBuffer buffer);
 
-class LcmDecoded<T> {
+class TransportDecoded<T> {
   final String topic;
   final int utime;
   final Uint8List raw;
   final T value;
 
-  const LcmDecoded({
+  const TransportDecoded({
     required this.topic,
     required this.utime,
     required this.raw,
@@ -18,5 +18,5 @@ class LcmDecoded<T> {
 
   @override
   String toString() =>
-      'LcmDecoded<$T>(topic: $topic, utime: $utime, value: $value)';
+      'TransportDecoded<$T>(topic: $topic, utime: $utime, value: $value)';
 }

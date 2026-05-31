@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
-import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
+import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/router/app_router.dart' show rootNavigatorKey;
 
@@ -12,7 +12,7 @@ part 'error_message_service.g.dart';
 
 @riverpod
 class ErrorMessageService extends _$ErrorMessageService with HasLogger {
-  StreamSubscription<LcmDecoded<StringT>>? _subscription;
+  StreamSubscription<TransportDecoded<StringT>>? _subscription;
   bool _dialogVisible = false;
   BuildContext? _context;
 
@@ -33,8 +33,8 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
   }
 
   void _startSubscription() {
-    final lcm = ref.read(lcmServiceProvider);
-    _subscription = lcm
+    final transport = ref.read(transportServiceProvider);
+    _subscription = transport
         .subscribeAs<StringT>(
           Channels.errorMessages,
           StringT.decode,
@@ -43,7 +43,7 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
         .listen(
       (decoded) {
         final message = decoded.value.value;
-        log.warning('Error received via LCM: $message');
+        log.warning('Error received via transport: $message');
         state = message;
 
         // Prefer the long-lived rootNavigatorKey (lives for the lifetime

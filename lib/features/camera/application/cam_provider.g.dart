@@ -45,7 +45,7 @@ final class CamDetectionStreamProvider
 }
 
 String _$camDetectionStreamHash() =>
-    r'7a999f6ceef4f853140cc64df9a1d94eb146ebd4';
+    r'882c8e93ba5ccbd2cf287c1f221815c5b59aadeb';
 
 /// Provider that streams camera detections from LCM (always active)
 
@@ -101,7 +101,7 @@ final class CamFrameStreamProvider
   }
 }
 
-String _$camFrameStreamHash() => r'e6efb64137fe394b9a73a788033f94236b9a3963';
+String _$camFrameStreamHash() => r'0bed6d018b0636578b7e0eac599d5e01eed7acb8';
 
 /// Provider that streams camera frames from LCM (active only when viewer is open)
 

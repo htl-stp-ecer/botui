@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/service/sensors/back_emf_sensor.dart';
 import 'package:stpvelox/core/service/sensors/motor_done_sensor.dart';
 import 'package:stpvelox/core/service/sensors/motor_position_sensor.dart';
@@ -30,7 +30,7 @@ class SensorMotorScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lcm = ref.watch(lcmServiceProvider);
+    final transport = ref.watch(transportServiceProvider);
     final backEmf = ref.watch(backEmfSensorProvider(port));
     final motorPosition = ref.watch(motorPositionSensorProvider(port));
     final motorDone = useMotorDone(ref, port);
@@ -129,7 +129,7 @@ class SensorMotorScreen extends HookConsumerWidget {
       final now = DateTime.now();
       if (now.difference(lastPowerSend.value) < throttleInterval) return;
       lastPowerSend.value = now;
-      lcm.publish(
+      transport.publish(
           Channels.motorPowerCommand(port),
           ScalarI32T(
               timestamp: now.microsecondsSinceEpoch, value: p));
@@ -140,13 +140,13 @@ class SensorMotorScreen extends HookConsumerWidget {
       if (now.difference(lastVelSend.value) < throttleInterval) return;
       lastVelSend.value = now;
       targetVelocity.value = v;
-      lcm.publish(
+      transport.publish(
           Channels.motorVelocityCommand(port),
           ScalarI32T(
               timestamp: now.microsecondsSinceEpoch, value: v));
     }
 
-    void sendPositionCmd(int velocity, int goal) => lcm.publish(
+    void sendPositionCmd(int velocity, int goal) => transport.publish(
         Channels.motorPositionCommand(port),
         Vector3fT(
             timestamp: DateTime.now().microsecondsSinceEpoch,
@@ -155,7 +155,7 @@ class SensorMotorScreen extends HookConsumerWidget {
             z: 0),
         options: reliable);
 
-    void sendRelativeCmd(int velocity, int delta) => lcm.publish(
+    void sendRelativeCmd(int velocity, int delta) => transport.publish(
         Channels.motorRelativeCommand(port),
         Vector3fT(
             timestamp: DateTime.now().microsecondsSinceEpoch,
@@ -164,7 +164,7 @@ class SensorMotorScreen extends HookConsumerWidget {
             z: 0),
         options: reliable);
 
-    void resetPosition() => lcm.publish(
+    void resetPosition() => transport.publish(
         Channels.motorPositionResetCommand(port),
         ScalarI32T(
             timestamp: DateTime.now().microsecondsSinceEpoch, value: 1),
@@ -179,7 +179,7 @@ class SensorMotorScreen extends HookConsumerWidget {
     // Passive brake: shorts motor windings (MotorControlMode::PassiveBrake)
     void brakeMotor() {
       resetUiState();
-      lcm.publish(
+      transport.publish(
           Channels.motorModeCommand(port),
           ScalarI32T(
               timestamp: DateTime.now().microsecondsSinceEpoch, value: 1),
@@ -195,7 +195,7 @@ class SensorMotorScreen extends HookConsumerWidget {
     // Off: no current, motor spins freely (MotorControlMode::Off)
     void coastMotor() {
       resetUiState();
-      lcm.publish(
+      transport.publish(
           Channels.motorModeCommand(port),
           ScalarI32T(
               timestamp: DateTime.now().microsecondsSinceEpoch, value: 0),

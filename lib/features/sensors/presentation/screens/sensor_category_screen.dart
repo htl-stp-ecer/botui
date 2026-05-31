@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/sensors/servo_sensor.dart';
 import 'package:stpvelox/core/service/shutdown_status_service.dart';
@@ -31,7 +31,7 @@ class SensorCategoryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final lcmService = ref.watch(lcmServiceProvider);
+    final transportService = ref.watch(transportServiceProvider);
     final shutdownStatus = ref.watch(shutdownStatusProvider);
     final isMotorCategory = category.name == 'Motor';
     final isServoCategory = category.name == 'Servo';
@@ -49,14 +49,14 @@ class SensorCategoryScreen extends ConsumerWidget {
         // servoModeCommand is the dedicated COMMAND channel — using
         // servoMode here would round-trip through the reader's own
         // state publisher (5 ms self-loopback floor).
-        lcmService.publish(Channels.servoModeCommand(i), ScalarI8T(timestamp: DateTime.now().microsecondsSinceEpoch, dir: ServoMode.fullyDisabled.value), options: reliable);
+        transportService.publish(Channels.servoModeCommand(i), ScalarI8T(timestamp: DateTime.now().microsecondsSinceEpoch, dir: ServoMode.fullyDisabled.value), options: reliable);
       }
     }
 
     Future<void> stopAllMotors() async {
       for (int i = 0; i < 4; i++) {
         // motorPowerCommand uses plain delivery (continuous control loop)
-        lcmService.publish(Channels.motorPowerCommand(i), ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: 0));
+        transportService.publish(Channels.motorPowerCommand(i), ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: 0));
       }
     }
 

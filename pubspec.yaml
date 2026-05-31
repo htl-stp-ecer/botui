@@ -46,6 +46,7 @@ dev_dependencies:
   json_serializable: ^6.9.5
   custom_lint: ^0.8.0
   riverpod_lint: ^3.0.1
+  mocktail: ^1.0.5
 
 
 dependency_overrides:

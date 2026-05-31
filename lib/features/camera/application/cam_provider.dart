@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
-import 'package:stpvelox/core/lcm/domain/services/lcm_service.dart';
-import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
+import 'package:stpvelox/core/transport/domain/services/transport_service.dart';
+import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/logging.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
 
@@ -28,7 +28,7 @@ class CamFrameData {
 /// Provider that streams camera detections from LCM (always active)
 @riverpod
 class CamDetectionStream extends _$CamDetectionStream {
-  StreamSubscription<LcmDecoded<CamDetectionsT>>? _subscription;
+  StreamSubscription<TransportDecoded<CamDetectionsT>>? _subscription;
   CamDetectionData? _currentDetections;
 
   @override
@@ -40,10 +40,10 @@ class CamDetectionStream extends _$CamDetectionStream {
   }
 
   void _startSubscription() {
-    final lcm = ref.read(lcmServiceProvider);
+    final transport = ref.read(transportServiceProvider);
     _log.info('Starting subscription to channel: ${Channels.camDetections}');
 
-    _subscription = lcm
+    _subscription = transport
         .subscribeAs<CamDetectionsT>(
             Channels.camDetections, CamDetectionsT.decode)
         .listen(
@@ -70,7 +70,7 @@ class CamDetectionStream extends _$CamDetectionStream {
 /// Provider that streams camera frames from LCM (active only when viewer is open)
 @riverpod
 class CamFrameStream extends _$CamFrameStream {
-  StreamSubscription<LcmDecoded<CamFrameT>>? _subscription;
+  StreamSubscription<TransportDecoded<CamFrameT>>? _subscription;
   CamFrameData? _currentFrame;
   bool _disposed = false;
 
@@ -84,11 +84,11 @@ class CamFrameStream extends _$CamFrameStream {
   }
 
   void _startSubscription() {
-    final lcm = ref.read(lcmServiceProvider);
+    final transport = ref.read(transportServiceProvider);
 
     _log.info(
         'Starting frame subscription to channel: ${Channels.camFrame}');
-    _subscription = lcm
+    _subscription = transport
         .subscribeAs<CamFrameT>(Channels.camFrame, CamFrameT.decode)
         .listen(
       (decoded) {
@@ -113,22 +113,22 @@ class CamFrameStream extends _$CamFrameStream {
 }
 
 /// Helper to publish stream control messages
-Future<void> publishStreamCtl(LcmService lcm, {required bool enabled}) async {
+Future<void> publishStreamCtl(TransportService transport, {required bool enabled}) async {
   final msg = CamStreamCtlT(
     timestamp: DateTime.now().microsecondsSinceEpoch,
     enabled: enabled ? 1 : 0,
   );
-  await lcm.publish(Channels.camStreamCtl, msg);
+  await transport.publish(Channels.camStreamCtl, msg);
   _log.info('Published stream_ctl: enabled=$enabled');
 }
 
 /// Helper to publish camera config
-Future<void> publishCamConfig(LcmService lcm, String configJson) async {
+Future<void> publishCamConfig(TransportService transport, String configJson) async {
   final msg = CamConfigT(
     timestamp: DateTime.now().microsecondsSinceEpoch,
     config: configJson,
   );
-  await lcm.publish(Channels.camConfig, msg,
+  await transport.publish(Channels.camConfig, msg,
       options: const PublishOptions(retained: true));
   _log.info('Published cam_config (retained)');
 }

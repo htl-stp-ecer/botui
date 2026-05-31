@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:raccoon_transport/messages/types/screen_render_t.g.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
@@ -28,10 +28,10 @@ class ScreenRenderProvider extends _$ScreenRenderProvider with HasLogger {
   }
 
   void _startSubscription() {
-    final lcm = ref.read(lcmServiceProvider);
-    log.info('[ScreenRenderProvider] Starting LCM subscription on ${Channels.screenRender}');
+    final transport = ref.read(transportServiceProvider);
+    log.info('[ScreenRenderProvider] Starting transport subscription on ${Channels.screenRender}');
 
-    _subscription = lcm
+    _subscription = transport
         .subscribeAs<ScreenRenderT>(
       Channels.screenRender,
       ScreenRenderT.decode,
@@ -71,11 +71,11 @@ class ScreenRenderProvider extends _$ScreenRenderProvider with HasLogger {
         log.severe('[LCM RX #$msgId] Stack trace: $stackTrace');
       }
     }, onError: (error, stackTrace) {
-      log.severe('[ScreenRenderProvider] LCM subscription error: $error');
+      log.severe('[ScreenRenderProvider] transport subscription error: $error');
       log.severe('[ScreenRenderProvider] Stack trace: $stackTrace');
     });
 
-    log.info('[ScreenRenderProvider] LCM subscription started');
+    log.info('[ScreenRenderProvider] transport subscription started');
   }
 
   void _dispose() {
