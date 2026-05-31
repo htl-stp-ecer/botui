@@ -85,11 +85,12 @@ class Iceoryx2Transport {
     }
   }
 
-  // Default spin = 2 ms (was 10). rrb_reader_recv is a couple of atomic
-  // loads + a memcpy when there's data; idle polling costs essentially
-  // nothing. Dropping to 2 ms gives sub-millisecond p50 dispatch latency
-  // from bridge queue to Dart stream.
-  void startSpin({int intervalMs = 2}) {
+  // Default spin = 33 ms (~30 fps). The C++ bridge thread is already
+  // futex-woken on every publish and queues frames; this timer only
+  // drains the queue into Dart streams. Faster polling here just
+  // burns the UI thread without improving end-to-end latency — the
+  // UI itself only redraws at 30 fps.
+  void startSpin({int intervalMs = 33}) {
     _spinTimer?.cancel();
     _spinTimer = Timer.periodic(Duration(milliseconds: intervalMs), (_) {
       spinOnce();

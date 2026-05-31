@@ -51,13 +51,6 @@ struct SubChannelState {
     // channel. Quiet after the first frame.
     std::atomic<uint64_t> frames_received{0};
     std::string channel_name;
-    // Per-subscriber poll thread. Parks in rrb_reader_recv_wait() on the
-    // ring's futex word — when the producer publishes, the kernel wakes
-    // us in ~us with no busy polling. One thread per channel keeps the
-    // hot path independent: a stalled handler on channel A doesn't
-    // starve channel B, and Linux schedules them across cores naturally.
-    std::thread poll_thread;
-    std::atomic<bool> stop_thread{false};
 };
 
 struct BridgeNode {
@@ -65,10 +58,23 @@ struct BridgeNode {
 
     // Channel name → shared subscriber state. Multiple Iox2BridgeSubscriber
     // handles on the same channel reuse the same state + queue (matching
-    // the previous bridge's semantics) and share one underlying poll
-    // thread + rrb_reader.
+    // the previous bridge's semantics) and share one underlying rrb_reader.
     std::mutex subs_mtx;
     std::unordered_map<std::string, std::shared_ptr<SubChannelState>> subs;
+    // Snapshot of every subscriber's shared_ptr indexed by position in
+    // the readers[] array we pass to rrb_reader_recv_wait_many. Rebuilt
+    // by the poll loop whenever subs_changed becomes true.
+    std::vector<std::shared_ptr<SubChannelState>> subs_snapshot;
+    std::atomic<bool> subs_changed{false};
+
+    // SHARED poll thread. Parks once in rrb_reader_recv_wait_many across
+    // every subscribed channel via futex_waitv — wakes on ANY publish,
+    // drains every channel that has data, re-parks. Beats N per-channel
+    // threads (N × scratch buffer, N × kernel-side wait state, N ×
+    // context switches per publish round).
+    std::thread poll_thread;
+    std::atomic<bool> stop_thread{false};
+    std::atomic<bool> poll_started{false};
 
     // Per-channel publisher writers. Lazy-create on first publish, then
     // reused (raccoon_ring is single-producer per channel, so multiple
@@ -89,42 +95,66 @@ struct BridgeSubscriber {
     std::shared_ptr<SubChannelState> state;
 };
 
-// Per-subscriber poll thread. Parks in rrb_reader_recv_wait — wakes in
-// ~us when the producer publishes (no idle CPU). 50 ms timeout is just
-// a heartbeat so the shutdown flag is observed promptly when the node
-// is destroyed.
-void sub_poll_loop(std::shared_ptr<SubChannelState> s) {
-    // Scratch big enough for any ring writerFor would size — max ~512 KiB
-    // for camera frames. One-time per-thread cost, kept on the stack of
-    // the thread for cache locality.
-    std::vector<uint8_t> scratch(512u * 1024u);
+// Multi-channel dispatcher. Called by rrb_reader_recv_wait_many for each
+// frame it drains across the snapshot[] reader set. user_data is the
+// BridgeNode so we can look the subscriber state up by index.
+int sub_multi_handler(size_t reader_index, const void* payload,
+                      size_t len, void* user) {
+    auto* node = static_cast<BridgeNode*>(user);
+    if (reader_index >= node->subs_snapshot.size()) return 0;
+    auto& s = node->subs_snapshot[reader_index];
+    if (!s) return 0;
 
-    while (!s->stop_thread.load(std::memory_order_relaxed)) {
-        size_t out_len = 0;
-        int rc = rrb_reader_recv_wait(s->reader,
-                                      scratch.data(),
-                                      scratch.size(),
-                                      &out_len,
-                                      /*timeout_us=*/50 * 1000);
-        if (rc != 0) continue;  // timeout / no-data / error → loop and re-park
-
-        uint64_t prev = s->frames_received.fetch_add(1);
-        if (prev == 0) {
-            log_line("first frame on '%s' (%zu bytes)",
-                     s->channel_name.c_str(), out_len);
+    uint64_t prev = s->frames_received.fetch_add(1);
+    if (prev == 0) {
+        log_line("first frame on '%s' (%zu bytes)",
+                 s->channel_name.c_str(), len);
+    }
+    {
+        std::lock_guard<std::mutex> lk(s->mtx);
+        if (s->queue.size() >= SubChannelState::kMaxQueue) {
+            s->queue.pop_front();
         }
+        const auto* bytes = static_cast<const uint8_t*>(payload);
+        s->queue.emplace_back(bytes, bytes + len);
+    }
+    return 0;
+}
 
-        {
-            std::lock_guard<std::mutex> lk(s->mtx);
-            if (s->queue.size() >= SubChannelState::kMaxQueue) {
-                s->queue.pop_front();
+// SHARED poll loop. Snapshots the subscriber set once, then parks in
+// futex_waitv across every reader's wake_seq. One thread per node
+// instead of one per channel — the heavy savings on a Pi running ~20
+// subscribed channels are fewer kernel wait records, fewer context
+// switches per publish round, and one scratch buffer instead of N.
+void node_poll_loop(BridgeNode* node) {
+    std::vector<rrb_reader_t*> readers;
+    readers.reserve(128);
+
+    while (!node->stop_thread.load(std::memory_order_relaxed)) {
+        // Cheap-load the changed flag and rebuild only when subscribers
+        // were added (the common steady-state case is "no change since
+        // the last loop", which skips the lock entirely).
+        if (node->subs_changed.exchange(false,
+                                        std::memory_order_acquire)) {
+            std::lock_guard<std::mutex> lk(node->subs_mtx);
+            node->subs_snapshot.clear();
+            readers.clear();
+            for (auto& [_, s] : node->subs) {
+                node->subs_snapshot.push_back(s);
+                readers.push_back(s->reader);
             }
-            s->queue.emplace_back(scratch.begin(),
-                                  scratch.begin() + out_len);
         }
-        // Loop back and try another recv_wait — when the producer is
-        // bursty (e.g. 200 Hz reader catching up after a stall) we drain
-        // multiple frames before parking again.
+        if (readers.empty()) {
+            // No subscribers yet — sleep a bit so we don't hot-loop
+            // before the first subscriber_create arrives.
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
+        }
+        // 50 ms timeout is just a heartbeat so stop_thread/subs_changed
+        // are observed promptly even on a totally idle ring.
+        (void)rrb_reader_recv_wait_many(readers.data(), readers.size(),
+                                        sub_multi_handler, node,
+                                        /*timeout_us=*/50 * 1000);
     }
 }
 
@@ -154,21 +184,15 @@ void iox2_bridge_node_destroy(void* n) {
     if (!n) return;
     auto* node = static_cast<BridgeNode*>(n);
     node->stop.store(true);
-    // Stop + join every subscriber's poll thread first so they aren't
-    // touching their reader during rrb_reader_close below.
+    node->stop_thread.store(true, std::memory_order_release);
+    if (node->poll_thread.joinable()) node->poll_thread.join();
     {
         std::lock_guard<std::mutex> lk(node->subs_mtx);
         for (auto& [_, s] : node->subs) {
-            s->stop_thread.store(true);
-        }
-    }
-    {
-        std::lock_guard<std::mutex> lk(node->subs_mtx);
-        for (auto& [_, s] : node->subs) {
-            if (s->poll_thread.joinable()) s->poll_thread.join();
             if (s->reader) rrb_reader_close(s->reader);
         }
         node->subs.clear();
+        node->subs_snapshot.clear();
     }
     {
         std::lock_guard<std::mutex> lk(node->pubs_mtx);
@@ -264,12 +288,16 @@ int iox2_bridge_subscriber_create(void* n, const char* channel, void** out_sub) 
             state = slot;
         }
         if (fresh) {
-            // Spawn the per-subscriber poll thread AFTER releasing
-            // subs_mtx — the thread itself doesn't need the mutex, and
-            // starting it under the lock would block any concurrent
-            // subscriber_create on the same node for the duration of
-            // pthread_create.
-            state->poll_thread = std::thread(sub_poll_loop, state);
+            // Signal the shared poll thread to rebuild its snapshot on
+            // the next loop iteration. We don't notify-wake it — the
+            // 50 ms futex_waitv heartbeat picks the change up within
+            // one tick, which is fine for subscribe-time latency.
+            node->subs_changed.store(true, std::memory_order_release);
+            // Lazy-start the shared poll thread on first subscribe.
+            bool expected = false;
+            if (node->poll_started.compare_exchange_strong(expected, true)) {
+                node->poll_thread = std::thread(node_poll_loop, node);
+            }
         }
         auto* sub = new BridgeSubscriber{node, std::string(channel), state};
         *out_sub = sub;

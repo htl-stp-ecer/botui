@@ -45,9 +45,10 @@ class LcmService with HasLogger {
     try {
       final nodeName = provider ?? 'stpvelox';
       _transport = await Iceoryx2Transport.create(nodeName);
-      // 2 ms = sub-millisecond p50 inbound latency; rrb_reader_recv is
-      // an atomic load + memcpy, idle polling cost is negligible.
-      _transport!.startSpin(intervalMs: 2);
+      // 33 ms ≈ 30 fps. Bridge poll thread is futex-driven; this only
+      // drains its queue into Dart streams. UI redraws at 30 fps so
+      // faster polling just heats the UI thread.
+      _transport!.startSpin(intervalMs: 33);
       log.info('iceoryx2 transport initialized: $nodeName');
       _initCompleter!.complete();
     } catch (e, st) {

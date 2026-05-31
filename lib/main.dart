@@ -206,19 +206,21 @@ class _AppServicesStarter extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final voltage = ref.watch(batteryVoltageSensorProvider);
+    // .select so the app shell only rebuilds when the BOOLEAN condition
+    // flips, not every voltage frame (battery publishes at ~10 Hz; a
+    // top-level rebuild per tick churns the whole subtree).
+    final isLow = ref.watch(batteryVoltageSensorProvider.select(
+        (v) => v != null && v > 0 && v < 5.5));
     final ignored = ref.watch(lowBatteryIgnoredProvider);
-    final isLow = voltage != null && voltage > 0 && voltage < 5.5;
     final showWarning = isLow && !ignored;
 
-    final shutdownStatus = ref.watch(shutdownStatusProvider);
-    final showWatchdog =
-        shutdownStatus.triggeredByWatchdog && shutdownStatus.isAnyShutdown;
+    final showWatchdog = ref.watch(shutdownStatusProvider.select(
+        (s) => s.triggeredByWatchdog && s.isAnyShutdown));
 
     return Stack(
       children: [
         child,
-        if (showWarning) _LowBatteryOverlay(voltage: voltage),
+        if (showWarning) const _LowBatteryOverlay(),
         if (showWatchdog) const _WatchdogShutdownOverlay(),
       ],
     );
@@ -296,9 +298,7 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
 }
 
 class _LowBatteryOverlay extends ConsumerStatefulWidget {
-  final double voltage;
-
-  const _LowBatteryOverlay({required this.voltage});
+  const _LowBatteryOverlay();
 
   @override
   ConsumerState<_LowBatteryOverlay> createState() => _LowBatteryOverlayState();
@@ -335,13 +335,16 @@ class _LowBatteryOverlayState extends ConsumerState<_LowBatteryOverlay> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'Battery voltage is ${widget.voltage.toStringAsFixed(2)}V.\n'
-                  'The robot may restart at any time.\n'
-                  'Please switch the battery now.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                ),
+                Consumer(builder: (context, ref, _) {
+                  final voltage = ref.watch(batteryVoltageSensorProvider) ?? 0.0;
+                  return Text(
+                    'Battery voltage is ${voltage.toStringAsFixed(2)}V.\n'
+                    'The robot may restart at any time.\n'
+                    'Please switch the battery now.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                  );
+                }),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisSize: MainAxisSize.min,
