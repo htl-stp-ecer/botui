@@ -15,6 +15,7 @@ import 'package:stpvelox/features/settings/domain/usecases/reboot.dart';
 import 'package:stpvelox/core/service/button10_monitor_widget.dart';
 import 'package:stpvelox/core/service/sensors/imu_accuracy_sensor.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
+import 'package:stpvelox/features/dynamic_ui/presentation/dynamic_ui_screen.dart';
 import 'package:stpvelox/features/screen_renderer/application/screen_renderer_provider.dart';
 
 import 'core/di/injection.dart';
@@ -242,14 +243,32 @@ class _AppServicesStarter extends ConsumerWidget {
     // custom screen during a run see an opaque dialog instead. The
     // program controls when it pops the dynamic UI; until then we stay
     // out of its way.
-    final dynamicUiActive = ref.watch(dynamicUiActiveProvider);
+    //
+    // Gate on the screen-render *state* directly (not the dynamicUiActive
+    // flag) so we don't depend on the listen→push→provider chain in
+    // StpVeloxApp.build running first. If a custom screen arrives while
+    // the shutdown overlay is already painted, this widget rebuilds the
+    // instant ScreenRenderProvider notifies, hiding the overlay and
+    // letting the pushed dynamic UI route show through underneath.
+    final hasCustomScreen = ref.watch(screenRenderProviderProvider) != null;
 
     return Stack(
       children: [
         child,
-        if (!dynamicUiActive && showWarning) const _LowBatteryOverlay(),
-        if (!dynamicUiActive && showShutdown)
+        if (!hasCustomScreen && showWarning) const _LowBatteryOverlay(),
+        if (!hasCustomScreen && showShutdown)
           _WatchdogShutdownOverlay(status: shutdownStatus),
+        // Render the dynamic UI at the global Stack level so it is
+        // guaranteed to sit above every other overlay. We previously
+        // depended on go_router pushing the calibration route under the
+        // MaterialApp navigator, but that route lives inside `child` —
+        // and Stack-level overlays painted above `child` (battery /
+        // shutdown) covered it. Painting the dynamic UI here as the
+        // top-most child wins regardless of router state, and the
+        // existing router.push in StpVeloxApp.build still runs in
+        // parallel for backward-compat (e.g. pop semantics, debug
+        // navigation).
+        if (hasCustomScreen) const DynamicUIScreen(),
       ],
     );
   }
