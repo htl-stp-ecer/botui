@@ -236,11 +236,20 @@ class _AppServicesStarter extends ConsumerWidget {
     final shutdownStatus = ref.watch(shutdownStatusProvider);
     final showShutdown = shutdownStatus.isAnyShutdown;
 
+    // When the user program has pushed a custom (dynamic-UI) screen, it
+    // owns the full display. Local overlays — battery warning, hardware
+    // shutdown — must NOT cover it, otherwise operators staring at a
+    // custom screen during a run see an opaque dialog instead. The
+    // program controls when it pops the dynamic UI; until then we stay
+    // out of its way.
+    final dynamicUiActive = ref.watch(dynamicUiActiveProvider);
+
     return Stack(
       children: [
         child,
-        if (showWarning) const _LowBatteryOverlay(),
-        if (showShutdown) _WatchdogShutdownOverlay(status: shutdownStatus),
+        if (!dynamicUiActive && showWarning) const _LowBatteryOverlay(),
+        if (!dynamicUiActive && showShutdown)
+          _WatchdogShutdownOverlay(status: shutdownStatus),
       ],
     );
   }
