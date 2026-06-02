@@ -82,6 +82,18 @@ class StpVeloxApp extends HookConsumerWidget {
     // Use ref.read to initialize without causing rebuilds on every value change
     ref.read(imuAccuracySensorProvider);
 
+    // Force-initialize the screen render provider. ref.listen below DOES
+    // subscribe in Riverpod 2.x, but the provider's build() — which opens
+    // the transport subscription to raccoon/screen_render — does not run
+    // until the first publisher delivers a frame. That creates a
+    // chicken-and-egg: nothing ever arrives because nobody is listening
+    // yet on the SHM ring, so build() never fires, so we never subscribe.
+    // Calling ref.read eagerly here matches the imuAccuracySensorProvider
+    // pattern and ensures the transport subscription is up before any
+    // dynamic_ui message is published. Verified 2026-06-02: without this,
+    // /proc/<flutter-pi>/fd never contained raccoon_ring_…screen_render.
+    ref.read(screenRenderProviderProvider);
+
     // Track whether we pushed the calibration route so we can pop it reliably.
     // We cannot trust router.currentConfiguration.fullPath (it returns stale/wrong
     // values when routes are pushed imperatively).
