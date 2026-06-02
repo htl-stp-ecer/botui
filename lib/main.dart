@@ -226,24 +226,48 @@ class _AppServicesStarter extends ConsumerWidget {
     final ignored = ref.watch(lowBatteryIgnoredProvider);
     final showWarning = isLow && !ignored;
 
-    final showWatchdog = ref.watch(shutdownStatusProvider.select(
-        (s) => s.triggeredByWatchdog && s.isAnyShutdown));
+    // Show the hardware-shutdown overlay whenever motors OR servos are
+    // latched off — regardless of source. Previously this only fired on
+    // the watchdog branch, which meant a user-initiated shutdown (e.g.
+    // emergency stop, or implicitly from `raccoon run` exiting) left the
+    // hardware silent with no UI hint. Operators sliding servo sliders
+    // were getting acks but no movement and no explanation. The dialog
+    // text now branches on source so it stays informative.
+    final shutdownStatus = ref.watch(shutdownStatusProvider);
+    final showShutdown = shutdownStatus.isAnyShutdown;
 
     return Stack(
       children: [
         child,
         if (showWarning) const _LowBatteryOverlay(),
-        if (showWatchdog) const _WatchdogShutdownOverlay(),
+        if (showShutdown) _WatchdogShutdownOverlay(status: shutdownStatus),
       ],
     );
   }
 }
 
 class _WatchdogShutdownOverlay extends ConsumerWidget {
-  const _WatchdogShutdownOverlay();
+  const _WatchdogShutdownOverlay({required this.status});
+
+  final ShutdownStatus status;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final byWatchdog = status.triggeredByWatchdog;
+    final title = byWatchdog
+        ? 'Hardware Watchdog Tripped'
+        : 'Hardware Shutdown Active';
+    final reason = byWatchdog
+        ? 'No heartbeat from the user program — motors and servos '
+            'have been shut off as a safety measure.'
+        : 'Motors and servos have been latched off (user-initiated '
+            'shutdown). Servo and motor commands will be acknowledged '
+            'but will not move the hardware until you recover.';
+    final outputs = [
+      if (status.servoShutdown) 'servos',
+      if (status.motorShutdown) 'motors',
+    ].join(' + ');
+
     return ColoredBox(
       color: Colors.black87,
       child: Center(
@@ -255,15 +279,17 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.shield_moon_rounded,
+                Icon(
+                  byWatchdog
+                      ? Icons.shield_moon_rounded
+                      : Icons.power_off_rounded,
                   color: Colors.orange,
                   size: 48,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Hardware Watchdog Tripped',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -271,10 +297,9 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'No heartbeat from the user program — motors and servos '
-                  'have been shut off as a safety measure.\n'
-                  'Heartbeats may have resumed by now. Recovering will '
-                  're-enable outputs and re-arm the watchdog.',
+                  '$reason\n'
+                  'Latched outputs: ${outputs.isEmpty ? "(none)" : outputs}.\n'
+                  'Recovering will re-enable outputs and re-arm the watchdog.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey[400], fontSize: 16),
                 ),
