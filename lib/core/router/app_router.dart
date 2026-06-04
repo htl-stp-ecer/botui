@@ -48,7 +48,6 @@ import 'package:stpvelox/features/wifi/domain/presentation/screens/access_point_
 import 'package:stpvelox/features/wifi/domain/enities/wifi_network.dart';
 
 // Dynamic UI
-import 'package:stpvelox/features/dynamic_ui/presentation/dynamic_ui_screen.dart';
 
 // Camera
 import 'package:stpvelox/features/camera/presentation/pages/camera_viewer_screen.dart'
@@ -105,9 +104,6 @@ abstract class AppRoutes {
   static const wifiChannelScan = '/wifi/channel-scan';
   static const wifiLanStatus = '/wifi/lan-status';
   static const wifiDeviceInfo = '/wifi/device-info';
-
-  // Calibration (pushed dynamically from LCM)
-  static const calibrationScreen = '/calibration';
 
   // Camera
   static const camera = '/camera';
@@ -348,13 +344,6 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.wifiDeviceInfo,
         name: 'wifiDeviceInfo',
         builder: (context, state) => const DeviceInfoScreen(),
-      ),
-
-      // Dynamic UI screen (single instance, watches provider for content)
-      GoRoute(
-        path: AppRoutes.calibrationScreen,
-        name: 'calibrationScreen',
-        builder: (context, state) => const DynamicUIScreen(),
       ),
 
       // Camera

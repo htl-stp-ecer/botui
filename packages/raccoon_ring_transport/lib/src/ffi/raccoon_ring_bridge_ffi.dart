@@ -9,7 +9,7 @@ void setLibraryPath(String path) {
 }
 
 DynamicLibrary _loadLibrary() {
-  const libName = 'libiox2_bridge.so';
+  const libName = 'libraccoon_ring_bridge.so';
   final pathsToTry = <String>[];
 
   if (_customLibraryPath != null) {
@@ -73,35 +73,35 @@ typedef _SubDestroyNative = Void Function(Pointer<Void> sub);
 typedef _SubDestroyDart = void Function(Pointer<Void> sub);
 
 final _NodeCreateDart _nodeCreate = _lib
-    .lookupFunction<_NodeCreateNative, _NodeCreateDart>('iox2_bridge_node_create');
+    .lookupFunction<_NodeCreateNative, _NodeCreateDart>('raccoon_ring_bridge_node_create');
 
 final _NodeDestroyDart _nodeDestroy = _lib
-    .lookupFunction<_NodeDestroyNative, _NodeDestroyDart>('iox2_bridge_node_destroy');
+    .lookupFunction<_NodeDestroyNative, _NodeDestroyDart>('raccoon_ring_bridge_node_destroy');
 
 final _PubCreateDart _pubCreate = _lib
-    .lookupFunction<_PubCreateNative, _PubCreateDart>('iox2_bridge_publisher_create');
+    .lookupFunction<_PubCreateNative, _PubCreateDart>('raccoon_ring_bridge_publisher_create');
 
 final _PubSendDart _pubSend = _lib
-    .lookupFunction<_PubSendNative, _PubSendDart>('iox2_bridge_publisher_send');
+    .lookupFunction<_PubSendNative, _PubSendDart>('raccoon_ring_bridge_publisher_send');
 
 final _PubDestroyDart _pubDestroy = _lib
-    .lookupFunction<_PubDestroyNative, _PubDestroyDart>('iox2_bridge_publisher_destroy');
+    .lookupFunction<_PubDestroyNative, _PubDestroyDart>('raccoon_ring_bridge_publisher_destroy');
 
 final _SubCreateDart _subCreate = _lib
-    .lookupFunction<_SubCreateNative, _SubCreateDart>('iox2_bridge_subscriber_create');
+    .lookupFunction<_SubCreateNative, _SubCreateDart>('raccoon_ring_bridge_subscriber_create');
 
 final _SubReceiveDart _subReceive = _lib
-    .lookupFunction<_SubReceiveNative, _SubReceiveDart>('iox2_bridge_subscriber_receive');
+    .lookupFunction<_SubReceiveNative, _SubReceiveDart>('raccoon_ring_bridge_subscriber_receive');
 
 final _SubDestroyDart _subDestroy = _lib
-    .lookupFunction<_SubDestroyNative, _SubDestroyDart>('iox2_bridge_subscriber_destroy');
+    .lookupFunction<_SubDestroyNative, _SubDestroyDart>('raccoon_ring_bridge_subscriber_destroy');
 
-class Iox2Node {
+class RingNode {
   final Pointer<Void> _handle;
 
-  Iox2Node._(this._handle);
+  RingNode._(this._handle);
 
-  factory Iox2Node(String name) {
+  factory RingNode(String name) {
     final namePtr = name.toNativeUtf8();
     final outPtr = calloc<Pointer<Void>>();
     final ret = _nodeCreate(outPtr, namePtr);
@@ -109,15 +109,14 @@ class Iox2Node {
     if (ret != 0) {
       final h = outPtr.value;
       calloc.free(outPtr);
-      throw Exception('Failed to create node "$name": error code $ret, '
-          'is iceoryx2 running? Check /tmp/iceoryx2/');
+      throw Exception('Failed to create node "$name": error code $ret');
     }
     final h = outPtr.value;
     calloc.free(outPtr);
     if (h == nullptr) {
       throw Exception('Failed to create node "$name": null handle');
     }
-    return Iox2Node._(h);
+    return RingNode._(h);
   }
 
   Pointer<Void> get handle => _handle;
@@ -127,12 +126,12 @@ class Iox2Node {
   }
 }
 
-class Iox2Publisher {
+class RingPublisher {
   final Pointer<Void> _handle;
 
-  Iox2Publisher._(this._handle);
+  RingPublisher._(this._handle);
 
-  factory Iox2Publisher(Iox2Node node, String channel) {
+  factory RingPublisher(RingNode node, String channel) {
     final chPtr = channel.toNativeUtf8();
     final outPtr = calloc<Pointer<Void>>();
     final ret = _pubCreate(node.handle, chPtr, outPtr);
@@ -147,7 +146,7 @@ class Iox2Publisher {
     if (h == nullptr) {
       throw Exception('Failed to create publisher for "$channel": null handle');
     }
-    return Iox2Publisher._(h);
+    return RingPublisher._(h);
   }
 
   Pointer<Void> get handle => _handle;
@@ -168,17 +167,17 @@ class Iox2Publisher {
   }
 }
 
-class Iox2Subscriber {
+class RingSubscriber {
   final Pointer<Void> _handle;
   static const int _recvBufSize = 65536;
   final Pointer<Uint8> _recvBuf;
   final Pointer<Uint64> _recvLen;
 
-  Iox2Subscriber._(this._handle)
+  RingSubscriber._(this._handle)
       : _recvBuf = calloc<Uint8>(_recvBufSize),
         _recvLen = calloc<Uint64>();
 
-  factory Iox2Subscriber(Iox2Node node, String channel) {
+  factory RingSubscriber(RingNode node, String channel) {
     final chPtr = channel.toNativeUtf8();
     final outPtr = calloc<Pointer<Void>>();
     final ret = _subCreate(node.handle, chPtr, outPtr);
@@ -193,7 +192,7 @@ class Iox2Subscriber {
     if (h == nullptr) {
       throw Exception('Failed to create subscriber for "$channel": null handle');
     }
-    return Iox2Subscriber._(h);
+    return RingSubscriber._(h);
   }
 
   Pointer<Void> get handle => _handle;

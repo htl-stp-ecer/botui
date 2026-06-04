@@ -23,22 +23,25 @@ fi
 $DART pub global activate flutterpi_tool
 flutterpi_tool build --arch=arm64 --cpu=pi3 --release
 
-# Copy the bridge .so into the build output. The bridge now statically
-# embeds raccoon_ring (the SHM transport that replaced iceoryx2), so
-# there is no libiceoryx2_ffi_c.so to ship alongside it any more — the
-# bridge has no dynamic deps beyond libc/libstdc++/libgcc_s.
+# Copy the bridge .so into the build output. The bridge statically embeds
+# raccoon_ring (the SHM transport from raccoon-transport), so there are
+# no extra deps to ship alongside it beyond libc/libstdc++/libgcc_s.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build/flutter-pi/pi3-64"
-SO_DIR="$SCRIPT_DIR/packages/iceoryx2_transport/native"
+SO_DIR="$SCRIPT_DIR/packages/raccoon_ring_transport/native"
 if [ -d "$BUILD_DIR" ]; then
-  if [ -f "$SO_DIR/libiox2_bridge.so" ]; then
-    cp "$SO_DIR/libiox2_bridge.so" "$BUILD_DIR/"
-    echo "Copied libiox2_bridge.so to build output"
+  if [ ! -f "$SO_DIR/libraccoon_ring_bridge.so" ]; then
+    echo "▶ libraccoon_ring_bridge.so missing — building it now"
+    (cd "$SO_DIR" && ./build.sh)
+  fi
+  if [ -f "$SO_DIR/libraccoon_ring_bridge.so" ]; then
+    cp "$SO_DIR/libraccoon_ring_bridge.so" "$BUILD_DIR/"
+    echo "Copied libraccoon_ring_bridge.so to build output"
   else
-    echo "ERROR: libiox2_bridge.so not built — run packages/iceoryx2_transport/native/build.sh first" >&2
+    echo "ERROR: libraccoon_ring_bridge.so could not be built — see packages/raccoon_ring_transport/native/build.sh" >&2
     exit 1
   fi
-  # Best-effort cleanup of stale libiceoryx2_ffi_c.so left from old builds
-  # so flutter-pi doesn't dlopen the old one accidentally.
-  rm -f "$BUILD_DIR/libiceoryx2_ffi_c.so"
+  # Best-effort cleanup of stale .so files from the previous iceoryx2-named
+  # build so flutter-pi never dlopen()s an outdated one.
+  rm -f "$BUILD_DIR/libiox2_bridge.so" "$BUILD_DIR/libiceoryx2_ffi_c.so"
 fi

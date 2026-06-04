@@ -14,7 +14,7 @@ flutter test --name "stddev"       # one test by description
 | File | Use for |
 |------|---------|
 | `pump_app.dart` | `pumpScreen(tester, widget, overrides: [...])` — wraps in `ProviderScope` + dark `MaterialApp`, sizes the test view to the 800×480 Wombat panel. Call `resetScreen()` in `tearDown`. |
-| `fake_lcm.dart` | `fakeLcmOverrides()` — replaces `lcmServiceProvider` with an in-memory `FakeLcmService`. **Required** for any widget that uses `createTopBar` (its `BatteryStatus` indirectly subscribes to LCM) or any screen watching LCM-backed providers. Without it the real service tries to `dlopen` `libiox2_bridge.so` and the test errors out. |
+| `fake_lcm.dart` | `fakeLcmOverrides()` — replaces `lcmServiceProvider` with an in-memory `FakeLcmService`. **Required** for any widget that uses `createTopBar` (its `BatteryStatus` indirectly subscribes to LCM) or any screen watching LCM-backed providers. Without it the real service tries to `dlopen` `libraccoon_ring_bridge.so` and the test errors out. |
 | `mocks.dart` | `MockSensorRepository`, `MockWifiRepository` (mocktail). Call `registerCommonFallbacks()` in `setUpAll` when stubbing methods that take non-nullable enums. |
 
 ## Patterns
@@ -27,7 +27,7 @@ flutter test --name "stddev"       # one test by description
 
 ## What's NOT covered yet
 
-- `iceoryx2_transport` and `raccoon_transport` FFI layers — explicitly out of scope while the transport is being stabilized.
+- `raccoon_ring_transport` and `raccoon_transport` FFI layers — explicitly out of scope while the transport is being stabilized.
 - `ProgramLifecycleService` / `ProgramSession` — spawn real subprocesses; would need a process abstraction.
 - Pages that depend on hardware (`touch_calibration_screen`, `screen_rotation_screen`, sensor graph screens) — rendered via `SensorStrategyFactory` and watch LCM channels per sensor.
 

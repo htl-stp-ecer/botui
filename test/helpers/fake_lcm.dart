@@ -9,7 +9,7 @@ import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
 
 /// In-memory LcmService used by widget tests so any screen that watches
 /// LCM-backed providers (battery voltage, error stream, sensor topics)
-/// can render without touching the real iceoryx2 FFI transport.
+/// can render without touching the real raccoon_ring FFI transport.
 ///
 /// Channels emit nothing by default — listeners simply never fire, which
 /// matches "no hardware connected" and produces the same UI a fresh boot

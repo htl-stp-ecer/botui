@@ -95,36 +95,32 @@ class StpVeloxApp extends HookConsumerWidget {
     // /proc/<flutter-pi>/fd never contained raccoon_ring_…screen_render.
     ref.read(screenRenderProviderProvider);
 
-    // Track whether we pushed the calibration route so we can pop it reliably.
-    // We cannot trust router.currentConfiguration.fullPath (it returns stale/wrong
-    // values when routes are pushed imperatively).
-    final dynamicUiPushed = useRef(false);
-
-    // Handle dynamic UI screen navigation at app level so the listener
-    // survives route changes (go_router swaps routes, unmounting previous ones).
+    // Dynamic UI rendering is handled by _AppServicesStarter's top-level
+    // Stack (paints DynamicUIScreen above `child` whenever screenData !=
+    // null). No router push/pop needed — and trying to do both caused a
+    // "nothing to pop" race when backlog frames replayed open→close
+    // cycles, leaving the navigator stuck on an empty /calibration route
+    // that rendered as a blank screen above the dashboard.
+    //
+    // This listener now only mirrors open/close into dynamicUiActiveProvider
+    // (read by ProgramScreen to hide its tap-blocking overlay) and dismisses
+    // the screensaver on open.
     ref.listen<Map<String, dynamic>?>(screenRenderProviderProvider, (previous, next) {
       final wasOpen = previous != null;
       final shouldBeOpen = next != null;
+      if (wasOpen == shouldBeOpen) return;
 
-      if (!wasOpen && shouldBeOpen && !dynamicUiPushed.value) {
+      if (shouldBeOpen) {
         _log.info('[DynamicUI] Opening dynamic UI screen');
-
-        // If the screensaver is currently showing, dismiss it first so it
-        // doesn't sit on top of (or interfere with) the custom UI.
         final screensaverUp = ref.read(screensaverShowingProvider);
         if (screensaverUp) {
           _log.info('[DynamicUI] Dismissing screensaver before opening dynamic UI');
           ref.read(inactivityProvider.notifier).userActivityDetected();
         }
-
-        dynamicUiPushed.value = true;
         ref.read(dynamicUiActiveProvider.notifier).set(true);
-        router.push(AppRoutes.calibrationScreen);
-      } else if (wasOpen && !shouldBeOpen && dynamicUiPushed.value) {
+      } else {
         _log.info('[DynamicUI] Closing dynamic UI screen');
-        dynamicUiPushed.value = false;
         ref.read(dynamicUiActiveProvider.notifier).set(false);
-        router.pop();
       }
     });
 

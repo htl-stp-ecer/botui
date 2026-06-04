@@ -41,7 +41,6 @@ void main() {
       AppRoutes.wifiChannelScan,
       AppRoutes.wifiLanStatus,
       AppRoutes.wifiDeviceInfo,
-      AppRoutes.calibrationScreen,
       AppRoutes.camera,
       AppRoutes.robotFace,
       AppRoutes.devMenu,

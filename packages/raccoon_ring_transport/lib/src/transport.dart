@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'ffi/iox2_bridge_ffi.dart';
+import 'ffi/raccoon_ring_bridge_ffi.dart';
 
 class TransportSubscription {
   final String channel;
@@ -15,31 +15,31 @@ class TransportSubscription {
 
 typedef MessageHandler = void Function(String channel, Uint8List data);
 
-class Iceoryx2Transport {
-  late final Iox2Node _node;
-  final Map<String, Iox2Publisher> _publishers = {};
+class RaccoonRingTransport {
+  late final RingNode _node;
+  final Map<String, RingPublisher> _publishers = {};
   final Map<String, _SubEntry> _subscribers = {};
   Timer? _spinTimer;
   bool _disposed = false;
 
-  Iceoryx2Transport._();
+  RaccoonRingTransport._();
 
-  static Future<Iceoryx2Transport> create(String nodeName) async {
-    final transport = Iceoryx2Transport._();
-    transport._node = Iox2Node(nodeName);
+  static Future<RaccoonRingTransport> create(String nodeName) async {
+    final transport = RaccoonRingTransport._();
+    transport._node = RingNode(nodeName);
     return transport;
   }
 
   int publish(String channel, Uint8List data) {
     final pub = _publishers.putIfAbsent(
-        channel, () => Iox2Publisher(_node, channel));
+        channel, () => RingPublisher(_node, channel));
     return pub.send(data);
   }
 
   TransportSubscription subscribe(String channel, MessageHandler handler) {
     final entry = _subscribers.putIfAbsent(channel, () {
-      final sub = Iox2Subscriber(_node, channel);
-      return _SubEntry(sub);
+      final sub = RingSubscriber(_node, channel);
+      return _SubEntry(sub, channel);
     });
 
     entry._addHandler(handler);
@@ -118,11 +118,11 @@ class Iceoryx2Transport {
 }
 
 class _SubEntry {
-  final Iox2Subscriber sub;
+  final RingSubscriber sub;
   final String _channel;
   final List<MessageHandler> _handlers = [];
 
-  _SubEntry(this.sub) : _channel = '';
+  _SubEntry(this.sub, this._channel);
 
   void _addHandler(MessageHandler handler) {
     _handlers.add(handler);

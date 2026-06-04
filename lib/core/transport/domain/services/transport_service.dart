@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:iceoryx2_transport/iceoryx2_transport.dart';
+import 'package:raccoon_ring_transport/raccoon_ring_transport.dart';
 import 'package:raccoon_transport/raccoon_transport.dart'
     show LcmBuffer, LcmMessage, PublishOptions, SubscribeOptions;
 import 'package:rxdart/rxdart.dart';
@@ -12,7 +12,7 @@ import 'package:stpvelox/core/logging/has_logging.dart';
 /// display refresh — emitting faster only burns CPU without ever being seen.
 const Duration kUiSensorSampleRate = Duration(milliseconds: 16);
 
-/// Transport service using iceoryx2 shared-memory IPC.
+/// Transport service using raccoon_ring shared-memory IPC.
 ///
 /// Subscriptions are lazy: the underlying transport subscription is only
 /// established while at least one listener is attached to the returned
@@ -20,7 +20,7 @@ const Duration kUiSensorSampleRate = Duration(milliseconds: 16);
 /// subscription is torn down so packets stop being dispatched for channels
 /// nobody is watching.
 class TransportService with HasLogger {
-  Iceoryx2Transport? _transport;
+  RaccoonRingTransport? _transport;
   Completer<void>? _initCompleter;
   final Map<String, StreamController<TransportDecodedRaw>> _controllers = {};
   final Map<String, TransportSubscription> _subscriptions = {};
@@ -44,12 +44,12 @@ class TransportService with HasLogger {
 
     try {
       final nodeName = provider ?? 'stpvelox';
-      _transport = await Iceoryx2Transport.create(nodeName);
+      _transport = await RaccoonRingTransport.create(nodeName);
       // 33 ms ≈ 30 fps. Bridge poll thread is futex-driven; this only
       // drains its queue into Dart streams. UI redraws at 30 fps so
       // faster polling just heats the UI thread.
       _transport!.startSpin(intervalMs: 33);
-      log.info('iceoryx2 transport initialized: $nodeName');
+      log.info('raccoon_ring transport initialized: $nodeName');
       _initCompleter!.complete();
     } catch (e, st) {
       log.severe('Transport init failed: $e', st);

@@ -28,7 +28,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         // The top bar's BatteryStatus indirectly reads lcmServiceProvider;
-        // without an override it tries to dlopen the iceoryx2 bridge.
+        // without an override it tries to dlopen the raccoon_ring bridge.
         overrides: fakeLcmOverrides(),
         child: const MaterialApp(
           home: WifiMenuScreen(),

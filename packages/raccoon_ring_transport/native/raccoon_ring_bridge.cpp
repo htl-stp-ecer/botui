@@ -1,5 +1,5 @@
-// iox2_bridge.cpp — Dart FFI shim around raccoon_ring (the SHM ring
-// buffer that replaced iceoryx2 in raccoon-transport).
+// raccoon_ring_bridge.cpp — Dart FFI shim around raccoon_ring (the
+// SHM ring buffer transport from raccoon-transport).
 //
 // History: this was originally a thin pure-C wrapper around the iceoryx2
 // C API; then a C++ wrapper around raccoon::Transport (which itself
@@ -9,12 +9,9 @@
 // and frames sporadically didn't reach subscribers. raccoon_ring is a
 // fileless-per-channel SHM ring buffer: no daemon, no service
 // descriptors, no state machine to wedge.
-//
-// We deliberately keep the exact same iox2_bridge_* C ABI that
-// iox2_bridge_ffi.dart expects — no Dart-side changes needed.
 
-#include "iox2_bridge.h"
-#include "raccoon_ring.h"
+#include "raccoon_ring_bridge.h"
+#include "raccoon/raccoon_ring.h"
 
 #include <atomic>
 #include <chrono>
@@ -37,7 +34,7 @@ void log_line(const char* fmt, ...) {
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
-    fprintf(stderr, "iox2_bridge: %s\n", buf);
+    fprintf(stderr, "raccoon_ring_bridge: %s\n", buf);
     fflush(stderr);
 }
 
@@ -56,7 +53,7 @@ struct SubChannelState {
 struct BridgeNode {
     std::atomic<bool> stop{false};
 
-    // Channel name → shared subscriber state. Multiple Iox2BridgeSubscriber
+    // Channel name → shared subscriber state. Multiple BridgeSubscriber
     // handles on the same channel reuse the same state + queue (matching
     // the previous bridge's semantics) and share one underlying rrb_reader.
     std::mutex subs_mtx;
@@ -78,7 +75,7 @@ struct BridgeNode {
 
     // Per-channel publisher writers. Lazy-create on first publish, then
     // reused (raccoon_ring is single-producer per channel, so multiple
-    // Dart Iox2BridgePublisher handles on the same channel must share
+    // Dart BridgePublisher handles on the same channel must share
     // one rrb_writer).
     std::mutex pubs_mtx;
     std::unordered_map<std::string, rrb_writer_t*> pubs;
@@ -162,12 +159,12 @@ void node_poll_loop(BridgeNode* node) {
 
 extern "C" {
 
-int iox2_bridge_node_create(void** out_node, const char* name) {
+int raccoon_ring_bridge_node_create(void** out_node, const char* name) {
     if (!out_node || !name) return -1;
     try {
         auto* node = new BridgeNode();
         // No central poll thread any more — one is spawned per subscriber
-        // inside iox2_bridge_subscriber_create so each channel can park
+        // inside raccoon_ring_bridge_subscriber_create so each channel can park
         // in its own futex_wait and wake independently in ~us.
         log_line("node_create('%s') ok (rrb backend, event-driven)", name);
         *out_node = node;
@@ -180,7 +177,7 @@ int iox2_bridge_node_create(void** out_node, const char* name) {
     }
 }
 
-void iox2_bridge_node_destroy(void* n) {
+void raccoon_ring_bridge_node_destroy(void* n) {
     if (!n) return;
     auto* node = static_cast<BridgeNode*>(n);
     node->stop.store(true);
@@ -204,7 +201,7 @@ void iox2_bridge_node_destroy(void* n) {
     delete node;
 }
 
-int iox2_bridge_publisher_create(void* n, const char* channel, void** out_pub) {
+int raccoon_ring_bridge_publisher_create(void* n, const char* channel, void** out_pub) {
     if (!n || !channel || !out_pub) return -1;
     auto* node = static_cast<BridgeNode*>(n);
     try {
@@ -216,7 +213,7 @@ int iox2_bridge_publisher_create(void* n, const char* channel, void** out_pub) {
     }
 }
 
-int iox2_bridge_publisher_send(void* p, const uint8_t* data, size_t len) {
+int raccoon_ring_bridge_publisher_send(void* p, const uint8_t* data, size_t len) {
     if (!p || !data || len == 0) return -1;
     auto* pub = static_cast<BridgePublisher*>(p);
     rrb_writer_t* w;
@@ -256,14 +253,14 @@ int iox2_bridge_publisher_send(void* p, const uint8_t* data, size_t len) {
     return 0;
 }
 
-void iox2_bridge_publisher_destroy(void* p) {
+void raccoon_ring_bridge_publisher_destroy(void* p) {
     if (!p) return;
     delete static_cast<BridgePublisher*>(p);
     // The underlying rrb_writer stays alive — multiple Dart publishers
     // can share one writer, and the node teardown is what closes them.
 }
 
-int iox2_bridge_subscriber_create(void* n, const char* channel, void** out_sub) {
+int raccoon_ring_bridge_subscriber_create(void* n, const char* channel, void** out_sub) {
     if (!n || !channel || !out_sub) return -1;
     auto* node = static_cast<BridgeNode*>(n);
     try {
@@ -310,7 +307,7 @@ int iox2_bridge_subscriber_create(void* n, const char* channel, void** out_sub) 
     }
 }
 
-int iox2_bridge_subscriber_receive(void* s, uint8_t* buf,
+int raccoon_ring_bridge_subscriber_receive(void* s, uint8_t* buf,
                                    size_t* out_len, size_t max_len) {
     if (!s || !buf || !out_len) return -1;
     auto* sub = static_cast<BridgeSubscriber*>(s);
@@ -332,7 +329,7 @@ int iox2_bridge_subscriber_receive(void* s, uint8_t* buf,
     return 0;
 }
 
-void iox2_bridge_subscriber_destroy(void* s) {
+void raccoon_ring_bridge_subscriber_destroy(void* s) {
     if (!s) return;
     delete static_cast<BridgeSubscriber*>(s);
     // Same as publisher_destroy: SubChannelState stays alive until node
