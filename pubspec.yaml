@@ -31,8 +31,6 @@ dependencies:
   raccoon_transport:
     path: packages/raccoon-transport/dart
   rxdart: ^0.28.0
-  raccoon_ring_transport:
-    path: packages/raccoon_ring_transport
   ffi: ^2.1.0
 
 

@@ -27,7 +27,7 @@ flutter test --name "stddev"       # one test by description
 
 ## What's NOT covered yet
 
-- `raccoon_ring_transport` and `raccoon_transport` FFI layers — explicitly out of scope while the transport is being stabilized.
+- `raccoon_transport` FFI / ring-buffer layer — explicitly out of scope while the transport is being stabilized.
 - `ProgramLifecycleService` / `ProgramSession` — spawn real subprocesses; would need a process abstraction.
 - Pages that depend on hardware (`touch_calibration_screen`, `screen_rotation_screen`, sensor graph screens) — rendered via `SensorStrategyFactory` and watch LCM channels per sensor.
 

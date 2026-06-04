@@ -640,13 +640,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.2"
-  raccoon_ring_transport:
-    dependency: "direct main"
-    description:
-      path: "packages/raccoon_ring_transport"
-      relative: true
-    source: path
-    version: "0.2.0"
   raccoon_transport:
     dependency: "direct main"
     description:
