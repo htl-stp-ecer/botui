@@ -42,7 +42,7 @@ final class BatteryVoltageSensorProvider
 }
 
 String _$batteryVoltageSensorHash() =>
-    r'99d03e9612f2855b05c567f12b4d7b3a321c7933';
+    r'f5925b20332b6732c5ff0911dfa0569af1a865a3';
 
 abstract class _$BatteryVoltageSensor extends $Notifier<double?> {
   double? build();

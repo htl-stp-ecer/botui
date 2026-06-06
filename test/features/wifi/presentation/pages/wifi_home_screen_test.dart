@@ -6,6 +6,8 @@ import 'package:stpvelox/features/wifi/domain/application/network_mode_state.dar
 import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_home_screen.dart';
 
+import '../../../../helpers/fake_lcm.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -125,6 +127,7 @@ class _TestApp extends StatelessWidget {
     return ProviderScope(
       overrides: [
         networkModeProvider.overrideWith(() => notifier),
+        ...fakeLcmOverrides(),
       ],
       child: const MaterialApp(
         home: WifiHomeScreen(),

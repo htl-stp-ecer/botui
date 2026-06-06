@@ -9,6 +9,8 @@ import 'package:stpvelox/features/wifi/domain/enities/wifi_network.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/device_info_screen.dart';
 import 'package:stpvelox/shared/domain/entities/device_info.dart';
 
+import '../../../../helpers/fake_lcm.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -82,6 +84,7 @@ class _DeviceInfoTestApp extends StatelessWidget {
       overrides: [
         wifiClientProvider.overrideWith(() => notifier),
         macAddressProvider.overrideWith((ref) async => 'AA:BB:CC:DD:EE:FF'),
+        ...fakeLcmOverrides(),
       ],
       child: const MaterialApp(
         home: DeviceInfoScreen(),

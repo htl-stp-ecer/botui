@@ -59,7 +59,7 @@ final class MotorPositionSensorProvider
 }
 
 String _$motorPositionSensorHash() =>
-    r'd405a657eeac08a752766eeb345b675ea2668a78';
+    r'a936431d95a3270f6e872fcc983bd533b32dfe43';
 
 final class MotorPositionSensorFamily extends $Family
     with $ClassFamilyOverride<MotorPositionSensor, int?, int?, int?, int> {

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
-import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
+import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
 
@@ -15,8 +15,8 @@ double? useServoCommand(WidgetRef ref, int port) {
 
 @riverpod
 class ServoCommandSensor extends _$ServoCommandSensor with HasLogger {
-  StreamSubscription<LcmDecoded<ScalarFT>>? _positionSub;
-  StreamSubscription<LcmDecoded<Vector3fT>>? _smoothSub;
+  StreamSubscription<TransportDecoded<ScalarFT>>? _positionSub;
+  StreamSubscription<TransportDecoded<Vector3fT>>? _smoothSub;
   double? _currentValue;
 
   @override
@@ -28,9 +28,9 @@ class ServoCommandSensor extends _$ServoCommandSensor with HasLogger {
   }
 
   void _startSubscriptions(int port) {
-    final lcm = ref.read(lcmServiceProvider);
+    final transport = ref.read(transportServiceProvider);
 
-    _positionSub = lcm
+    _positionSub = transport
         .subscribeAs<ScalarFT>(Channels.servoPositionCommand(port), ScalarFT.decode)
         .listen(
       (decoded) {
@@ -40,7 +40,7 @@ class ServoCommandSensor extends _$ServoCommandSensor with HasLogger {
       onError: (e) => log.severe('Error in servo $port position_cmd subscription: $e'),
     );
 
-    _smoothSub = lcm
+    _smoothSub = transport
         .subscribeAs<Vector3fT>(Channels.servoSmoothPositionCommand(port), Vector3fT.decode)
         .listen(
       (decoded) {

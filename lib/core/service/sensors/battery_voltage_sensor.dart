@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
-import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
+import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/service/sensors/sensor_reading_strategy.dart';
 import 'package:raccoon_transport/messages/types/scalar_f_t.g.dart';
@@ -17,7 +17,7 @@ double? useBatteryVoltage(WidgetRef ref) {
 
 @Riverpod(keepAlive: true)
 class BatteryVoltageSensor extends _$BatteryVoltageSensor with HasLogger {
-  StreamSubscription<LcmDecoded<ScalarFT>>? _subscription;
+  StreamSubscription<TransportDecoded<ScalarFT>>? _subscription;
   double? _currentValue;
 
   @override
@@ -28,8 +28,8 @@ class BatteryVoltageSensor extends _$BatteryVoltageSensor with HasLogger {
   }
 
   void _startSubscription() {
-    final lcm = ref.read(lcmServiceProvider);
-    _subscription = lcm
+    final transport = ref.read(transportServiceProvider);
+    _subscription = transport
         .subscribeAs<ScalarFT>(Channels.batteryVoltage, ScalarFT.decode,
             options: const SubscribeOptions(requestRetained: true))
         .listen(

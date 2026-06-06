@@ -57,7 +57,7 @@ final class BackEmfSensorProvider
   }
 }
 
-String _$backEmfSensorHash() => r'958b58508d871c9a7b17af934152c47f33194a62';
+String _$backEmfSensorHash() => r'ed3ee8bfe0ac8a679c9333f39cd0d3fea1a709e5';
 
 final class BackEmfSensorFamily extends $Family
     with $ClassFamilyOverride<BackEmfSensor, int?, int?, int?, int> {

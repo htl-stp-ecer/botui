@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logging/logging.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/features/screen_renderer/application/screen_renderer_provider.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
 
@@ -114,7 +114,7 @@ class DynamicUIScreen extends HookConsumerWidget {
     // ── LCM event helpers ──────────────────────────────────────────────────
     void sendEvent(String action, {Map<String, dynamic>? extra}) {
       final timestamp = DateTime.now().toIso8601String();
-      final lcm = ref.read(lcmServiceProvider);
+      final transport = ref.read(transportServiceProvider);
 
       final payload = {
         '_action': action,
@@ -133,7 +133,7 @@ class DynamicUIScreen extends HookConsumerWidget {
       _log.fine('[LCM TX] extra=$extra');
       _log.fine('[LCM TX] current values=${values.value}');
       _log.fine('[LCM TX] full payload=${jsonEncode(payload)}');
-      lcm.publish(Channels.screenRenderAnswer, response,
+      transport.publish(Channels.screenRenderAnswer, response,
           options: const PublishOptions(reliable: true));
       _log.info('[LCM TX] Message published successfully');
     }

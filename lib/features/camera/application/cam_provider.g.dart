@@ -8,15 +8,15 @@ part of 'cam_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provider that streams camera detections from LCM (always active)
+/// Provider that streams camera detections from the vision daemon.
 
 @ProviderFor(CamDetectionStream)
 const camDetectionStreamProvider = CamDetectionStreamProvider._();
 
-/// Provider that streams camera detections from LCM (always active)
+/// Provider that streams camera detections from the vision daemon.
 final class CamDetectionStreamProvider
     extends $NotifierProvider<CamDetectionStream, CamDetectionData?> {
-  /// Provider that streams camera detections from LCM (always active)
+  /// Provider that streams camera detections from the vision daemon.
   const CamDetectionStreamProvider._()
       : super(
           from: null,
@@ -45,9 +45,9 @@ final class CamDetectionStreamProvider
 }
 
 String _$camDetectionStreamHash() =>
-    r'7a999f6ceef4f853140cc64df9a1d94eb146ebd4';
+    r'a50b266cc151a7fbb26df5b08a8245a8c9ff6831';
 
-/// Provider that streams camera detections from LCM (always active)
+/// Provider that streams camera detections from the vision daemon.
 
 abstract class _$CamDetectionStream extends $Notifier<CamDetectionData?> {
   CamDetectionData? build();
@@ -65,15 +65,15 @@ abstract class _$CamDetectionStream extends $Notifier<CamDetectionData?> {
   }
 }
 
-/// Provider that streams camera frames from LCM (active only when viewer is open)
+/// Provider that streams camera JPEG frames from the vision daemon.
 
 @ProviderFor(CamFrameStream)
 const camFrameStreamProvider = CamFrameStreamProvider._();
 
-/// Provider that streams camera frames from LCM (active only when viewer is open)
+/// Provider that streams camera JPEG frames from the vision daemon.
 final class CamFrameStreamProvider
     extends $NotifierProvider<CamFrameStream, CamFrameData?> {
-  /// Provider that streams camera frames from LCM (active only when viewer is open)
+  /// Provider that streams camera JPEG frames from the vision daemon.
   const CamFrameStreamProvider._()
       : super(
           from: null,
@@ -101,9 +101,9 @@ final class CamFrameStreamProvider
   }
 }
 
-String _$camFrameStreamHash() => r'e6efb64137fe394b9a73a788033f94236b9a3963';
+String _$camFrameStreamHash() => r'1ad19f680be18dcf1388d109c1e877f270148f3d';
 
-/// Provider that streams camera frames from LCM (active only when viewer is open)
+/// Provider that streams camera JPEG frames from the vision daemon.
 
 abstract class _$CamFrameStream extends $Notifier<CamFrameData?> {
   CamFrameData? build();

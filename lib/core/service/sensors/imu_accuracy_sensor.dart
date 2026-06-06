@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:stpvelox/core/lcm/domain/providers.dart';
-import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
+import 'package:stpvelox/core/transport/domain/providers.dart';
+import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:raccoon_transport/messages/types/scalar_i8_t.g.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
@@ -46,10 +46,10 @@ ImuAccuracy useImuAccuracy(WidgetRef ref) {
 
 @Riverpod(keepAlive: true)
 class ImuAccuracySensor extends _$ImuAccuracySensor with HasLogger {
-  StreamSubscription<LcmDecoded<ScalarI8T>>? _gyroSub;
-  StreamSubscription<LcmDecoded<ScalarI8T>>? _accelSub;
-  StreamSubscription<LcmDecoded<ScalarI8T>>? _magSub;
-  StreamSubscription<LcmDecoded<ScalarI8T>>? _quatSub;
+  StreamSubscription<TransportDecoded<ScalarI8T>>? _gyroSub;
+  StreamSubscription<TransportDecoded<ScalarI8T>>? _accelSub;
+  StreamSubscription<TransportDecoded<ScalarI8T>>? _magSub;
+  StreamSubscription<TransportDecoded<ScalarI8T>>? _quatSub;
 
   ImuAccuracy _currentValue = const ImuAccuracy();
 
@@ -61,10 +61,10 @@ class ImuAccuracySensor extends _$ImuAccuracySensor with HasLogger {
   }
 
   void _startSubscriptions() {
-    final lcm = ref.read(lcmServiceProvider);
+    final transport = ref.read(transportServiceProvider);
     log.info('Starting IMU accuracy subscriptions');
 
-    _gyroSub = lcm
+    _gyroSub = transport
         .subscribeAs<ScalarI8T>(Channels.gyroAccuracy, ScalarI8T.decode,
             options: const SubscribeOptions(requestRetained: true))
         .listen(
@@ -80,7 +80,7 @@ class ImuAccuracySensor extends _$ImuAccuracySensor with HasLogger {
       },
     );
 
-    _accelSub = lcm
+    _accelSub = transport
         .subscribeAs<ScalarI8T>(Channels.accelAccuracy, ScalarI8T.decode,
             options: const SubscribeOptions(requestRetained: true))
         .listen(
@@ -96,7 +96,7 @@ class ImuAccuracySensor extends _$ImuAccuracySensor with HasLogger {
       },
     );
 
-    _magSub = lcm
+    _magSub = transport
         .subscribeAs<ScalarI8T>(Channels.compassAccuracy, ScalarI8T.decode,
             options: const SubscribeOptions(requestRetained: true))
         .listen(
@@ -112,7 +112,7 @@ class ImuAccuracySensor extends _$ImuAccuracySensor with HasLogger {
       },
     );
 
-    _quatSub = lcm
+    _quatSub = transport
         .subscribeAs<ScalarI8T>(
             Channels.quaternionAccuracy, ScalarI8T.decode,
             options: const SubscribeOptions(requestRetained: true))

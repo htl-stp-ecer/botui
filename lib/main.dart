@@ -15,6 +15,7 @@ import 'package:stpvelox/features/settings/domain/usecases/reboot.dart';
 import 'package:stpvelox/core/service/button10_monitor_widget.dart';
 import 'package:stpvelox/core/service/sensors/imu_accuracy_sensor.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
+import 'package:stpvelox/features/dynamic_ui/presentation/dynamic_ui_screen.dart';
 import 'package:stpvelox/features/screen_renderer/application/screen_renderer_provider.dart';
 
 import 'core/di/injection.dart';
@@ -82,36 +83,44 @@ class StpVeloxApp extends HookConsumerWidget {
     // Use ref.read to initialize without causing rebuilds on every value change
     ref.read(imuAccuracySensorProvider);
 
-    // Track whether we pushed the calibration route so we can pop it reliably.
-    // We cannot trust router.currentConfiguration.fullPath (it returns stale/wrong
-    // values when routes are pushed imperatively).
-    final dynamicUiPushed = useRef(false);
+    // Force-initialize the screen render provider. ref.listen below DOES
+    // subscribe in Riverpod 2.x, but the provider's build() — which opens
+    // the transport subscription to raccoon/screen_render — does not run
+    // until the first publisher delivers a frame. That creates a
+    // chicken-and-egg: nothing ever arrives because nobody is listening
+    // yet on the SHM ring, so build() never fires, so we never subscribe.
+    // Calling ref.read eagerly here matches the imuAccuracySensorProvider
+    // pattern and ensures the transport subscription is up before any
+    // dynamic_ui message is published. Verified 2026-06-02: without this,
+    // /proc/<flutter-pi>/fd never contained raccoon_ring_…screen_render.
+    ref.read(screenRenderProviderProvider);
 
-    // Handle dynamic UI screen navigation at app level so the listener
-    // survives route changes (go_router swaps routes, unmounting previous ones).
+    // Dynamic UI rendering is handled by _AppServicesStarter's top-level
+    // Stack (paints DynamicUIScreen above `child` whenever screenData !=
+    // null). No router push/pop needed — and trying to do both caused a
+    // "nothing to pop" race when backlog frames replayed open→close
+    // cycles, leaving the navigator stuck on an empty /calibration route
+    // that rendered as a blank screen above the dashboard.
+    //
+    // This listener now only mirrors open/close into dynamicUiActiveProvider
+    // (read by ProgramScreen to hide its tap-blocking overlay) and dismisses
+    // the screensaver on open.
     ref.listen<Map<String, dynamic>?>(screenRenderProviderProvider, (previous, next) {
       final wasOpen = previous != null;
       final shouldBeOpen = next != null;
+      if (wasOpen == shouldBeOpen) return;
 
-      if (!wasOpen && shouldBeOpen && !dynamicUiPushed.value) {
+      if (shouldBeOpen) {
         _log.info('[DynamicUI] Opening dynamic UI screen');
-
-        // If the screensaver is currently showing, dismiss it first so it
-        // doesn't sit on top of (or interfere with) the custom UI.
         final screensaverUp = ref.read(screensaverShowingProvider);
         if (screensaverUp) {
           _log.info('[DynamicUI] Dismissing screensaver before opening dynamic UI');
           ref.read(inactivityProvider.notifier).userActivityDetected();
         }
-
-        dynamicUiPushed.value = true;
         ref.read(dynamicUiActiveProvider.notifier).set(true);
-        router.push(AppRoutes.calibrationScreen);
-      } else if (wasOpen && !shouldBeOpen && dynamicUiPushed.value) {
+      } else {
         _log.info('[DynamicUI] Closing dynamic UI screen');
-        dynamicUiPushed.value = false;
         ref.read(dynamicUiActiveProvider.notifier).set(false);
-        router.pop();
       }
     });
 
@@ -206,30 +215,83 @@ class _AppServicesStarter extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final voltage = ref.watch(batteryVoltageSensorProvider);
+    // .select so the app shell only rebuilds when the BOOLEAN condition
+    // flips, not every voltage frame (battery publishes at ~10 Hz; a
+    // top-level rebuild per tick churns the whole subtree).
+    final isLow = ref.watch(batteryVoltageSensorProvider.select(
+        (v) => v != null && v > 0 && v < 5.5));
     final ignored = ref.watch(lowBatteryIgnoredProvider);
-    final isLow = voltage != null && voltage > 0 && voltage < 5.5;
     final showWarning = isLow && !ignored;
 
+    // Show the hardware-shutdown overlay whenever motors OR servos are
+    // latched off — regardless of source. Previously this only fired on
+    // the watchdog branch, which meant a user-initiated shutdown (e.g.
+    // emergency stop, or implicitly from `raccoon run` exiting) left the
+    // hardware silent with no UI hint. Operators sliding servo sliders
+    // were getting acks but no movement and no explanation. The dialog
+    // text now branches on source so it stays informative.
     final shutdownStatus = ref.watch(shutdownStatusProvider);
-    final showWatchdog =
-        shutdownStatus.triggeredByWatchdog && shutdownStatus.isAnyShutdown;
+    final showShutdown = shutdownStatus.isAnyShutdown;
+
+    // When the user program has pushed a custom (dynamic-UI) screen, it
+    // owns the full display. Local overlays — battery warning, hardware
+    // shutdown — must NOT cover it, otherwise operators staring at a
+    // custom screen during a run see an opaque dialog instead. The
+    // program controls when it pops the dynamic UI; until then we stay
+    // out of its way.
+    //
+    // Gate on the screen-render *state* directly (not the dynamicUiActive
+    // flag) so we don't depend on the listen→push→provider chain in
+    // StpVeloxApp.build running first. If a custom screen arrives while
+    // the shutdown overlay is already painted, this widget rebuilds the
+    // instant ScreenRenderProvider notifies, hiding the overlay and
+    // letting the pushed dynamic UI route show through underneath.
+    final hasCustomScreen = ref.watch(screenRenderProviderProvider) != null;
 
     return Stack(
       children: [
         child,
-        if (showWarning) _LowBatteryOverlay(voltage: voltage),
-        if (showWatchdog) const _WatchdogShutdownOverlay(),
+        if (!hasCustomScreen && showWarning) const _LowBatteryOverlay(),
+        if (!hasCustomScreen && showShutdown)
+          _WatchdogShutdownOverlay(status: shutdownStatus),
+        // Render the dynamic UI at the global Stack level so it is
+        // guaranteed to sit above every other overlay. We previously
+        // depended on go_router pushing the calibration route under the
+        // MaterialApp navigator, but that route lives inside `child` —
+        // and Stack-level overlays painted above `child` (battery /
+        // shutdown) covered it. Painting the dynamic UI here as the
+        // top-most child wins regardless of router state, and the
+        // existing router.push in StpVeloxApp.build still runs in
+        // parallel for backward-compat (e.g. pop semantics, debug
+        // navigation).
+        if (hasCustomScreen) const DynamicUIScreen(),
       ],
     );
   }
 }
 
 class _WatchdogShutdownOverlay extends ConsumerWidget {
-  const _WatchdogShutdownOverlay();
+  const _WatchdogShutdownOverlay({required this.status});
+
+  final ShutdownStatus status;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final byWatchdog = status.triggeredByWatchdog;
+    final title = byWatchdog
+        ? 'Hardware Watchdog Tripped'
+        : 'Hardware Shutdown Active';
+    final reason = byWatchdog
+        ? 'No heartbeat from the user program — motors and servos '
+            'have been shut off as a safety measure.'
+        : 'Motors and servos have been latched off (user-initiated '
+            'shutdown). Servo and motor commands will be acknowledged '
+            'but will not move the hardware until you recover.';
+    final outputs = [
+      if (status.servoShutdown) 'servos',
+      if (status.motorShutdown) 'motors',
+    ].join(' + ');
+
     return ColoredBox(
       color: Colors.black87,
       child: Center(
@@ -241,15 +303,17 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.shield_moon_rounded,
+                Icon(
+                  byWatchdog
+                      ? Icons.shield_moon_rounded
+                      : Icons.power_off_rounded,
                   color: Colors.orange,
                   size: 48,
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Hardware Watchdog Tripped',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -257,10 +321,9 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'No heartbeat from the user program — motors and servos '
-                  'have been shut off as a safety measure.\n'
-                  'Heartbeats may have resumed by now. Recovering will '
-                  're-enable outputs and re-arm the watchdog.',
+                  '$reason\n'
+                  'Latched outputs: ${outputs.isEmpty ? "(none)" : outputs}.\n'
+                  'Recovering will re-enable outputs and re-arm the watchdog.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey[400], fontSize: 16),
                 ),
@@ -296,9 +359,7 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
 }
 
 class _LowBatteryOverlay extends ConsumerStatefulWidget {
-  final double voltage;
-
-  const _LowBatteryOverlay({required this.voltage});
+  const _LowBatteryOverlay();
 
   @override
   ConsumerState<_LowBatteryOverlay> createState() => _LowBatteryOverlayState();
@@ -335,13 +396,16 @@ class _LowBatteryOverlayState extends ConsumerState<_LowBatteryOverlay> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'Battery voltage is ${widget.voltage.toStringAsFixed(2)}V.\n'
-                  'The robot may restart at any time.\n'
-                  'Please switch the battery now.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                ),
+                Consumer(builder: (context, ref, _) {
+                  final voltage = ref.watch(batteryVoltageSensorProvider) ?? 0.0;
+                  return Text(
+                    'Battery voltage is ${voltage.toStringAsFixed(2)}V.\n'
+                    'The robot may restart at any time.\n'
+                    'Please switch the battery now.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[400], fontSize: 16),
+                  );
+                }),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisSize: MainAxisSize.min,

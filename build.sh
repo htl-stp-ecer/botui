@@ -23,17 +23,25 @@ fi
 $DART pub global activate flutterpi_tool
 flutterpi_tool build --arch=arm64 --cpu=pi3 --release
 
-# Copy iceoryx2 native libraries into the build output
+# Copy the bridge .so into the build output. The bridge statically embeds
+# raccoon_ring (the SHM transport from raccoon-transport), so there are
+# no extra deps to ship alongside it beyond libc/libstdc++/libgcc_s.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build/flutter-pi/pi3-64"
-SO_DIR="$SCRIPT_DIR/packages/iceoryx2_transport/native"
+SO_DIR="$SCRIPT_DIR/packages/raccoon-transport/cpp/bridge"
 if [ -d "$BUILD_DIR" ]; then
-  for so in libiox2_bridge.so libiceoryx2_ffi_c.so; do
-    if [ -f "$SO_DIR/$so" ]; then
-      cp "$SO_DIR/$so" "$BUILD_DIR/"
-      echo "Copied $so to build output"
-    else
-      echo "WARNING: $so not found in $SO_DIR — the app will fail at runtime without it"
-    fi
-  done
+  # Always rebuild the bridge — it's a 2-file aarch64 cross-compile
+  # (~1 s) and skipping it has bitten us before when the submodule was
+  # bumped but the cached .so wasn't rebuilt.
+  (cd "$SO_DIR" && ./build.sh)
+  if [ -f "$SO_DIR/libraccoon_ring_bridge.so" ]; then
+    cp "$SO_DIR/libraccoon_ring_bridge.so" "$BUILD_DIR/"
+    echo "Copied libraccoon_ring_bridge.so to build output"
+  else
+    echo "ERROR: libraccoon_ring_bridge.so could not be built — see packages/raccoon-transport/cpp/bridge/build.sh" >&2
+    exit 1
+  fi
+  # Best-effort cleanup of stale .so files from the previous iceoryx2-named
+  # build so flutter-pi never dlopen()s an outdated one.
+  rm -f "$BUILD_DIR/libiox2_bridge.so" "$BUILD_DIR/libiceoryx2_ffi_c.so"
 fi
