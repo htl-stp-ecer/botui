@@ -18,6 +18,21 @@ import 'package:stpvelox/features/sensors/presentation/screens/imu_selection_scr
 import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor.dart';
 import 'package:stpvelox/features/sensors/presentation/screens/disk_usage_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_board_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_icm_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_icm_accel_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_icm_gyro_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_icm_temp_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_icm_orientation_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_icm_calibration_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_odometry_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_delta_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_squal_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_shutter_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_track_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_calibration_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_bno_screen.dart';
 import 'package:stpvelox/features/sensors/presentation/screens/system_health_graph_screen.dart';
 
 // Settings
@@ -73,6 +88,31 @@ abstract class AppRoutes {
   static const sensorScreen = '/sensors/screen';
   static const systemHealthGraph = '/sensors/system/graph';
   static const diskUsage = '/sensors/system/disk';
+
+  // Calibration board (external USB-C connected board with PAA/BNO/ICM)
+  static const calibBoard = '/sensors/calib_board';
+
+  // ICM submenu
+  static const calibIcm             = '/sensors/calib_board/icm';
+  static const calibIcmAccel        = '/sensors/calib_board/icm/accel';
+  static const calibIcmGyro         = '/sensors/calib_board/icm/gyro';
+  static const calibIcmTemp         = '/sensors/calib_board/icm/temp';
+  static const calibIcmOrientation  = '/sensors/calib_board/icm/orientation';
+  static const calibIcmCalibration  = '/sensors/calib_board/icm/calibration';
+
+  // Odometry (fusion of PAA + IMU)
+  static const calibOdometry = '/sensors/calib_board/odometry';
+
+  // PAA submenu
+  static const calibPaa             = '/sensors/calib_board/paa';
+  static const calibPaaDelta        = '/sensors/calib_board/paa/delta';
+  static const calibPaaSqual        = '/sensors/calib_board/paa/squal';
+  static const calibPaaShutter      = '/sensors/calib_board/paa/shutter';
+  static const calibPaaTrack        = '/sensors/calib_board/paa/track';
+  static const calibPaaCalibration  = '/sensors/calib_board/paa/calibration';
+
+  // BNO
+  static const calibBno = '/sensors/calib_board/bno';
 
   // Programs
   static const programs = '/programs';
@@ -192,6 +232,89 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.diskUsage,
         name: 'diskUsage',
         builder: (context, state) => const DiskUsageScreen(),
+      ),
+
+      // Calibration board
+      GoRoute(
+        path: AppRoutes.calibBoard,
+        name: 'calibBoard',
+        builder: (context, state) => const CalibBoardScreen(),
+      ),
+
+      // ICM submenu + leaves
+      GoRoute(
+        path: AppRoutes.calibIcm,
+        name: 'calibIcm',
+        builder: (context, state) => const CalibIcmScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibIcmAccel,
+        name: 'calibIcmAccel',
+        builder: (context, state) => const CalibIcmAccelScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibIcmGyro,
+        name: 'calibIcmGyro',
+        builder: (context, state) => const CalibIcmGyroScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibIcmTemp,
+        name: 'calibIcmTemp',
+        builder: (context, state) => const CalibIcmTempScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibIcmOrientation,
+        name: 'calibIcmOrientation',
+        builder: (context, state) => const CalibIcmOrientationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibIcmCalibration,
+        name: 'calibIcmCalibration',
+        builder: (context, state) => const CalibIcmCalibrationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibOdometry,
+        name: 'calibOdometry',
+        builder: (context, state) => const CalibOdometryScreen(),
+      ),
+
+      // PAA submenu + leaves
+      GoRoute(
+        path: AppRoutes.calibPaa,
+        name: 'calibPaa',
+        builder: (context, state) => const CalibPaaScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibPaaDelta,
+        name: 'calibPaaDelta',
+        builder: (context, state) => const CalibPaaDeltaScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibPaaSqual,
+        name: 'calibPaaSqual',
+        builder: (context, state) => const CalibPaaSqualScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibPaaShutter,
+        name: 'calibPaaShutter',
+        builder: (context, state) => const CalibPaaShutterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibPaaTrack,
+        name: 'calibPaaTrack',
+        builder: (context, state) => const CalibPaaTrackScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibPaaCalibration,
+        name: 'calibPaaCalibration',
+        builder: (context, state) => const CalibPaaCalibrationScreen(),
+      ),
+
+      // BNO
+      GoRoute(
+        path: AppRoutes.calibBno,
+        name: 'calibBno',
+        builder: (context, state) => const CalibBnoScreen(),
       ),
 
       // Programs

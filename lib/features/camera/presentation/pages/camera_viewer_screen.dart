@@ -2,12 +2,10 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
 import 'package:stpvelox/features/camera/application/cam_provider.dart';
-import 'package:stpvelox/features/camera/presentation/widgets/cam_calibration_panel.dart';
 
 class CameraViewerScreen extends ConsumerStatefulWidget {
   const CameraViewerScreen({super.key});
@@ -23,67 +21,17 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
   double _fps = 0.0;
 
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-      final transport = ref.read(transportServiceProvider);
-      publishStreamCtl(transport, enabled: true);
-    });
-  }
-
-  @override
-  void dispose() {
-    // Request stream stop
-    try {
-      final transport = ref.read(transportServiceProvider);
-      publishStreamCtl(transport, enabled: false);
-    } catch (_) {}
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final frame = ref.watch(camFrameStreamProvider);
     final detections = ref.watch(camDetectionStreamProvider);
-    final transport = ref.watch(transportServiceProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: createTopBar(
-        context,
-        'Camera',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.tune, color: Colors.white),
-            iconSize: 32,
-            onPressed: () => _showCalibrationPanel(context),
-          ),
-        ],
-      ),
+      appBar: createTopBar(context, 'Camera'),
       body: SafeArea(
         child: frame != null
             ? _buildFrameView(frame, detections)
-            : _buildLoadingView(transport.isInitialized, detections),
-      ),
-    );
-  }
-
-  void _showCalibrationPanel(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.grey[900],
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => CamCalibrationPanel(
-          scrollController: scrollController,
-        ),
+            : _buildLoadingView(detections),
       ),
     );
   }
@@ -91,7 +39,6 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
   void _updateFps() {
     _frameCount++;
     _startTime ??= DateTime.now();
-
     final elapsed =
         DateTime.now().difference(_startTime!).inMilliseconds / 1000.0;
     if (elapsed > 0) {
@@ -101,30 +48,21 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
     }
   }
 
-  Widget _buildLoadingView(
-      bool transportInitialized, CamDetectionData? detections) {
+  Widget _buildLoadingView(CamDetectionData? detections) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(color: AppColors.programs),
           const SizedBox(height: 16),
-          Text(
-            'Waiting for camera frames...',
+          const Text(
+            'Waiting for camera frames…',
             style: TextStyle(color: Colors.white70, fontSize: 16),
           ),
           const SizedBox(height: 8),
           Text(
             'Channel: ${Channels.camFrame}',
-            style: TextStyle(color: Colors.white38, fontSize: 12),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Transport Status: ${transportInitialized ? "Initialized" : "Initializing..."}',
-            style: TextStyle(
-              color: transportInitialized ? Colors.green[300] : Colors.orange[300],
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
           ),
           if (detections != null) ...[
             const SizedBox(height: 8),
@@ -133,24 +71,6 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
               style: TextStyle(color: Colors.blue[300], fontSize: 12),
             ),
           ],
-          const SizedBox(height: 16),
-          Text(
-            'Frames received: $_frameCount',
-            style: TextStyle(color: Colors.white54, fontSize: 12),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () {
-              ref.invalidate(camFrameStreamProvider);
-              final transport = ref.read(transportServiceProvider);
-              publishStreamCtl(transport, enabled: true);
-            },
-            icon: Icon(Icons.refresh),
-            label: Text('Refresh'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[700],
-            ),
-          ),
         ],
       ),
     );
@@ -160,13 +80,10 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
       CamFrameData frame, CamDetectionData? detections) {
     _updateFps();
 
-    // Use detections from frame itself, or from separate detection stream
     final detectionCount = frame.data.num_detections;
-    final detectionList = frame.data.detections;
 
     return Column(
       children: [
-        // Info bar
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -176,7 +93,7 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
             children: [
               Text(
                 'Frame: ${frame.data.frame_width}x${frame.data.frame_height}',
-                style: TextStyle(color: Colors.white, fontSize: 14),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
               ),
               Text(
                 'FPS: ${_fps.toStringAsFixed(1)}',
@@ -192,7 +109,6 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
             ],
           ),
         ),
-        // Frame display
         Expanded(
           child: Container(
             color: Colors.black,
@@ -209,16 +125,38 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
   }
 }
 
-class _CamFrameWidget extends StatelessWidget {
+class _CamFrameWidget extends StatefulWidget {
   final CamFrameData frame;
   final CamDetectionData? detections;
 
   const _CamFrameWidget({required this.frame, this.detections});
 
   @override
+  State<_CamFrameWidget> createState() => _CamFrameWidgetState();
+}
+
+class _CamFrameWidgetState extends State<_CamFrameWidget> {
+  Uint8List? _cachedBytes;
+  int _cachedTimestamp = 0;
+
+  Uint8List? get _imageData {
+    final f = widget.frame.data;
+    if (f.frame_size == 0 || f.frame_data.isEmpty) return null;
+    if (f.timestamp == _cachedTimestamp && _cachedBytes != null) {
+      return _cachedBytes;
+    }
+    final raw = f.frame_data;
+    final bytes = raw is Uint8List ? raw : Uint8List.fromList(raw);
+    _cachedBytes = bytes;
+    _cachedTimestamp = f.timestamp;
+    return bytes;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (frame.data.frame_size == 0 || frame.data.frame_data.isEmpty) {
-      return Center(
+    final imageData = _imageData;
+    if (imageData == null) {
+      return const Center(
         child: Text(
           'No frame data',
           style: TextStyle(color: Colors.white54),
@@ -226,28 +164,24 @@ class _CamFrameWidget extends StatelessWidget {
       );
     }
 
-    // Decode JPEG image
-    final imageData = Uint8List.fromList(frame.data.frame_data);
-
-    // Merge detections: prefer frame-embedded, fallback to separate stream
-    final allDetections = frame.data.detections.isNotEmpty
-        ? frame.data.detections
-        : (detections?.data.detections ?? []);
+    final allDetections = widget.frame.data.detections.isNotEmpty
+        ? widget.frame.data.detections
+        : (widget.detections?.data.detections ?? const <CamBlobT>[]);
 
     return Stack(
       children: [
-        // Display image
         Image.memory(
           imageData,
           fit: BoxFit.contain,
           gaplessPlayback: true,
+          filterQuality: FilterQuality.low,
           errorBuilder: (context, error, stackTrace) {
-            return Center(
+            return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.broken_image, color: Colors.white38, size: 48),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     'Failed to decode image',
                     style: TextStyle(color: Colors.white54),
@@ -257,10 +191,13 @@ class _CamFrameWidget extends StatelessWidget {
             );
           },
         ),
-        // Overlay bounding boxes
         Positioned.fill(
           child: CustomPaint(
-            painter: _CamBoundingBoxPainter(detections: allDetections),
+            painter: _CamBoundingBoxPainter(
+              detections: allDetections,
+              frameWidth: widget.frame.data.frame_width,
+              frameHeight: widget.frame.data.frame_height,
+            ),
           ),
         ),
       ],
@@ -270,8 +207,14 @@ class _CamFrameWidget extends StatelessWidget {
 
 class _CamBoundingBoxPainter extends CustomPainter {
   final List<CamBlobT> detections;
+  final int frameWidth;
+  final int frameHeight;
 
-  _CamBoundingBoxPainter({required this.detections});
+  _CamBoundingBoxPainter({
+    required this.detections,
+    required this.frameWidth,
+    required this.frameHeight,
+  });
 
   static const Map<String, Color> _colorMap = {
     'red': Colors.red,
@@ -299,38 +242,35 @@ class _CamBoundingBoxPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (detections.isEmpty) return;
+    if (detections.isEmpty || frameWidth <= 0 || frameHeight <= 0) return;
 
-    final width = size.width;
-    final height = size.height;
+    final sx = size.width / frameWidth;
+    final sy = size.height / frameHeight;
 
     for (int i = 0; i < detections.length; i++) {
       final det = detections[i];
       final color = _colorMap[det.label.toLowerCase()] ??
           _fallbackColors[i % _fallbackColors.length];
 
-      // Convert normalized center coordinates to pixel corners
-      final x1 = (det.x - det.width / 2) * width;
-      final y1 = (det.y - det.height / 2) * height;
-      final x2 = (det.x + det.width / 2) * width;
-      final y2 = (det.y + det.height / 2) * height;
+      final rect = Rect.fromLTWH(
+        det.x * sx,
+        det.y * sy,
+        det.width * sx,
+        det.height * sy,
+      );
 
-      final rect = Rect.fromLTRB(x1, y1, x2, y2);
-
-      // Draw bounding box
       final boxPaint = Paint()
         ..color = color
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0;
       canvas.drawRect(rect, boxPaint);
 
-      // Draw label background
       final label =
           '${det.label}: ${det.confidence.toStringAsFixed(2)} (${det.area})';
       final textPainter = TextPainter(
         text: TextSpan(
           text: label,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 14,
             fontWeight: FontWeight.bold,
@@ -341,8 +281,8 @@ class _CamBoundingBoxPainter extends CustomPainter {
       textPainter.layout();
 
       final labelRect = Rect.fromLTWH(
-        x1,
-        y1 - textPainter.height - 4,
+        rect.left,
+        rect.top - textPainter.height - 4,
         textPainter.width + 8,
         textPainter.height + 4,
       );
@@ -351,14 +291,15 @@ class _CamBoundingBoxPainter extends CustomPainter {
         ..color = color
         ..style = PaintingStyle.fill;
       canvas.drawRect(labelRect, labelBgPaint);
-
-      // Draw label text
-      textPainter.paint(canvas, Offset(x1 + 4, y1 - textPainter.height - 2));
+      textPainter.paint(
+          canvas, Offset(rect.left + 4, rect.top - textPainter.height - 2));
     }
   }
 
   @override
   bool shouldRepaint(covariant _CamBoundingBoxPainter oldDelegate) {
-    return oldDelegate.detections != detections;
+    return oldDelegate.detections != detections ||
+        oldDelegate.frameWidth != frameWidth ||
+        oldDelegate.frameHeight != frameHeight;
   }
 }

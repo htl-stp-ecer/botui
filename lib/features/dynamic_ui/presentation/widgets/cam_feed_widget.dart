@@ -5,9 +5,12 @@ import 'package:stpvelox/features/camera/application/cam_provider.dart';
 
 /// Inline camera feed widget for use in dynamic UI screens.
 ///
-/// Subscribes to [CamFrameStream] and renders the latest JPEG frame.
-/// Supports tap-to-select: tapping the image reports normalized (x, y)
-/// coordinates back through [onTap]. A marker is drawn at the tap point.
+/// The LCM-generated `CamFrameT.frame_data` is a `List<int>` of boxed
+/// Dart ints. Converting to `Uint8List` is the expensive part — we do
+/// it once per fresh frame here (keyed by timestamp), not on every
+/// widget rebuild like the original code did. `Image.memory` itself
+/// has internal caching by byte identity, so feeding the same
+/// `Uint8List` across rebuilds avoids re-decoding the JPEG.
 class CamFeedWidget extends ConsumerStatefulWidget {
   final String id;
   final bool showFps;
@@ -27,14 +30,27 @@ class CamFeedWidget extends ConsumerStatefulWidget {
 }
 
 class _CamFeedWidgetState extends ConsumerState<CamFeedWidget> {
-  /// Last tap position in normalized coordinates (0-1), null if no tap yet.
   Offset? _tapNorm;
+  Uint8List? _cachedBytes;
+  int _cachedTimestamp = 0;
+
+  Uint8List? _bytesFor(CamFrameData frame) {
+    if (frame.data.frame_size == 0) return null;
+    final ts = frame.data.timestamp;
+    if (ts == _cachedTimestamp && _cachedBytes != null) return _cachedBytes;
+    final raw = frame.data.frame_data;
+    final bytes = raw is Uint8List ? raw : Uint8List.fromList(raw);
+    _cachedBytes = bytes;
+    _cachedTimestamp = ts;
+    return bytes;
+  }
 
   @override
   Widget build(BuildContext context) {
     final frame = ref.watch(camFrameStreamProvider);
 
-    if (frame == null || frame.data.frame_size == 0) {
+    final imageData = frame == null ? null : _bytesFor(frame);
+    if (imageData == null) {
       return AspectRatio(
         aspectRatio: 4 / 3,
         child: Container(
@@ -60,8 +76,7 @@ class _CamFeedWidgetState extends ConsumerState<CamFeedWidget> {
       );
     }
 
-    final imageData = Uint8List.fromList(frame.data.frame_data);
-    final w = frame.data.frame_width;
+    final w = frame!.data.frame_width;
     final h = frame.data.frame_height;
     final aspect = (w > 0 && h > 0) ? w / h : 4 / 3;
 
@@ -91,6 +106,7 @@ class _CamFeedWidgetState extends ConsumerState<CamFeedWidget> {
                       imageData,
                       fit: BoxFit.contain,
                       gaplessPlayback: true,
+                      filterQuality: FilterQuality.low,
                       errorBuilder: (context, error, stackTrace) {
                         return const Center(
                           child: Icon(Icons.broken_image,
@@ -147,7 +163,6 @@ class _CamFeedWidgetState extends ConsumerState<CamFeedWidget> {
   }
 }
 
-/// Draws a crosshair + circle at the tap point.
 class _TapMarkerPainter extends CustomPainter {
   final double normX;
   final double normY;
@@ -165,10 +180,8 @@ class _TapMarkerPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
-    // Circle
     canvas.drawCircle(Offset(cx, cy), radius, paint);
 
-    // Crosshair lines
     final halfLen = radius * 1.4;
     canvas.drawLine(
         Offset(cx - halfLen, cy), Offset(cx + halfLen, cy), paint);

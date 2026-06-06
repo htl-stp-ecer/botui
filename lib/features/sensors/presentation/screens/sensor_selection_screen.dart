@@ -11,6 +11,9 @@ import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
 import 'package:stpvelox/features/sensors/application/sensor_providers.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/features/calib_board/application/calib_board_providers.dart';
+import 'package:stpvelox/features/calib_board/domain/entities/calib_board_status.dart';
+import 'package:stpvelox/features/calib_board/presentation/widgets/calib_status_tile.dart';
 
 const _imuCategories = {
   SensorCategory.gyro,
@@ -67,6 +70,11 @@ class SensorSelectionScreen extends ConsumerWidget {
               tiles.add(_buildImuTile(context, imuGroups));
             }
 
+            // Calibration board — always visible, disabled wenn USB-C
+            // nicht eingesteckt ist / die raccoon-calib-bridge nichts
+            // meldet.  Status kommt live aus der Bridge über LCM.
+            tiles.add(_CalibBoardTile());
+
             return ResponsiveGrid(
               isScrollable: true,
               children: tiles,
@@ -109,6 +117,26 @@ class SensorSelectionScreen extends ConsumerWidget {
         );
       },
       color: AppColors.getTileColor(category.index),
+    );
+  }
+}
+
+/// Special-Case Tile für das externe Calibration-Board.  Subscribt
+/// auf den Status-Provider und rendert "available" / "not connected"
+/// / "waiting…" basierend auf dem aggregierten Board-Status.
+class _CalibBoardTile extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(calibBoardStatusProvider);
+    return CalibStatusTile(
+      label: 'Calib Board',
+      icon: Icons.developer_board,
+      color: AppColors.getTileColor(SensorCategory.heading.index),
+      state: status.boardConnected
+          ? CalibSensorState.ok
+          : CalibSensorState.unavailable,
+      detail: status.boardConnected ? status.port : 'USB-C not connected',
+      onPressed: () => context.push(AppRoutes.calibBoard),
     );
   }
 }
