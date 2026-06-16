@@ -48,6 +48,7 @@ class _CamFeedWidgetState extends ConsumerState<CamFeedWidget> {
   @override
   Widget build(BuildContext context) {
     final frame = ref.watch(camFrameStreamProvider);
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
 
     final imageData = frame == null ? null : _bytesFor(frame);
     if (imageData == null) {
@@ -107,6 +108,12 @@ class _CamFeedWidgetState extends ConsumerState<CamFeedWidget> {
                       fit: BoxFit.contain,
                       gaplessPlayback: true,
                       filterQuality: FilterQuality.low,
+                      cacheWidth: (constraints.maxWidth * devicePixelRatio)
+                          .round()
+                          .clamp(1, w),
+                      cacheHeight: (constraints.maxHeight * devicePixelRatio)
+                          .round()
+                          .clamp(1, h),
                       errorBuilder: (context, error, stackTrace) {
                         return const Center(
                           child: Icon(Icons.broken_image,
@@ -183,10 +190,8 @@ class _TapMarkerPainter extends CustomPainter {
     canvas.drawCircle(Offset(cx, cy), radius, paint);
 
     final halfLen = radius * 1.4;
-    canvas.drawLine(
-        Offset(cx - halfLen, cy), Offset(cx + halfLen, cy), paint);
-    canvas.drawLine(
-        Offset(cx, cy - halfLen), Offset(cx, cy + halfLen), paint);
+    canvas.drawLine(Offset(cx - halfLen, cy), Offset(cx + halfLen, cy), paint);
+    canvas.drawLine(Offset(cx, cy - halfLen), Offset(cx, cy + halfLen), paint);
   }
 
   @override

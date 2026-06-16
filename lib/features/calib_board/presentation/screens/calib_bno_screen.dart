@@ -30,10 +30,7 @@ class CalibBnoScreen extends StatelessWidget {
                         fontWeight: FontWeight.w600)),
                 SizedBox(height: 12),
                 Text(
-                  'The BNO chip on the current calibration board is dead — '
-                  'the firmware module is disabled.  Replace the IC and '
-                  'flip bno_module.enabled back to true in the firmware to '
-                  'use sensor fusion (quaternion / heading).',
+                  'Chip is dead, firmware module disabled.',
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),

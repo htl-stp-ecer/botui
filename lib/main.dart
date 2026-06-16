@@ -6,6 +6,7 @@ import 'package:logging/logging.dart';
 import 'package:stpvelox/application/inactivity/inactivity_listener.dart';
 import 'package:stpvelox/application/inactivity/inactivity_notifier.dart';
 import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
+import 'package:stpvelox/core/framerate/frame_stall_watchdog.dart';
 import 'package:stpvelox/core/logging/logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/error_message_service.dart';
@@ -23,7 +24,13 @@ import 'core/utils/touch_calibrator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  _configureImageCache();
   setupLogging();
+
+  // Guard against flutter-pi render-pipeline wedges that freeze the display
+  // while logic keeps running. Soft-recovers, then self-restarts via systemd
+  // if the pipeline is truly stuck. See FrameStallWatchdog for the full why.
+  FrameStallWatchdog.instance.start();
 
   // Initialize providers
   final (sharedPreferences, touchCalibrator) = await initializeProviders();
@@ -35,6 +42,16 @@ void main() async {
     ],
     child: const StpVeloxApp(),
   ));
+}
+
+void _configureImageCache() {
+  final imageCache = PaintingBinding.instance.imageCache;
+  // The default cache is sized for desktop/mobile-class devices. On the Pi,
+  // live camera JPEGs can quickly fill that with decoded frames that are
+  // never revisited. Keep the cache intentionally small so camera streaming
+  // does not hoard tens of MiB inside flutter-pi.
+  imageCache.maximumSize = 20;
+  imageCache.maximumSizeBytes = 24 << 20;
 }
 
 class CalibratedTapGestureRecognizer extends TapGestureRecognizer {
@@ -105,7 +122,8 @@ class StpVeloxApp extends HookConsumerWidget {
     // This listener now only mirrors open/close into dynamicUiActiveProvider
     // (read by ProgramScreen to hide its tap-blocking overlay) and dismisses
     // the screensaver on open.
-    ref.listen<Map<String, dynamic>?>(screenRenderProviderProvider, (previous, next) {
+    ref.listen<Map<String, dynamic>?>(screenRenderProviderProvider,
+        (previous, next) {
       final wasOpen = previous != null;
       final shouldBeOpen = next != null;
       if (wasOpen == shouldBeOpen) return;
@@ -114,7 +132,8 @@ class StpVeloxApp extends HookConsumerWidget {
         _log.info('[DynamicUI] Opening dynamic UI screen');
         final screensaverUp = ref.read(screensaverShowingProvider);
         if (screensaverUp) {
-          _log.info('[DynamicUI] Dismissing screensaver before opening dynamic UI');
+          _log.info(
+              '[DynamicUI] Dismissing screensaver before opening dynamic UI');
           ref.read(inactivityProvider.notifier).userActivityDetected();
         }
         ref.read(dynamicUiActiveProvider.notifier).set(true);
@@ -188,11 +207,13 @@ class StpVeloxApp extends HookConsumerWidget {
   }
 }
 
-final lowBatteryIgnoredProvider = NotifierProvider<_LowBatteryIgnored, bool>(_LowBatteryIgnored.new);
+final lowBatteryIgnoredProvider =
+    NotifierProvider<_LowBatteryIgnored, bool>(_LowBatteryIgnored.new);
 
 /// True while the DynamicUI screen is pushed on top — ProgramScreen uses this
 /// to hide its overlay so touches can reach the DynamicUI.
-final dynamicUiActiveProvider = NotifierProvider<_DynamicUiActive, bool>(_DynamicUiActive.new);
+final dynamicUiActiveProvider =
+    NotifierProvider<_DynamicUiActive, bool>(_DynamicUiActive.new);
 
 class _DynamicUiActive extends Notifier<bool> {
   @override
@@ -218,8 +239,8 @@ class _AppServicesStarter extends ConsumerWidget {
     // .select so the app shell only rebuilds when the BOOLEAN condition
     // flips, not every voltage frame (battery publishes at ~10 Hz; a
     // top-level rebuild per tick churns the whole subtree).
-    final isLow = ref.watch(batteryVoltageSensorProvider.select(
-        (v) => v != null && v > 0 && v < 5.5));
+    final isLow = ref.watch(batteryVoltageSensorProvider
+        .select((v) => v != null && v > 0 && v < 5.5));
     final ignored = ref.watch(lowBatteryIgnoredProvider);
     final showWarning = isLow && !ignored;
 
@@ -278,9 +299,8 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final byWatchdog = status.triggeredByWatchdog;
-    final title = byWatchdog
-        ? 'Hardware Watchdog Tripped'
-        : 'Hardware Shutdown Active';
+    final title =
+        byWatchdog ? 'Hardware Watchdog Tripped' : 'Hardware Shutdown Active';
     final reason = byWatchdog
         ? 'No heartbeat from the user program — motors and servos '
             'have been shut off as a safety measure.'
@@ -397,7 +417,8 @@ class _LowBatteryOverlayState extends ConsumerState<_LowBatteryOverlay> {
                 ),
                 const SizedBox(height: 12),
                 Consumer(builder: (context, ref, _) {
-                  final voltage = ref.watch(batteryVoltageSensorProvider) ?? 0.0;
+                  final voltage =
+                      ref.watch(batteryVoltageSensorProvider) ?? 0.0;
                   return Text(
                     'Battery voltage is ${voltage.toStringAsFixed(2)}V.\n'
                     'The robot may restart at any time.\n'
@@ -416,7 +437,9 @@ class _LowBatteryOverlayState extends ConsumerState<_LowBatteryOverlay> {
                       child: ElevatedButton(
                         onPressed: _ignoreConfirmPending
                             ? () {
-                                ref.read(lowBatteryIgnoredProvider.notifier).ignore();
+                                ref
+                                    .read(lowBatteryIgnoredProvider.notifier)
+                                    .ignore();
                               }
                             : () {
                                 setState(() => _ignoreConfirmPending = true);
@@ -429,7 +452,8 @@ class _LowBatteryOverlayState extends ConsumerState<_LowBatteryOverlay> {
                         ),
                         child: Text(
                           _ignoreConfirmPending ? 'Confirm Ignore' : 'Ignore',
-                          style: const TextStyle(fontSize: 18, color: Colors.white),
+                          style: const TextStyle(
+                              fontSize: 18, color: Colors.white),
                         ),
                       ),
                     ),

@@ -18,6 +18,11 @@ class CalibChannels {
   static const paaShutter = 'raccoon/calib_board/paa/shutter';   // scalar_i32_t
   static const paaMotion  = 'raccoon/calib_board/paa/motion';    // scalar_i32_t
 
+  // Board-seitig integrierter signed Counts-Akkumulator (frei laufend).
+  // Der Host akkumuliert NICHT — der Kalibrier-Wizard nimmt Differenzen.
+  static const paaAccX    = 'raccoon/calib_board/paa/acc_x';     // scalar_i32_t (counts)
+  static const paaAccY    = 'raccoon/calib_board/paa/acc_y';     // scalar_i32_t (counts)
+
   // Status (string_t)
   //   board: "connected" / "disconnected"
   //   port : "/dev/ttyACMn" / "(none)"
@@ -35,6 +40,9 @@ class CalibChannels {
   static const paaCalCy     = 'raccoon/calib_board/paa/cal/cy_per_cm';   // scalar_f_t
   static const paaCalHeight = 'raccoon/calib_board/paa/cal/height_mm';   // scalar_f_t
   static const paaCalValid  = 'raccoon/calib_board/paa/cal/valid';       // scalar_i32_t (0/1)
+  // PAA-Montageoffset vom Drehzentrum (mm, Body-Frame)
+  static const paaCalOffX   = 'raccoon/calib_board/paa/cal/off_x_mm';    // scalar_f_t
+  static const paaCalOffY   = 'raccoon/calib_board/paa/cal/off_y_mm';    // scalar_f_t
 
   // Skalierte PAA-Werte (Bridge wendet Kalibrierung an)
   static const paaCmX     = 'raccoon/calib_board/paa/cm/dx';     // scalar_f_t [cm/sample]
@@ -62,6 +70,7 @@ class CalibChannels {
 
   // Command-Channels (UI → Bridge → FW)
   static const cmdPaaSetCal       = 'raccoon/calib_board/cmd/paa/set_calibration'; // string_t JSON
+  static const cmdPaaSetOffset    = 'raccoon/calib_board/cmd/paa/set_offset';      // string_t JSON
   static const cmdPaaResetPos     = 'raccoon/calib_board/cmd/paa/reset_position';  // scalar_i32_t
   static const cmdIcmSaveBias     = 'raccoon/calib_board/cmd/icm/save_gyro_bias';  // trigger
   static const cmdIcmResetBias    = 'raccoon/calib_board/cmd/icm/reset_gyro_bias'; // trigger

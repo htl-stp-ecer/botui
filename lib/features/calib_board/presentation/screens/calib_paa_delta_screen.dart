@@ -9,10 +9,9 @@ import 'package:stpvelox/features/calib_board/application/calib_board_providers.
 import 'package:stpvelox/features/calib_board/presentation/widgets/triaxial_chart.dart';
 import 'package:stpvelox/features/calib_board/presentation/widgets/value_chip.dart';
 
-/// PAA dx/dy live Chart.  Optisch zwei Linien (X rot, Y grün), Z bleibt
-/// leer — die [TriaxialChart] kommt damit klar.  Range ±32 reicht für
-/// typische Bewegung; bei schneller Verschiebung clippt's, kann man
-/// später dynamisch machen.
+/// PAA dx/dy live Chart.  Zwei Linien — dX rot, dY grün.  Range ±32
+/// reicht für typische Bewegung; bei schneller Verschiebung clippt's,
+/// kann man später dynamisch machen.
 class CalibPaaDeltaScreen extends HookConsumerWidget {
   const CalibPaaDeltaScreen({super.key});
 
@@ -70,9 +69,10 @@ class CalibPaaDeltaScreen extends HookConsumerWidget {
               const SizedBox(height: 8),
               Expanded(
                 child: TriaxialChart(
-                  x: dxHist.value, y: dyHist.value, z: const [],
+                  x: dxHist.value, y: dyHist.value,
                   minY: -32, maxY: 32,
                   unitLabel: 'delta [counts/sample]',
+                  labelX: 'dX', labelY: 'dY',
                 ),
               ),
             ],

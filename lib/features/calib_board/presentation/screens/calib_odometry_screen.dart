@@ -99,7 +99,7 @@ class CalibOdometryScreen extends HookConsumerWidget {
                   path: path.value,
                   currentX: posX ?? 0,
                   currentY: posY ?? 0,
-                  headingDeg: hdg ?? 0,
+                  headingDeg: hdg,
                 ),
               ),
             ],
@@ -114,7 +114,7 @@ class _PosePlot extends StatelessWidget {
   final List<Offset> path;
   final double currentX;
   final double currentY;
-  final double headingDeg;
+  final double? headingDeg;
 
   const _PosePlot({
     required this.path,
@@ -215,7 +215,9 @@ class _PosePlot extends StatelessWidget {
               return CustomPaint(
                 painter: _HeadingMarker(
                   pos: Offset(px, py),
-                  headingRad: headingDeg * math.pi / 180,
+                  headingRad: headingDeg == null
+                      ? null
+                      : headingDeg! * math.pi / 180,
                 ),
               );
             },
@@ -228,7 +230,7 @@ class _PosePlot extends StatelessWidget {
 
 class _HeadingMarker extends CustomPainter {
   final Offset pos;
-  final double headingRad;
+  final double? headingRad;
   _HeadingMarker({required this.pos, required this.headingRad});
 
   @override
@@ -237,6 +239,10 @@ class _HeadingMarker extends CustomPainter {
       ..color = const Color(0xFFFFB74D)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(pos, 5, p);
+
+    // Ohne gültiges Heading nur die Position markieren, keinen Pfeil.
+    final headingRad = this.headingRad;
+    if (headingRad == null) return;
 
     final arrowLen = 22.0;
     final tip = Offset(

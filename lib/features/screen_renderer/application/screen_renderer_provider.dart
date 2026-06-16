@@ -35,6 +35,12 @@ class ScreenRenderProvider extends _$ScreenRenderProvider with HasLogger {
         .subscribeAs<ScreenRenderT>(
       Channels.screenRender,
       ScreenRenderT.decode,
+      // Coalesce the multi-Hz push storm the calibration backend emits
+      // (observed 64 frames in 17 ms). Each frame otherwise tears down and
+      // re-decodes the entire DynamicUIScreen tree, saturating the Pi 3 UI
+      // thread. trailing:true guarantees the final frame of any burst — the
+      // authoritative screen state, including `close` — is still delivered.
+      throttle: const Duration(milliseconds: 100),
     )
         .listen((decoded) async {
       _messageCounter++;
@@ -44,7 +50,7 @@ class ScreenRenderProvider extends _$ScreenRenderProvider with HasLogger {
       final timestamp = DateTime.now().toIso8601String();
 
       log.info('[LCM RX #$msgId @ $timestamp] screen_render <- name=$screenName');
-      log.fine('[LCM RX #$msgId] raw entries (${rawEntries.length} chars): ${rawEntries.substring(0, rawEntries.length > 200 ? 200 : rawEntries.length)}...');
+      log.fine('[LCM RX #$msgId] raw entries (${rawEntries.length} chars): $rawEntries');
 
       try {
         Map<String, dynamic> parsed = jsonDecode(rawEntries) as Map<String, dynamic>;

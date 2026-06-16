@@ -32,6 +32,7 @@ import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_squ
 import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_shutter_screen.dart';
 import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_track_screen.dart';
 import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_calibration_screen.dart';
+import 'package:stpvelox/features/calib_board/presentation/screens/calib_paa_offset_screen.dart';
 import 'package:stpvelox/features/calib_board/presentation/screens/calib_bno_screen.dart';
 import 'package:stpvelox/features/sensors/presentation/screens/system_health_graph_screen.dart';
 
@@ -110,6 +111,7 @@ abstract class AppRoutes {
   static const calibPaaShutter      = '/sensors/calib_board/paa/shutter';
   static const calibPaaTrack        = '/sensors/calib_board/paa/track';
   static const calibPaaCalibration  = '/sensors/calib_board/paa/calibration';
+  static const calibPaaOffset       = '/sensors/calib_board/paa/offset';
 
   // BNO
   static const calibBno = '/sensors/calib_board/bno';
@@ -308,6 +310,11 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.calibPaaCalibration,
         name: 'calibPaaCalibration',
         builder: (context, state) => const CalibPaaCalibrationScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.calibPaaOffset,
+        name: 'calibPaaOffset',
+        builder: (context, state) => const CalibPaaOffsetScreen(),
       ),
 
       // BNO

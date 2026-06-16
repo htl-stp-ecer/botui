@@ -192,6 +192,25 @@ class _CalibrationChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CalibrationChartPainter oldDelegate) =>
-      samples != oldDelegate.samples || thresholds != oldDelegate.thresholds;
+  bool shouldRepaint(_CalibrationChartPainter oldDelegate) {
+    if (identical(samples, oldDelegate.samples) &&
+        identical(thresholds, oldDelegate.thresholds)) {
+      return false;
+    }
+    if (samples.length != oldDelegate.samples.length ||
+        thresholds.length != oldDelegate.thresholds.length) {
+      return true;
+    }
+    for (int i = 0; i < samples.length; i++) {
+      if (samples[i] != oldDelegate.samples[i]) return true;
+    }
+    for (int i = 0; i < thresholds.length; i++) {
+      final a = thresholds[i];
+      final b = oldDelegate.thresholds[i];
+      if (a.value != b.value || a.label != b.label || a.color != b.color) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

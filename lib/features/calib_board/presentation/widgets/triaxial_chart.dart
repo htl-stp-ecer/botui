@@ -1,25 +1,35 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-/// Drei-Achsen Liniendiagramm mit fixiertem Y-Bereich.  Bewusst dünner
+/// Mehrachsen-Liniendiagramm mit fixiertem Y-Bereich.  Bewusst dünner
 /// als das general-purpose SensorGraphWidget: kein Moving-Average, keine
-/// Statistik, einfach drei Linien gegen die Sample-Nummer auf X.
+/// Statistik, einfach die Linien gegen die Sample-Nummer auf X.
+///
+/// [z] ist optional — wird es weggelassen, rendert der Chart nur zwei
+/// Linien (z. B. PAA dx/dy).  Die Legenden-Labels sind frei setzbar,
+/// damit Roll/Pitch/Yaw nicht fälschlich als "X/Y/Z" beschriftet werden.
 class TriaxialChart extends StatelessWidget {
   final List<double> x;
   final List<double> y;
-  final List<double> z;
+  final List<double>? z;
   final double minY;
   final double maxY;
   final String unitLabel;
+  final String labelX;
+  final String labelY;
+  final String labelZ;
 
   const TriaxialChart({
     super.key,
     required this.x,
     required this.y,
-    required this.z,
+    this.z,
     required this.minY,
     required this.maxY,
     required this.unitLabel,
+    this.labelX = 'X',
+    this.labelY = 'Y',
+    this.labelZ = 'Z',
   });
 
   static const _colX = Color(0xFFEF5350);
@@ -34,6 +44,8 @@ class TriaxialChart extends StatelessWidget {
             style: TextStyle(color: Colors.white60)),
       );
     }
+
+    final hasZ = z != null && z!.isNotEmpty;
 
     LineChartBarData barFor(List<double> values, Color color) {
       return LineChartBarData(
@@ -51,11 +63,13 @@ class TriaxialChart extends StatelessWidget {
       children: [
         Row(
           children: [
-            _legend('X', _colX),
+            _legend(labelX, _colX),
             const SizedBox(width: 12),
-            _legend('Y', _colY),
-            const SizedBox(width: 12),
-            _legend('Z', _colZ),
+            _legend(labelY, _colY),
+            if (hasZ) ...[
+              const SizedBox(width: 12),
+              _legend(labelZ, _colZ),
+            ],
             const Spacer(),
             Text(unitLabel,
                 style: const TextStyle(color: Colors.white54, fontSize: 11)),
@@ -82,7 +96,7 @@ class TriaxialChart extends StatelessWidget {
                 lineBarsData: [
                   barFor(x, _colX),
                   barFor(y, _colY),
-                  barFor(z, _colZ),
+                  if (hasZ) barFor(z!, _colZ),
                 ],
               ),
             ),

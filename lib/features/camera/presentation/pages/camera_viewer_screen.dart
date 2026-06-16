@@ -11,8 +11,7 @@ class CameraViewerScreen extends ConsumerStatefulWidget {
   const CameraViewerScreen({super.key});
 
   @override
-  ConsumerState<CameraViewerScreen> createState() =>
-      _CameraViewerScreenState();
+  ConsumerState<CameraViewerScreen> createState() => _CameraViewerScreenState();
 }
 
 class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
@@ -76,8 +75,7 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
     );
   }
 
-  Widget _buildFrameView(
-      CamFrameData frame, CamDetectionData? detections) {
+  Widget _buildFrameView(CamFrameData frame, CamDetectionData? detections) {
     _updateFps();
 
     final detectionCount = frame.data.num_detections;
@@ -155,6 +153,7 @@ class _CamFrameWidgetState extends State<_CamFrameWidget> {
   @override
   Widget build(BuildContext context) {
     final imageData = _imageData;
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     if (imageData == null) {
       return const Center(
         child: Text(
@@ -170,26 +169,34 @@ class _CamFrameWidgetState extends State<_CamFrameWidget> {
 
     return Stack(
       children: [
-        Image.memory(
-          imageData,
-          fit: BoxFit.contain,
-          gaplessPlayback: true,
-          filterQuality: FilterQuality.low,
-          errorBuilder: (context, error, stackTrace) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.broken_image, color: Colors.white38, size: 48),
-                  SizedBox(height: 8),
-                  Text(
-                    'Failed to decode image',
-                    style: TextStyle(color: Colors.white54),
-                  ),
-                ],
-              ),
-            );
-          },
+        LayoutBuilder(
+          builder: (context, constraints) => Image.memory(
+            imageData,
+            fit: BoxFit.contain,
+            gaplessPlayback: true,
+            filterQuality: FilterQuality.low,
+            cacheWidth: (constraints.maxWidth * devicePixelRatio)
+                .round()
+                .clamp(1, widget.frame.data.frame_width),
+            cacheHeight: (constraints.maxHeight * devicePixelRatio)
+                .round()
+                .clamp(1, widget.frame.data.frame_height),
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.broken_image, color: Colors.white38, size: 48),
+                    SizedBox(height: 8),
+                    Text(
+                      'Failed to decode image',
+                      style: TextStyle(color: Colors.white54),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
         Positioned.fill(
           child: CustomPaint(

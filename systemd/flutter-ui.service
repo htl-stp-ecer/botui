@@ -3,21 +3,18 @@ Description=Flutter UI with flutter-pi
 After=network.target
 
 [Service]
-# Wipe ONLY the flutter user's own stale shm segments before boot.
-# Do not touch /tmp/iceoryx2/services — that's the system-wide service
-# registry shared with the raccoon backend; deleting it makes every
-# publisher's service disappear. Do not run this service as root: a
-# root-owned shm segment blocks every pi-owned publisher/subscriber from
-# accessing the same iceoryx2 service, silently breaking pub/sub.
-ExecStartPre=/usr/bin/sh -c 'find /dev/shm -maxdepth 1 -user pi -name "iox2_*" -delete 2>/dev/null || true'
 ExecStart=flutter-pi -r 0 --videomode 800x480 --release /home/pi/stp-velox/
 WorkingDirectory=/home/pi
 User=pi
 Group=pi
 Restart=always
-RestartSec=5
-StandardOutput=tty
-StandardError=tty
+# Keep this short: the FrameStallWatchdog self-exits on a wedged render
+# pipeline, and this is how fast the UI comes back after that.
+RestartSec=2
+# Send flutter-pi stdout/stderr to the journal so `journalctl -u flutter-ui`
+# captures the Dart `print()` log output (transport, screen renderer, etc.).
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

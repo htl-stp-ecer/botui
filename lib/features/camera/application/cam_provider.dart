@@ -9,6 +9,8 @@ import 'package:raccoon_transport/raccoon_transport.dart';
 part 'cam_provider.g.dart';
 
 final _log = getLogger('CameraViewer');
+const Duration _kUiCameraFrameThrottle = Duration(milliseconds: 66);
+const Duration _kUiCameraDetectionThrottle = Duration(milliseconds: 100);
 
 /// Wrapper class for camera detection data
 class CamDetectionData {
@@ -41,7 +43,10 @@ class CamDetectionStream extends _$CamDetectionStream {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
         .subscribeAs<CamDetectionsT>(
-            Channels.camDetections, CamDetectionsT.decode)
+      Channels.camDetections,
+      CamDetectionsT.decode,
+      throttle: _kUiCameraDetectionThrottle,
+    )
         .listen(
       (decoded) {
         _currentDetections = CamDetectionData(decoded.value);
@@ -75,7 +80,11 @@ class CamFrameStream extends _$CamFrameStream {
   void _startSubscription() {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
-        .subscribeAs<CamFrameT>(Channels.camFrame, CamFrameT.decode)
+        .subscribeAs<CamFrameT>(
+      Channels.camFrame,
+      CamFrameT.decode,
+      throttle: _kUiCameraFrameThrottle,
+    )
         .listen(
       (decoded) {
         _currentFrame = CamFrameData(decoded.value);

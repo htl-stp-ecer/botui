@@ -45,7 +45,7 @@ final class CamDetectionStreamProvider
 }
 
 String _$camDetectionStreamHash() =>
-    r'a50b266cc151a7fbb26df5b08a8245a8c9ff6831';
+    r'76fe4b73be1fc901e5553fce91c57cb6115edd08';
 
 /// Provider that streams camera detections from the vision daemon.
 
@@ -101,7 +101,7 @@ final class CamFrameStreamProvider
   }
 }
 
-String _$camFrameStreamHash() => r'1ad19f680be18dcf1388d109c1e877f270148f3d';
+String _$camFrameStreamHash() => r'2d8b849a87bc2a8e9b17c2ecf90ef136957982bc';
 
 /// Provider that streams camera JPEG frames from the vision daemon.
 

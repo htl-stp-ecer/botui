@@ -37,13 +37,6 @@ class CalibIcmCalibrationScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Place the board on a stable surface.  The firmware will '
-                'detect "at rest" automatically and learn the gyro bias.  '
-                'Press Save once the values have stabilised.',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-              const SizedBox(height: 14),
               _AtRestBanner(atRest: atRest),
               const SizedBox(height: 10),
               _BiasCard(

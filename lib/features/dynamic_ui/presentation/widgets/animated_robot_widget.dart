@@ -141,5 +141,12 @@ class _RobotPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RobotPainter oldDelegate) => true;
+  bool shouldRepaint(_RobotPainter oldDelegate) =>
+      // While moving, repaint is driven by `super(repaint: wheelRotation)` on
+      // every controller tick, so we don't need to force it here. When the
+      // robot is idle (e.g. the Distance Calibration screen) returning `true`
+      // made this CustomPaint re-rasterize on EVERY frame for no visual
+      // change — sustained per-frame repaint on the Pi 3 VC4 GPU. Only repaint
+      // when the moving state actually flips.
+      oldDelegate.isMoving != isMoving;
 }

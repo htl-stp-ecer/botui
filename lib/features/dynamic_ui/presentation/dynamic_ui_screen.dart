@@ -106,7 +106,16 @@ class DynamicUIScreen extends HookConsumerWidget {
       _log.info('[EFFECT] useEffect triggered for screenData change, title="$title"');
       final newValues = <String, dynamic>{};
       _extractInitialValues(screenData, newValues);
-      values.value = newValues;
+      // Avoid an extra rebuild when Python pushes a screen_render whose
+      // input values are identical to what we already track. screenData
+      // is a fresh Map per LCM frame, so this useEffect runs on every
+      // push — without this guard, every body update reassigns
+      // values.value to a new Map identity and triggers a redundant
+      // rebuild of the whole subtree (expensive on Pi 3 at multi-Hz
+      // push rates during calibration sampling).
+      if (!_mapShallowEquals(newValues, values.value)) {
+        values.value = newValues;
+      }
       _log.fine('[EFFECT] Initial values extracted: ${values.value}');
       return null;
     }, [screenData]);
@@ -274,6 +283,16 @@ class _SetupTimer extends StatelessWidget {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
+
+bool _mapShallowEquals(Map<String, dynamic> a, Map<String, dynamic> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (final entry in a.entries) {
+    if (!b.containsKey(entry.key)) return false;
+    if (b[entry.key] != entry.value) return false;
+  }
+  return true;
+}
 
 void _extractInitialValues(Map<String, dynamic> data, Map<String, dynamic> values) {
   void extract(dynamic item) {

@@ -22,6 +22,7 @@ class CappedFrameBinding extends WidgetsFlutterBinding {
 
   Duration _lastAcceptedTimestamp = Duration.zero;
   bool _skipDrawForCurrentVsync = false;
+  bool _reschedulePending = false;
 
   /// Install this binding. Must be called before `runApp` instead of
   /// `WidgetsFlutterBinding.ensureInitialized()`.
@@ -40,10 +41,21 @@ class CappedFrameBinding extends WidgetsFlutterBinding {
     final stamp = rawTimeStamp ?? Duration.zero;
     final since = stamp - _lastAcceptedTimestamp;
     if (_lastAcceptedTimestamp != Duration.zero && since < minInterval) {
-      // Too soon — ask the engine for another vsync and drop this one
-      // (and its paired drawFrame).
+      // Too soon — drop this vsync and its paired drawFrame, then
+      // reschedule a single follow-up frame AFTER the cap interval
+      // elapses. Calling scheduleFrame() synchronously here would let
+      // the engine immediately re-fire handleBeginFrame with a
+      // not-yet-advanced timestamp, producing a tight loop that pegs
+      // the UI isolate at 100% CPU without ever rendering.
       _skipDrawForCurrentVsync = true;
-      scheduleFrame();
+      if (!_reschedulePending) {
+        _reschedulePending = true;
+        final wait = minInterval - since;
+        Future<void>.delayed(wait.isNegative ? Duration.zero : wait, () {
+          _reschedulePending = false;
+          scheduleFrame();
+        });
+      }
       return;
     }
     _skipDrawForCurrentVsync = false;

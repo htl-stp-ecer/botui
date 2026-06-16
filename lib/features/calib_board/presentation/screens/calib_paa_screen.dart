@@ -61,6 +61,13 @@ class CalibPaaScreen extends ConsumerWidget {
               state: state,
               onPressed: () => context.push(AppRoutes.calibPaaCalibration),
             ),
+            CalibStatusTile(
+              label: 'Offset',
+              icon: Icons.center_focus_strong,
+              color: AppColors.getTileColor(SensorCategory.gyro.index),
+              state: state,
+              onPressed: () => context.push(AppRoutes.calibPaaOffset),
+            ),
           ],
         ),
       ),
