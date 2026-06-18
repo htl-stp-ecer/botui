@@ -166,13 +166,13 @@ class TransportService with HasLogger {
     final buf = LcmBuffer(65536);
     message.encode(buf);
     final data = Uint8List.sublistView(buf.uint8List, 0, buf.position);
-    _transport!.publish(channel, data);
+    _transport!.publish(channel, data, deduplicate: options.deduplicate);
   }
 
   Future<void> publishRaw(String channel, Uint8List data,
       {PublishOptions options = const PublishOptions()}) async {
     await _ensureReady();
-    _transport!.publish(channel, data);
+    _transport!.publish(channel, data, deduplicate: options.deduplicate);
   }
 
   void dispose() {
