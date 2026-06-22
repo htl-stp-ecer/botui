@@ -45,17 +45,21 @@ jobs:
       - name: Build
         run: BUILD_NUMBER=${{ github.run_number }} bash ./build.sh
 
-      - name: Bundle release
-        run: |
-          mkdir -p release-bundle/systemd
-          cp -r build/flutter-pi/pi3-64/* release-bundle/
-          cp install.py release-bundle/
-          cp systemd/flutter-ui.service release-bundle/systemd/
-          tar -czf botui-release.tar.gz -C release-bundle .
+      - name: Build .deb package
+        run: bash ./packaging/build-deb.sh "1.0.${{ github.run_number }}" build/flutter-pi/pi3-64 stp-velox_1.0.${{ github.run_number }}_arm64.deb
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: Release v1.0.${{ github.run_number }}
-          files: botui-release.tar.gz
+          body: |
+            Install on the Pi (arm64):
+
+            ```
+            sudo apt install ./stp-velox_1.0.${{ github.run_number }}_arm64.deb
+            ```
+
+            This installs the UI to `/home/pi/stp-velox` and enables + starts the
+            `flutter-ui` systemd service automatically.
+          files: stp-velox_1.0.${{ github.run_number }}_arm64.deb
