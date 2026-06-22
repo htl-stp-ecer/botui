@@ -39,7 +39,11 @@ class RaccoonExecutionClient {
 
   /// Start a program. Returns the command_id assigned by the service.
   Future<String> run(String projectId, {List<String> args = const []}) async {
-    final body = jsonEncode({'args': args, 'env': {}});
+    final body = jsonEncode({
+      'args': args,
+      'env': {},
+      'deploy_services': false,
+    });
     final response = await _post('/api/v1/run/$projectId', body);
     final commandId = response['command_id'] as String;
     _log.info('[run] project=$projectId command_id=$commandId');

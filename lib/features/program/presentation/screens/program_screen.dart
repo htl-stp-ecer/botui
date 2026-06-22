@@ -51,14 +51,11 @@ class ProgramScreen extends HookConsumerWidget {
     useEffect(() {
       _log.info('[useEffect] ProgramScreen mounted');
       return () {
-        _log.warning(
-            '[useEffect cleanup] ProgramScreen unmounting — isRunning=${state?.isRunning}');
+        _log.info('[useEffect cleanup] ProgramScreen unmounting');
         removeOverlay(overlayEntry);
-        if (state != null && state.isRunning) {
-          _log.warning(
-              '[useEffect cleanup] Stopping program because screen is unmounting');
-          ref.read(programLifecycleServiceProvider.notifier).stopProgram();
-        }
+        // The running session is killed by ProgramLifecycleService's
+        // ref.onDispose when the (autoDispose) provider is released on
+        // navigation away — no manual stop needed here.
       };
     }, []);
 
@@ -157,9 +154,7 @@ void createArgOverlay(
   assert(overlayEntry.value == null);
 
   if (arg == null) {
-    ref
-        .read(programLifecycleServiceProvider.notifier)
-        .startProgram(program, args, extraFlags: extraFlags);
+    _startProgramWithFeedback(context, ref, program, args, extraFlags);
     return;
   }
 
@@ -315,6 +310,37 @@ void createAdvancedOverlay(
   );
 
   Overlay.of(context).insert(overlayEntry.value!);
+}
+
+/// Start the program and surface any failure to the user.
+///
+/// ``startProgram`` can throw before a session/terminal even exists (missing API
+/// token, execution service unreachable, malformed response). Awaiting it and
+/// catching here turns those previously-silent failures into a visible error
+/// instead of a Start button that appears to do nothing.
+Future<void> _startProgramWithFeedback(
+  BuildContext context,
+  WidgetRef ref,
+  Program program,
+  Map<String, String> args,
+  List<String> extraFlags,
+) async {
+  try {
+    await ref
+        .read(programLifecycleServiceProvider.notifier)
+        .startProgram(program, args, extraFlags: extraFlags);
+  } catch (e, st) {
+    _log.severe('[startProgram] failed to start ${program.name}', e, st);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Start failed: $e'),
+          backgroundColor: Colors.red.shade800,
+          duration: const Duration(seconds: 6),
+        ),
+      );
+    }
+  }
 }
 
 void removeOverlay(ValueNotifier<OverlayEntry?> overlayEntry) {

@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Static chart that displays calibration sample points as dots
-/// with horizontal threshold lines.
+/// Static chart that displays calibration sample points with horizontal
+/// threshold lines.
 ///
-/// JSON shape from Python:
+/// Single dataset (`samples`):
 /// ```json
 /// {
 ///   "widget": "CalibrationChart",
@@ -13,15 +13,30 @@ import 'package:flutter/material.dart';
 ///   "height": 200
 /// }
 /// ```
+///
+/// Multiple datasets at once (`series`) — one colored line per sensor, with a
+/// legend. Takes precedence over `samples` when both are present:
+/// ```json
+/// {
+///   "widget": "CalibrationChart",
+///   "series": [
+///     {"label": "Port 0", "color": "blue", "samples": [120.0, ...]},
+///     {"label": "Port 1", "color": "green", "samples": [140.0, ...]}
+///   ],
+///   "height": 320
+/// }
+/// ```
 class CalibrationChartWidget extends StatelessWidget {
   final List<double> samples;
   final List<_Threshold> thresholds;
+  final List<_Series> series;
   final double height;
 
   CalibrationChartWidget({
     super.key,
     required List<dynamic> rawSamples,
     required List<dynamic> rawThresholds,
+    List<dynamic> rawSeries = const [],
     this.height = 200,
   })  : samples = rawSamples.map((e) => (e as num).toDouble()).toList(),
         thresholds = rawThresholds.map((t) {
@@ -31,11 +46,25 @@ class CalibrationChartWidget extends StatelessWidget {
             label: list.length > 1 ? list[1] as String : '',
             color: list.length > 2 ? list[2] as String : 'white',
           );
+        }).toList(),
+        series = rawSeries.map((s) {
+          final map = s as Map;
+          return _Series(
+            label: map['label'] as String? ?? '',
+            color: map['color'] as String? ?? 'white',
+            samples: (map['samples'] as List? ?? [])
+                .map((e) => (e as num).toDouble())
+                .toList(),
+            blackThreshold: (map['black_threshold'] as num?)?.toDouble(),
+            whiteThreshold: (map['white_threshold'] as num?)?.toDouble(),
+          );
         }).toList();
+
+  bool get _hasSeries => series.any((s) => s.samples.isNotEmpty);
 
   @override
   Widget build(BuildContext context) {
-    if (samples.isEmpty) {
+    if (!_hasSeries && samples.isEmpty) {
       return SizedBox(
         height: height,
         child: const Center(
@@ -44,15 +73,52 @@ class CalibrationChartWidget extends StatelessWidget {
       );
     }
 
-    return SizedBox(
+    final chart = SizedBox(
       height: height,
       child: CustomPaint(
         size: Size.infinite,
         painter: _CalibrationChartPainter(
           samples: samples,
           thresholds: thresholds,
+          series: series,
         ),
       ),
+    );
+
+    if (!_hasSeries) return chart;
+
+    // Legend mapping each series' color to its label.
+    final legend = Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 4,
+        children: [
+          for (final s in series)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: _parseColor(s.color),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(_legendLabel(s),
+                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+        ],
+      ),
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [chart, legend],
     );
   }
 }
@@ -69,6 +135,30 @@ class _Threshold {
   });
 }
 
+class _Series {
+  final String label;
+  final String color;
+  final List<double> samples;
+  final double? blackThreshold;
+  final double? whiteThreshold;
+
+  const _Series({
+    required this.label,
+    required this.color,
+    required this.samples,
+    this.blackThreshold,
+    this.whiteThreshold,
+  });
+}
+
+/// Legend text for a series, appending its black/white thresholds when present.
+String _legendLabel(_Series s) {
+  final parts = <String>[s.label];
+  if (s.blackThreshold != null) parts.add('B ${s.blackThreshold!.toStringAsFixed(0)}');
+  if (s.whiteThreshold != null) parts.add('W ${s.whiteThreshold!.toStringAsFixed(0)}');
+  return parts.join('  ·  ');
+}
+
 Color _parseColor(String name) => switch (name.toLowerCase()) {
       'grey' || 'gray' => Colors.grey.shade400,
       'green' => Colors.green.shade400,
@@ -76,6 +166,12 @@ Color _parseColor(String name) => switch (name.toLowerCase()) {
       'orange' => Colors.orange.shade400,
       'red' => Colors.red.shade400,
       'blue' => Colors.blue.shade400,
+      'purple' => Colors.purple.shade300,
+      'cyan' => Colors.cyan.shade400,
+      'pink' => Colors.pink.shade300,
+      'teal' => Colors.teal.shade400,
+      'lime' => Colors.lime.shade400,
+      'indigo' => Colors.indigo.shade300,
       'white' => Colors.white70,
       _ => Colors.white70,
     };
@@ -83,19 +179,32 @@ Color _parseColor(String name) => switch (name.toLowerCase()) {
 class _CalibrationChartPainter extends CustomPainter {
   final List<double> samples;
   final List<_Threshold> thresholds;
+  final List<_Series> series;
 
   _CalibrationChartPainter({
     required this.samples,
     required this.thresholds,
+    this.series = const [],
   });
+
+  bool get _hasSeries => series.any((s) => s.samples.isNotEmpty);
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (samples.isEmpty) return;
+    // Gather every value across single samples + series + thresholds so the
+    // Y range fits all of them.
+    final allValues = <double>[
+      ...samples,
+      for (final s in series) ...s.samples,
+      for (final s in series)
+        if (s.blackThreshold != null) s.blackThreshold!,
+      for (final s in series)
+        if (s.whiteThreshold != null) s.whiteThreshold!,
+    ];
+    if (allValues.isEmpty) return;
 
-    // Compute Y range from samples + thresholds
-    double minVal = samples.reduce(math.min);
-    double maxVal = samples.reduce(math.max);
+    double minVal = allValues.reduce(math.min);
+    double maxVal = allValues.reduce(math.max);
     for (final t in thresholds) {
       minVal = math.min(minVal, t.value);
       maxVal = math.max(maxVal, t.value);
@@ -121,42 +230,33 @@ class _CalibrationChartPainter extends CustomPainter {
     }
 
     // Y-axis labels (min, mid, max)
-    _drawYLabel(canvas, size, yMin, yMax, yRange, chartWidth, yMax, 'top');
-    _drawYLabel(canvas, size, yMin, yMax, yRange, chartWidth, (yMin + yMax) / 2, 'mid');
-    _drawYLabel(canvas, size, yMin, yMax, yRange, chartWidth, yMin, 'bottom');
+    _drawYLabel(canvas, size, yMin, yRange, chartWidth, yMax, 'top');
+    _drawYLabel(canvas, size, yMin, yRange, chartWidth, (yMin + yMax) / 2, 'mid');
+    _drawYLabel(canvas, size, yMin, yRange, chartWidth, yMin, 'bottom');
 
-    // Sample dots
-    final dotPaint = Paint()
-      ..color = Colors.blue.shade300
-      ..style = PaintingStyle.fill;
-
-    for (int i = 0; i < samples.length; i++) {
-      final x = chartWidth * i / (samples.length - 1).clamp(1, double.infinity);
-      final normalizedY = (samples[i] - yMin) / yRange;
-      final y = size.height * (1 - normalizedY);
-      canvas.drawCircle(Offset(x, y), 2.5, dotPaint);
+    if (_hasSeries) {
+      for (final s in series) {
+        final color = _parseColor(s.color);
+        _drawSeries(canvas, size, s.samples, color, yMin, yRange, chartWidth);
+        // Per-sensor black/white thresholds, dashed, in the series' own color.
+        for (final value in [s.blackThreshold, s.whiteThreshold]) {
+          if (value != null) {
+            _drawDashedLine(canvas, size, value, color, yMin, yRange, chartWidth);
+          }
+        }
+      }
+    } else {
+      _drawSeries(
+          canvas, size, samples, Colors.blue.shade300, yMin, yRange, chartWidth);
     }
 
-    // Threshold lines
+    // Top-level threshold lines (single-dataset mode)
     for (final t in thresholds) {
       final normalizedY = (t.value - yMin) / yRange;
       final y = size.height * (1 - normalizedY);
       final color = _parseColor(t.color);
 
-      // Dashed line
-      final linePaint = Paint()
-        ..color = color
-        ..strokeWidth = 2
-        ..style = PaintingStyle.stroke;
-
-      const dashWidth = 8.0;
-      const gapWidth = 4.0;
-      double startX = 0;
-      while (startX < chartWidth) {
-        final endX = math.min(startX + dashWidth, chartWidth);
-        canvas.drawLine(Offset(startX, y), Offset(endX, y), linePaint);
-        startX += dashWidth + gapWidth;
-      }
+      _drawDashedLine(canvas, size, t.value, color, yMin, yRange, chartWidth);
 
       // Label
       final textPainter = TextPainter(
@@ -171,8 +271,45 @@ class _CalibrationChartPainter extends CustomPainter {
     }
   }
 
-  void _drawYLabel(Canvas canvas, Size size, double yMin, double yMax,
-      double yRange, double chartWidth, double value, String pos) {
+  void _drawSeries(Canvas canvas, Size size, List<double> values, Color color,
+      double yMin, double yRange, double chartWidth) {
+    if (values.isEmpty) return;
+
+    final dotPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final denom = (values.length - 1).clamp(1, double.infinity);
+    for (int i = 0; i < values.length; i++) {
+      final x = chartWidth * i / denom;
+      final normalizedY = (values[i] - yMin) / yRange;
+      final y = size.height * (1 - normalizedY);
+      canvas.drawCircle(Offset(x, y), 2.5, dotPaint);
+    }
+  }
+
+  void _drawDashedLine(Canvas canvas, Size size, double value, Color color,
+      double yMin, double yRange, double chartWidth) {
+    final normalizedY = (value - yMin) / yRange;
+    final y = size.height * (1 - normalizedY);
+
+    final linePaint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    const dashWidth = 8.0;
+    const gapWidth = 4.0;
+    double startX = 0;
+    while (startX < chartWidth) {
+      final endX = math.min(startX + dashWidth, chartWidth);
+      canvas.drawLine(Offset(startX, y), Offset(endX, y), linePaint);
+      startX += dashWidth + gapWidth;
+    }
+  }
+
+  void _drawYLabel(Canvas canvas, Size size, double yMin, double yRange,
+      double chartWidth, double value, String pos) {
     final normalizedY = (value - yMin) / yRange;
     final y = size.height * (1 - normalizedY);
 
@@ -193,12 +330,9 @@ class _CalibrationChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_CalibrationChartPainter oldDelegate) {
-    if (identical(samples, oldDelegate.samples) &&
-        identical(thresholds, oldDelegate.thresholds)) {
-      return false;
-    }
     if (samples.length != oldDelegate.samples.length ||
-        thresholds.length != oldDelegate.thresholds.length) {
+        thresholds.length != oldDelegate.thresholds.length ||
+        series.length != oldDelegate.series.length) {
       return true;
     }
     for (int i = 0; i < samples.length; i++) {
@@ -209,6 +343,20 @@ class _CalibrationChartPainter extends CustomPainter {
       final b = oldDelegate.thresholds[i];
       if (a.value != b.value || a.label != b.label || a.color != b.color) {
         return true;
+      }
+    }
+    for (int i = 0; i < series.length; i++) {
+      final a = series[i];
+      final b = oldDelegate.series[i];
+      if (a.label != b.label ||
+          a.color != b.color ||
+          a.blackThreshold != b.blackThreshold ||
+          a.whiteThreshold != b.whiteThreshold ||
+          a.samples.length != b.samples.length) {
+        return true;
+      }
+      for (int j = 0; j < a.samples.length; j++) {
+        if (a.samples[j] != b.samples[j]) return true;
       }
     }
     return false;

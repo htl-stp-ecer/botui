@@ -8,18 +8,21 @@ part of 'button10_monitor.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Monitors button 10 for long presses:
-/// - 3 seconds: Opens Dev Menu
+/// Monitors button 10 (the built-in controller button) for a long press:
+/// - While a program is running: stops the program.
+/// - Otherwise: opens the Dev Menu.
 
 @ProviderFor(Button10Monitor)
 const button10MonitorProvider = Button10MonitorProvider._();
 
-/// Monitors button 10 for long presses:
-/// - 3 seconds: Opens Dev Menu
+/// Monitors button 10 (the built-in controller button) for a long press:
+/// - While a program is running: stops the program.
+/// - Otherwise: opens the Dev Menu.
 final class Button10MonitorProvider
     extends $NotifierProvider<Button10Monitor, void> {
-  /// Monitors button 10 for long presses:
-  /// - 3 seconds: Opens Dev Menu
+  /// Monitors button 10 (the built-in controller button) for a long press:
+  /// - While a program is running: stops the program.
+  /// - Otherwise: opens the Dev Menu.
   const Button10MonitorProvider._()
       : super(
           from: null,
@@ -47,10 +50,11 @@ final class Button10MonitorProvider
   }
 }
 
-String _$button10MonitorHash() => r'a9ec39d3750f90b4037335b442c5c5f135f7bcfa';
+String _$button10MonitorHash() => r'0846912ea7a634daa408907c948ff9ee72844d95';
 
-/// Monitors button 10 for long presses:
-/// - 3 seconds: Opens Dev Menu
+/// Monitors button 10 (the built-in controller button) for a long press:
+/// - While a program is running: stops the program.
+/// - Otherwise: opens the Dev Menu.
 
 abstract class _$Button10Monitor extends $Notifier<void> {
   void build();

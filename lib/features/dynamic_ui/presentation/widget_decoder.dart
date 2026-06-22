@@ -172,6 +172,7 @@ class WidgetDecoder {
         return CalibrationChartWidget(
           rawSamples: json['samples'] as List? ?? [],
           rawThresholds: json['thresholds'] as List? ?? [],
+          rawSeries: json['series'] as List? ?? [],
           height: (json['height'] as int? ?? 200).toDouble(),
         );
       case 'camfeed':

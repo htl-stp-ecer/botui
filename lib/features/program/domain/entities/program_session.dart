@@ -34,20 +34,17 @@ class ProgramSession {
     session.terminal = Terminal();
     session.terminalController = TerminalController();
 
-    // Check if run.sh exists in the program directory (resolve to absolute)
-    final parentDirAbsolute = Directory(program.parentDir).absolute.path;
-    final runShPath = '$parentDirAbsolute/${program.runScript}';
-    final runShFile = File(runShPath);
-
-    if (await runShFile.exists()) {
-      // Run run.sh directly
+    if (_allowDirectProgramRun()) {
       await _startDirectProcess(session, program, args, extraFlags);
     } else {
-      // Fall back to raccoon execution client
       await _startViaRaccoon(session, program, args, extraFlags);
     }
 
     return session;
+  }
+
+  static bool _allowDirectProgramRun() {
+    return Platform.environment['BOTUI_ALLOW_DIRECT_PROGRAM_RUN'] == '1';
   }
 
   static Future<void> _startDirectProcess(
