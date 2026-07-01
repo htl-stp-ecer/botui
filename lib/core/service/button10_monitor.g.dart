@@ -8,21 +8,27 @@ part of 'button10_monitor.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Monitors button 10 (the built-in controller button) for a long press:
-/// - While a program is running: stops the program.
-/// - Otherwise: opens the Dev Menu.
+/// Monitors button 10 (the built-in controller button) for a long press.
+///
+/// A long press always opens the Dev Menu — including while a program is
+/// running. The Dev Menu exposes a "Stop Program" action, so stopping a
+/// running program is done there rather than by the button press directly.
 
 @ProviderFor(Button10Monitor)
 const button10MonitorProvider = Button10MonitorProvider._();
 
-/// Monitors button 10 (the built-in controller button) for a long press:
-/// - While a program is running: stops the program.
-/// - Otherwise: opens the Dev Menu.
+/// Monitors button 10 (the built-in controller button) for a long press.
+///
+/// A long press always opens the Dev Menu — including while a program is
+/// running. The Dev Menu exposes a "Stop Program" action, so stopping a
+/// running program is done there rather than by the button press directly.
 final class Button10MonitorProvider
     extends $NotifierProvider<Button10Monitor, void> {
-  /// Monitors button 10 (the built-in controller button) for a long press:
-  /// - While a program is running: stops the program.
-  /// - Otherwise: opens the Dev Menu.
+  /// Monitors button 10 (the built-in controller button) for a long press.
+  ///
+  /// A long press always opens the Dev Menu — including while a program is
+  /// running. The Dev Menu exposes a "Stop Program" action, so stopping a
+  /// running program is done there rather than by the button press directly.
   const Button10MonitorProvider._()
       : super(
           from: null,
@@ -50,11 +56,13 @@ final class Button10MonitorProvider
   }
 }
 
-String _$button10MonitorHash() => r'0846912ea7a634daa408907c948ff9ee72844d95';
+String _$button10MonitorHash() => r'229112e234cd40c705ab844da15acfb2e637006d';
 
-/// Monitors button 10 (the built-in controller button) for a long press:
-/// - While a program is running: stops the program.
-/// - Otherwise: opens the Dev Menu.
+/// Monitors button 10 (the built-in controller button) for a long press.
+///
+/// A long press always opens the Dev Menu — including while a program is
+/// running. The Dev Menu exposes a "Stop Program" action, so stopping a
+/// running program is done there rather than by the button press directly.
 
 abstract class _$Button10Monitor extends $Notifier<void> {
   void build();

@@ -73,52 +73,71 @@ class CalibrationChartWidget extends StatelessWidget {
       );
     }
 
-    final chart = SizedBox(
-      height: height,
-      child: CustomPaint(
-        size: Size.infinite,
-        painter: _CalibrationChartPainter(
-          samples: samples,
-          thresholds: thresholds,
-          series: series,
-        ),
+    final painter = CustomPaint(
+      size: Size.infinite,
+      painter: _CalibrationChartPainter(
+        samples: samples,
+        thresholds: thresholds,
+        series: series,
       ),
     );
 
-    if (!_hasSeries) return chart;
+    // Fill the available height when our parent bounds it (e.g. wrapped in an
+    // Expanded inside a Column), so the chart shrinks to fit instead of forcing a
+    // fixed 320px that overflows shorter screens and clips the lower threshold
+    // line off-screen. Fall back to the requested `height` when unbounded (e.g.
+    // inside a scroll view).
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bounded = constraints.maxHeight.isFinite;
 
-    // Legend mapping each series' color to its label.
-    final legend = Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Wrap(
-        spacing: 16,
-        runSpacing: 4,
-        children: [
-          for (final s in series)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: _parseColor(s.color),
-                    shape: BoxShape.circle,
-                  ),
+        if (!_hasSeries) {
+          return SizedBox(
+            height: bounded ? constraints.maxHeight : height,
+            child: painter,
+          );
+        }
+
+        // Legend mapping each series' color to its label.
+        final legend = Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 4,
+            children: [
+              for (final s in series)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: _parseColor(s.color),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(_legendLabel(s),
+                        style:
+                            const TextStyle(color: Colors.white70, fontSize: 12)),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Text(_legendLabel(s),
-                    style: const TextStyle(color: Colors.white70, fontSize: 12)),
-              ],
-            ),
-        ],
-      ),
-    );
+            ],
+          ),
+        );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [chart, legend],
+        return Column(
+          mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            bounded
+                ? Expanded(child: painter)
+                : SizedBox(height: height, child: painter),
+            legend,
+          ],
+        );
+      },
     );
   }
 }

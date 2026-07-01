@@ -2,13 +2,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/sensors/digital_sensor.dart';
-import 'package:stpvelox/features/program/domain/services/program_lifecycle_service.dart';
 
 part 'button10_monitor.g.dart';
 
-/// Monitors button 10 (the built-in controller button) for a long press:
-/// - While a program is running: stops the program.
-/// - Otherwise: opens the Dev Menu.
+/// Monitors button 10 (the built-in controller button) for a long press.
+///
+/// A long press always opens the Dev Menu — including while a program is
+/// running. The Dev Menu exposes a "Stop Program" action, so stopping a
+/// running program is done there rather than by the button press directly.
 @riverpod
 class Button10Monitor extends _$Button10Monitor with HasLogger {
   static const _longPressDuration = Duration(seconds: 3);
@@ -49,14 +50,8 @@ class Button10Monitor extends _$Button10Monitor with HasLogger {
   }
 
   void _onLongPress() {
-    // A long press is the built-in "stop" control: if a program is running,
-    // stop it. Only fall back to the Dev Menu when the robot is idle.
-    final session = ref.read(programLifecycleServiceProvider);
-    if (session != null && session.isRunning) {
-      log.info('Button 10 long-press — stopping running program');
-      ref.read(programLifecycleServiceProvider.notifier).stopProgram();
-      return;
-    }
+    // A long press always opens the Dev Menu — even while a program is
+    // running. The Dev Menu's "Stop Program" tile handles stopping.
     _openDevMenu();
   }
 
