@@ -222,6 +222,18 @@ class _DynamicUiActive extends Notifier<bool> {
   void set(bool value) => state = value;
 }
 
+/// True while the Dev Menu is on screen — suppresses DynamicUIScreen so the
+/// dev menu is never covered by a custom UI overlay.
+final devMenuActiveProvider =
+    NotifierProvider<_DevMenuActive, bool>(_DevMenuActive.new);
+
+class _DevMenuActive extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
 class _LowBatteryIgnored extends Notifier<bool> {
   @override
   bool build() => false;
@@ -268,6 +280,7 @@ class _AppServicesStarter extends ConsumerWidget {
     // instant ScreenRenderProvider notifies, hiding the overlay and
     // letting the pushed dynamic UI route show through underneath.
     final hasCustomScreen = ref.watch(screenRenderProviderProvider) != null;
+    final devMenuActive = ref.watch(devMenuActiveProvider);
 
     return Stack(
       children: [
@@ -285,7 +298,9 @@ class _AppServicesStarter extends ConsumerWidget {
         // existing router.push in StpVeloxApp.build still runs in
         // parallel for backward-compat (e.g. pop semantics, debug
         // navigation).
-        if (hasCustomScreen) const DynamicUIScreen(),
+        // Dev Menu always wins — hide the custom UI overlay while it's open
+        // so the dev menu route (inside `child`) is not covered.
+        if (hasCustomScreen && !devMenuActive) const DynamicUIScreen(),
       ],
     );
   }
