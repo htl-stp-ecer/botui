@@ -6,12 +6,24 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/program/domain/services/program_lifecycle_service.dart';
+import 'package:stpvelox/main.dart';
 
-class DevMenuScreen extends ConsumerWidget {
+class DevMenuScreen extends ConsumerStatefulWidget {
   const DevMenuScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DevMenuScreen> createState() => _DevMenuScreenState();
+}
+
+class _DevMenuScreenState extends ConsumerState<DevMenuScreen> {
+  @override
+  void dispose() {
+    ref.read(devMenuActiveProvider.notifier).set(false);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final session = ref.watch(programLifecycleServiceProvider);
     final isRunning = session != null && session.isRunning;
 

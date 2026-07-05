@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/sensors/digital_sensor.dart';
+import 'package:stpvelox/main.dart';
 
 part 'button10_monitor.g.dart';
 
@@ -64,6 +65,7 @@ class Button10Monitor extends _$Button10Monitor with HasLogger {
     // Don't open if already on dev menu or any easter egg screen
     if (currentRoute != AppRoutes.devMenu &&
         currentRoute != AppRoutes.flappyWombat) {
+      ref.read(devMenuActiveProvider.notifier).set(true);
       router.push(AppRoutes.devMenu);
     }
   }
