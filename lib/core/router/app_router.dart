@@ -72,7 +72,6 @@ import 'package:stpvelox/features/camera/presentation/pages/camera_viewer_screen
 // Other
 import 'package:stpvelox/presentation/screens/robot_face_screen.dart';
 import 'package:stpvelox/features/flappy_wombat/presentation/screen/flappy_wombat_game.dart';
-import 'package:stpvelox/features/dev_menu/presentation/screens/dev_menu_screen.dart';
 import 'package:stpvelox/features/tilt_maze/presentation/screens/tilt_maze_screen.dart';
 
 part 'app_router.g.dart';
@@ -153,8 +152,7 @@ abstract class AppRoutes {
   // Screensaver
   static const robotFace = '/robot-face';
 
-  // Dev menu & easter eggs
-  static const devMenu = '/dev-menu';
+  // Easter eggs (the Dev Menu is a top-level overlay, not a route)
   static const flappyWombat = '/flappy-wombat';
   static const tiltMaze = '/tilt-maze';
 }
@@ -490,12 +488,8 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const RobotFaceScreen(),
       ),
 
-      // Dev menu & easter eggs
-      GoRoute(
-        path: AppRoutes.devMenu,
-        name: 'devMenu',
-        builder: (context, state) => const DevMenuScreen(),
-      ),
+      // Easter eggs. (The Dev Menu is a top-level overlay, not a route — see
+      // devMenuActiveProvider — so it can sit above a program's dynamic UI.)
       GoRoute(
         path: AppRoutes.flappyWombat,
         name: 'flappyWombat',

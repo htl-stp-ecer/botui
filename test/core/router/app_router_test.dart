@@ -43,7 +43,6 @@ void main() {
       AppRoutes.wifiDeviceInfo,
       AppRoutes.camera,
       AppRoutes.robotFace,
-      AppRoutes.devMenu,
       AppRoutes.flappyWombat,
       AppRoutes.tiltMaze,
     ];

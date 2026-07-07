@@ -56,7 +56,7 @@ final class Button10MonitorProvider
   }
 }
 
-String _$button10MonitorHash() => r'229112e234cd40c705ab844da15acfb2e637006d';
+String _$button10MonitorHash() => r'940efe87a31235c7019150a02e615261b69755b4';
 
 /// Monitors button 10 (the built-in controller button) for a long press.
 ///

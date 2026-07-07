@@ -53,7 +53,19 @@ class _InactivityListenerState extends ConsumerState<InactivityListener> with Ha
 
     log.info('Showing screensaver');
     ref.read(screensaverShowingProvider.notifier).set(true);
-    ref.read(appRouterProvider).push(AppRoutes.robotFace);
+
+    final router = ref.read(appRouterProvider);
+    // Guard against stacking a second robotFace route on top of an existing
+    // one. If a prior race left the flag out of sync with the navigator (flag
+    // false while the route was still up), pushing again would stack two
+    // robotFace routes — one pop would only remove the top, freezing the
+    // screensaver. Never push if it is already the current route.
+    final currentLocation = router.state.uri.path;
+    if (currentLocation == AppRoutes.robotFace) {
+      log.fine('Screensaver route already on top — not pushing again');
+      return;
+    }
+    router.push(AppRoutes.robotFace);
   }
 
   void _hideScreensaver() {

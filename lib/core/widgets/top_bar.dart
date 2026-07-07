@@ -3,9 +3,10 @@ import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/widgets/battery_status.dart';
 
 AppBar createTopBar(BuildContext context, String title,
-    {List<Widget>? actions, Widget? trailing}) {
+    {List<Widget>? actions, Widget? trailing, VoidCallback? onBack}) {
   actions ??= [];
   actions.add(const BatteryStatus());
+  final handleBack = onBack ?? () => context.pop();
   return AppBar(
     backgroundColor: Colors.grey[900],
     automaticallyImplyLeading: false,
@@ -14,14 +15,14 @@ AppBar createTopBar(BuildContext context, String title,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         GestureDetector(
-          onTap: () => context.pop(),
+          onTap: handleBack,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(width: 16),
               IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.pop(),
+                onPressed: handleBack,
                 iconSize: 40,
                 color: Colors.white,
               ),

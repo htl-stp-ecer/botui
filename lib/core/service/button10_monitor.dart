@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/sensors/digital_sensor.dart';
+import 'package:stpvelox/features/dev_menu/presentation/dev_menu_active_provider.dart';
 
 part 'button10_monitor.g.dart';
 
@@ -56,15 +57,20 @@ class Button10Monitor extends _$Button10Monitor with HasLogger {
   }
 
   void _openDevMenu() {
-    log.info('Button 10 held for 3 seconds - opening Dev Menu!');
+    // The Dev Menu is a top-level overlay (painted above the DynamicUIScreen),
+    // not a pushed route — that's what lets it stay on top of a program's
+    // dynamic UI so its Stop button is always reachable.
+    if (ref.read(devMenuActiveProvider)) return;
 
+    // Don't open while an easter egg that also uses button 10 is on screen.
     final router = ref.read(appRouterProvider);
     final currentRoute = router.routerDelegate.currentConfiguration.fullPath;
-
-    // Don't open if already on dev menu or any easter egg screen
-    if (currentRoute != AppRoutes.devMenu &&
-        currentRoute != AppRoutes.flappyWombat) {
-      router.push(AppRoutes.devMenu);
+    if (currentRoute == AppRoutes.flappyWombat ||
+        currentRoute == AppRoutes.tiltMaze) {
+      return;
     }
+
+    log.info('Button 10 held for 3 seconds - opening Dev Menu!');
+    ref.read(devMenuActiveProvider.notifier).show();
   }
 }

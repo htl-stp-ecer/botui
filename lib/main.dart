@@ -16,6 +16,8 @@ import 'package:stpvelox/features/settings/domain/usecases/reboot.dart';
 import 'package:stpvelox/core/service/button10_monitor_widget.dart';
 import 'package:stpvelox/core/service/sensors/imu_accuracy_sensor.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
+import 'package:stpvelox/features/dev_menu/presentation/dev_menu_active_provider.dart';
+import 'package:stpvelox/features/dev_menu/presentation/screens/dev_menu_screen.dart';
 import 'package:stpvelox/features/dynamic_ui/presentation/dynamic_ui_screen.dart';
 import 'package:stpvelox/features/screen_renderer/application/screen_renderer_provider.dart';
 
@@ -269,6 +271,11 @@ class _AppServicesStarter extends ConsumerWidget {
     // letting the pushed dynamic UI route show through underneath.
     final hasCustomScreen = ref.watch(screenRenderProviderProvider) != null;
 
+    // The Dev Menu is painted as the top-most child below (above the dynamic
+    // UI), so it is the only UI that stays on top of a program's dynamic UI —
+    // making its Stop button reachable even while a custom screen is up.
+    final devMenuActive = ref.watch(devMenuActiveProvider);
+
     return Stack(
       children: [
         child,
@@ -286,6 +293,9 @@ class _AppServicesStarter extends ConsumerWidget {
         // parallel for backward-compat (e.g. pop semantics, debug
         // navigation).
         if (hasCustomScreen) const DynamicUIScreen(),
+        // Top-most: the Dev Menu overlay wins over the dynamic UI and every
+        // other overlay so its controls (notably Stop Program) are reachable.
+        if (devMenuActive) const Positioned.fill(child: DevMenuScreen()),
       ],
     );
   }

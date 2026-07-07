@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/application/inactivity/inactivity_notifier.dart';
+import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
+import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/sensors/digital_sensor.dart';
 import 'package:stpvelox/core/utils/colors/device_color_generator.dart';
 import 'package:stpvelox/features/program/domain/entities/program_session.dart';
@@ -38,6 +40,27 @@ class _RobotFaceScreenState extends ConsumerState<RobotFaceScreen>
   void dispose() {
     _animationManager.dispose();
     super.dispose();
+  }
+
+  /// Dismiss the screensaver directly and idempotently.
+  ///
+  /// The screensaver *is* this pushed route, so it closes itself rather than
+  /// relying on an `inactivityProvider` true→false transition to trigger the
+  /// pop from InactivityListener. That transition was fragile: if the flag was
+  /// already `false` (e.g. cleared via the DynamicUI dismiss path in main.dart)
+  /// no listener fired and the route stayed up forever — the "screensaver
+  /// freezes and tapping won't dismiss it" bug.
+  ///
+  /// We clear `screensaverShowing` *first* so InactivityListener._hideScreensaver
+  /// early-returns on its `!isShowing` guard and does not double-pop, then pop
+  /// this route ourselves. Resetting activity re-arms the inactivity timer.
+  void _dismissScreensaver() {
+    ref.read(screensaverShowingProvider.notifier).set(false);
+    ref.read(inactivityProvider.notifier).userActivityDetected();
+    final router = ref.read(appRouterProvider);
+    if (router.canPop()) {
+      router.pop();
+    }
   }
 
   void _handleButton10Press() {
@@ -98,10 +121,7 @@ class _RobotFaceScreenState extends ConsumerState<RobotFaceScreen>
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        // Signal user activity to dismiss the screensaver
-        ref.read(inactivityProvider.notifier).userActivityDetected();
-      },
+      onTap: _dismissScreensaver,
       child: Scaffold(
         backgroundColor: Colors.black,
         body: colorSchemeAsync.when(

@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
+import 'package:stpvelox/features/dev_menu/presentation/dev_menu_active_provider.dart';
 import 'package:stpvelox/features/program/domain/services/program_lifecycle_service.dart';
 
 class DevMenuScreen extends ConsumerWidget {
@@ -15,8 +15,18 @@ class DevMenuScreen extends ConsumerWidget {
     final session = ref.watch(programLifecycleServiceProvider);
     final isRunning = session != null && session.isRunning;
 
+    void close() => ref.read(devMenuActiveProvider.notifier).hide();
+
+    // The Dev Menu is a top-level overlay (a sibling of the Navigator), so
+    // navigate via the router provider rather than context — then close the
+    // overlay so the pushed route (which paints below us) is visible.
+    void openRoute(String route) {
+      close();
+      ref.read(appRouterProvider).push(route);
+    }
+
     return Scaffold(
-      appBar: createTopBar(context, 'Dev Menu'),
+      appBar: createTopBar(context, 'Dev Menu', onBack: close),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
@@ -31,9 +41,12 @@ class DevMenuScreen extends ConsumerWidget {
                       icon: Icons.stop_circle,
                       color: isRunning ? Colors.red.shade700 : Colors.grey.shade700,
                       onTap: isRunning
-                          ? () => ref
-                              .read(programLifecycleServiceProvider.notifier)
-                              .stopProgram()
+                          ? () {
+                              ref
+                                  .read(programLifecycleServiceProvider.notifier)
+                                  .stopProgram();
+                              close();
+                            }
                           : null,
                     ),
                   ),
@@ -76,7 +89,7 @@ class DevMenuScreen extends ConsumerWidget {
                             label: 'Flappy Wombat',
                             icon: Icons.games,
                             color: Colors.green,
-                            onTap: () => context.push(AppRoutes.flappyWombat),
+                            onTap: () => openRoute(AppRoutes.flappyWombat),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -85,7 +98,7 @@ class DevMenuScreen extends ConsumerWidget {
                             label: 'Tilt Maze',
                             icon: Icons.explore,
                             color: Colors.purple,
-                            onTap: () => context.push(AppRoutes.tiltMaze),
+                            onTap: () => openRoute(AppRoutes.tiltMaze),
                           ),
                         ),
                         const SizedBox(width: 16),
