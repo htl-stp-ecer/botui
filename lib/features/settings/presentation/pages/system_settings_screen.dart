@@ -25,6 +25,18 @@ class SystemSettingsScreen extends StatelessWidget {
               onPressed: () => context.push(AppRoutes.serviceStatus),
             ),
             ResponsiveGridTile(
+              icon: Icons.dns,
+              label: 'Hostname',
+              color: Colors.blue[600]!,
+              onPressed: () => context.push(AppRoutes.hostnameSettings),
+            ),
+            ResponsiveGridTile(
+              icon: Icons.keyboard,
+              label: 'Keyboard',
+              color: Colors.indigo[400]!,
+              onPressed: () => context.push(AppRoutes.keyboardLocale),
+            ),
+            ResponsiveGridTile(
               icon: Icons.refresh,
               label: 'Reboot',
               color: Colors.orange[600]!,

@@ -8,19 +8,34 @@ part of 'program_lifecycle_service.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// keepAlive: this holds the app-global "currently running program" session.
+/// It must NOT autoDispose — under the dynamic-UI (screen_render) rebuild storm
+/// an autoDispose provider is created and torn down many times per second,
+/// which previously (a) fired onDispose→kill() spuriously (cancel storms) and
+/// (b) threw "Ref after disposed" when stopProgram wrote `state` after an await.
 
 @ProviderFor(ProgramLifecycleService)
 const programLifecycleServiceProvider = ProgramLifecycleServiceProvider._();
 
+/// keepAlive: this holds the app-global "currently running program" session.
+/// It must NOT autoDispose — under the dynamic-UI (screen_render) rebuild storm
+/// an autoDispose provider is created and torn down many times per second,
+/// which previously (a) fired onDispose→kill() spuriously (cancel storms) and
+/// (b) threw "Ref after disposed" when stopProgram wrote `state` after an await.
 final class ProgramLifecycleServiceProvider
     extends $NotifierProvider<ProgramLifecycleService, ProgramSession?> {
+  /// keepAlive: this holds the app-global "currently running program" session.
+  /// It must NOT autoDispose — under the dynamic-UI (screen_render) rebuild storm
+  /// an autoDispose provider is created and torn down many times per second,
+  /// which previously (a) fired onDispose→kill() spuriously (cancel storms) and
+  /// (b) threw "Ref after disposed" when stopProgram wrote `state` after an await.
   const ProgramLifecycleServiceProvider._()
       : super(
           from: null,
           argument: null,
           retry: null,
           name: r'programLifecycleServiceProvider',
-          isAutoDispose: true,
+          isAutoDispose: false,
           dependencies: null,
           $allTransitiveDependencies: null,
         );
@@ -42,7 +57,13 @@ final class ProgramLifecycleServiceProvider
 }
 
 String _$programLifecycleServiceHash() =>
-    r'3c93102f4f86bb4a334ad01c72b89d8cb1a2a8c6';
+    r'70c11ea336591ab81794168ab170d48c532d61c5';
+
+/// keepAlive: this holds the app-global "currently running program" session.
+/// It must NOT autoDispose — under the dynamic-UI (screen_render) rebuild storm
+/// an autoDispose provider is created and torn down many times per second,
+/// which previously (a) fired onDispose→kill() spuriously (cancel storms) and
+/// (b) threw "Ref after disposed" when stopProgram wrote `state` after an await.
 
 abstract class _$ProgramLifecycleService extends $Notifier<ProgramSession?> {
   ProgramSession? build();

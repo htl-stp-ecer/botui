@@ -2,10 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:logging/logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/dev_menu/presentation/dev_menu_active_provider.dart';
 import 'package:stpvelox/features/program/domain/services/program_lifecycle_service.dart';
+import 'package:stpvelox/features/program/domain/services/raccoon_program_running_provider.dart';
+
+final _log = Logger('DevMenuScreen');
 
 class DevMenuScreen extends ConsumerWidget {
   const DevMenuScreen({super.key});
@@ -13,7 +17,13 @@ class DevMenuScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(programLifecycleServiceProvider);
-    final isRunning = session != null && session.isRunning;
+    // A program can be running on the robot even when botui holds no session
+    // (started externally, or session lost across a UI restart / autoDispose).
+    // Gate the Stop button on the server's actual running state too, so it is
+    // reachable in those cases — otherwise onTap is null and the tile is inert.
+    final serverRunning =
+        ref.watch(raccoonProgramRunningProvider).asData?.value ?? false;
+    final isRunning = (session != null && session.isRunning) || serverRunning;
 
     void close() => ref.read(devMenuActiveProvider.notifier).hide();
 
@@ -41,10 +51,19 @@ class DevMenuScreen extends ConsumerWidget {
                       icon: Icons.stop_circle,
                       color: isRunning ? Colors.red.shade700 : Colors.grey.shade700,
                       onTap: isRunning
-                          ? () {
-                              ref
-                                  .read(programLifecycleServiceProvider.notifier)
-                                  .stopProgram();
+                          ? () async {
+                              _log.warning(
+                                  '[StopButton] tapped — isRunning=$isRunning, session=$session');
+                              try {
+                                final exitCode = await ref
+                                    .read(programLifecycleServiceProvider.notifier)
+                                    .stopProgram();
+                                _log.info(
+                                    '[StopButton] stopProgram() returned exitCode=$exitCode');
+                              } catch (e, st) {
+                                _log.severe(
+                                    '[StopButton] stopProgram() threw: $e', e, st);
+                              }
                               close();
                             }
                           : null,

@@ -108,7 +108,9 @@ class RaccoonExecutionClient {
   Future<Map<String, dynamic>> _post(String path, String? body) async {
     final client = HttpClient();
     try {
-      final request = await client.postUrl(Uri.parse('$baseUrl$path'));
+      final url = '$baseUrl$path';
+      _log.info('[_post] POST $url body=${body ?? '(none)'}');
+      final request = await client.postUrl(Uri.parse(url));
       request.headers.set('X-API-Token', _token);
       if (body != null) {
         request.headers.contentType = ContentType.json;
@@ -116,8 +118,17 @@ class RaccoonExecutionClient {
       }
       final response = await request.close();
       final responseBody = await response.transform(utf8.decoder).join();
+      _log.info(
+          '[_post] POST $url -> status=${response.statusCode} body=$responseBody');
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw HttpException(
+            'POST $path failed: status=${response.statusCode} body=$responseBody');
+      }
       if (responseBody.isEmpty) return {};
       return jsonDecode(responseBody) as Map<String, dynamic>;
+    } catch (e, st) {
+      _log.severe('[_post] POST $baseUrl$path threw: $e', e, st);
+      rethrow;
     } finally {
       client.close();
     }

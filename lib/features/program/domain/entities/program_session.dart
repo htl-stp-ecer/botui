@@ -169,8 +169,12 @@ class ProgramSession {
   }
 
   Future<int> kill({bool force = false}) async {
+    _log.warning(
+        '[kill] called — process=${_process != null}, commandId=$_commandId, isRunning=$_isRunning');
+
     // Direct process path
     if (_process != null) {
+      _log.info('[kill] taking direct-process path');
       terminal.write('\r\nStopping program...\r\n');
 
       await _stdoutSubscription?.cancel();
@@ -188,8 +192,12 @@ class ProgramSession {
     }
 
     // Raccoon execution client path
-    if (_commandId == null) return -1;
+    if (_commandId == null) {
+      _log.warning('[kill] no commandId and no process — nothing to kill');
+      return -1;
+    }
 
+    _log.info('[kill] taking raccoon path — cancelling commandId=$_commandId');
     terminal.write('\r\nStopping program...\r\n');
 
     await _outputSubscription?.cancel();
@@ -197,9 +205,10 @@ class ProgramSession {
 
     try {
       await _client?.cancel(_commandId!);
+      _log.info('[kill] cancel() completed for commandId=$_commandId');
       terminal.write('\r\nProgram cancelled.\r\n');
-    } catch (e) {
-      _log.warning('Error cancelling command: $e');
+    } catch (e, st) {
+      _log.severe('[kill] Error cancelling command: $e', e, st);
       terminal.write('\r\nError cancelling: $e\r\n');
     }
 
@@ -209,4 +218,25 @@ class ProgramSession {
   }
 
   bool get isRunning => _isRunning;
+
+  /// True for direct-process sessions (BOTUI_ALLOW_DIRECT_PROGRAM_RUN), which
+  /// have no raccoon server command to cancel and must be killed locally.
+  bool get isDirectProcess => _process != null;
+
+  /// Tear down the session's streams and local bookkeeping WITHOUT issuing an
+  /// HTTP cancel. Used when the actual program is stopped authoritatively via
+  /// the server's running command (which may differ from this session's,
+  /// possibly stale, [_commandId]).
+  Future<void> detach() async {
+    _log.info('[detach] releasing session (commandId=$_commandId)');
+    await _outputSubscription?.cancel();
+    _outputSubscription = null;
+    await _stdoutSubscription?.cancel();
+    _stdoutSubscription = null;
+    await _stderrSubscription?.cancel();
+    _stderrSubscription = null;
+    _isRunning = false;
+    _commandId = null;
+    _process = null;
+  }
 }
