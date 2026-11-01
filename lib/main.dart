@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:stpvelox/core/widgets/error_popup.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logging/logging.dart';
@@ -474,7 +475,11 @@ class _LowBatteryOverlayState extends ConsumerState<_LowBatteryOverlay> {
                       child: ElevatedButton(
                         onPressed: () async {
                           final reboot = ref.read(rebootDeviceProvider);
-                          await reboot.call(true);
+                          final ok = await reboot.call(true);
+                          if (!ok && context.mounted) {
+                            await showErrorPopup(context,
+                                "Missing passwordless sudo, can't shut down");
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red[700],

@@ -10,11 +10,12 @@ RebootDevice rebootDevice(Ref ref) {
 }
 
 class RebootDevice {
-  Future<void> call([bool isShutdown = false]) async {
-    if (isShutdown) {
-      await SudoProcess.run('shutdown', ['-h', 'now']);
-    } else {
-      await SudoProcess.run('reboot', []);
-    }
+  /// Returns false (and does nothing) if passwordless sudo is missing.
+  Future<bool> call([bool isShutdown = false]) async {
+    final command = isShutdown ? 'shutdown' : 'reboot';
+    final args = isShutdown ? ['-h', 'now'] : <String>[];
+    if (!await SudoProcess.isPasswordless(command, args)) return false;
+    await SudoProcess.run(command, args);
+    return true;
   }
 }
