@@ -21,7 +21,12 @@ if [ -n "$FVM_VERSION" ] && [ -d "$FVM_CACHE/$FVM_VERSION/bin" ]; then
   export PATH="$FVM_CACHE/$FVM_VERSION/bin:$PATH"
 fi
 $DART pub global activate flutterpi_tool
-flutterpi_tool build --arch=arm64 --cpu=pi3 --release
+# Show the build number as the UI version in the app status screen.
+APP_VERSION_ARGS=()
+if [ "$BUILD_NUMBER" != "0" ]; then
+  APP_VERSION_ARGS=(--dart-define=APP_VERSION="$BUILD_NUMBER")
+fi
+flutterpi_tool build --arch=arm64 --cpu=pi3 --release "${APP_VERSION_ARGS[@]}"
 
 # Copy the bridge .so into the build output. The bridge statically embeds
 # raccoon_ring (the SHM transport from raccoon-transport), so there are

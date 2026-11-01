@@ -3,12 +3,15 @@ name: Build & Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build:
+    # A manual run releases too, so only allow it on main.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -46,20 +49,20 @@ jobs:
         run: BUILD_NUMBER=${{ github.run_number }} bash ./build.sh
 
       - name: Build .deb package
-        run: bash ./packaging/build-deb.sh "1.0.${{ github.run_number }}" build/flutter-pi/pi3-64 stp-velox_1.0.${{ github.run_number }}_arm64.deb
+        run: bash ./packaging/build-deb.sh "${{ github.run_number }}" build/flutter-pi/pi3-64 stp-velox_${{ github.run_number }}_arm64.deb
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: Release v1.0.${{ github.run_number }}
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
           body: |
             Install on the Pi (arm64):
 
             ```
-            sudo apt install ./stp-velox_1.0.${{ github.run_number }}_arm64.deb
+            sudo apt install ./stp-velox_${{ github.run_number }}_arm64.deb
             ```
 
             This installs the UI to `/home/pi/stp-velox` and enables + starts the
             `flutter-ui` systemd service automatically.
-          files: stp-velox_1.0.${{ github.run_number }}_arm64.deb
+          files: stp-velox_${{ github.run_number }}_arm64.deb
