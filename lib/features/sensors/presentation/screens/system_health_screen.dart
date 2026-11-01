@@ -148,7 +148,7 @@ class _MetricCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: Colors.grey[900],
           borderRadius: BorderRadius.circular(10),
@@ -158,24 +158,24 @@ class _MetricCard extends StatelessWidget {
           children: [
             if (progress != null)
               SizedBox(
-                width: 36,
-                height: 36,
+                width: 52,
+                height: 52,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     CircularProgressIndicator(
                       value: progress!.clamp(0, 1),
-                      strokeWidth: 4,
+                      strokeWidth: 5,
                       backgroundColor: Colors.grey[800],
                       valueColor: AlwaysStoppedAnimation(color),
                     ),
-                    Icon(icon, color: color, size: 14),
+                    Icon(icon, color: color, size: 22),
                   ],
                 ),
               )
             else
-              Icon(icon, color: color, size: 28),
-            const SizedBox(width: 8),
+              Icon(icon, color: color, size: 42),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -185,16 +185,16 @@ class _MetricCard extends StatelessWidget {
                     label,
                     style: const TextStyle(
                       color: Colors.grey,
-                      fontSize: 11,
+                      fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 4),
                   Text(
                     value,
                     style: TextStyle(
                       color: color,
-                      fontSize: 13,
+                      fontSize: 21,
                       fontWeight: FontWeight.bold,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -203,7 +203,7 @@ class _MetricCard extends StatelessWidget {
               ),
             ),
             if (onTap != null)
-              Icon(Icons.chevron_right, color: Colors.grey[700], size: 16),
+              Icon(Icons.chevron_right, color: Colors.grey[600], size: 24),
           ],
         ),
       ),

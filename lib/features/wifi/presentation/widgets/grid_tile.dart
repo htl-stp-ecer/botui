@@ -1,40 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/core/widgets/tile_position.dart';
 
-class ResponsiveGridTile extends StatelessWidget {
+class ResponsiveGridTile extends ConsumerWidget {
   final String label;
   final IconData icon;
   final void Function() onPressed;
-  final Color color;
+  final TileColor color;
 
   const ResponsiveGridTile({
     super.key,
     required this.label,
     required this.icon,
     required this.onPressed,
-    this.color = Colors.black12,
+    this.color = TileColor.grey,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    final tileColor = theme.tileColor(color, TilePosition.maybeOf(context));
+    final fg = theme.textColor;
     return GestureDetector(
         onTap: onPressed,
         child: Container(
           decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(8.0),
+            color: tileColor,
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                color: Colors.white,
+                color: fg,
                 size: 100,
               ),
               const SizedBox(height: 8),
               Text(
                 label,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
+                style: TextStyle(color: fg, fontSize: 18),
               )
             ],
           ),

@@ -8,6 +8,7 @@ import 'package:stpvelox/features/program/domain/entities/program.dart';
 import 'package:stpvelox/features/program/presentation/providers/program_providers.dart';
 import 'package:stpvelox/features/program/presentation/widgets/program_sync_widgets.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
 class ProgramActionScreen extends HookConsumerWidget {
   final Program program;
@@ -44,7 +45,7 @@ class ProgramActionScreen extends HookConsumerWidget {
                 ResponsiveGridTile(
                   label: 'Start',
                   icon: Icons.play_arrow,
-                  color: Colors.green,
+                  color: TileColor.green,
                   onPressed: () =>
                       context.push(AppRoutes.programRun, extra: current),
                 ),

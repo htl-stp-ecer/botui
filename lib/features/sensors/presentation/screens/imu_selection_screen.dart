@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/router/app_router.dart';
-import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/core/widgets/imu_accuracy_display.dart';
@@ -9,6 +8,7 @@ import 'package:stpvelox/core/widgets/imu_temperature_display.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class ImuSelectionScreen extends ConsumerWidget {
@@ -33,7 +33,8 @@ class ImuSelectionScreen extends ConsumerWidget {
         child: ResponsiveGrid(
           isScrollable: true,
           children: imuGroups.entries
-              .map((entry) => _buildSubcategoryTile(context, entry.key, entry.value))
+              .map((entry) =>
+                  _buildSubcategoryTile(context, entry.key, entry.value))
               .toList(),
         ),
       ),
@@ -55,7 +56,7 @@ class ImuSelectionScreen extends ConsumerWidget {
           extra: {'category': category, 'sensors': sensors},
         );
       },
-      color: AppColors.getTileColor(category.index),
+      color: TileColor.byIndex(category.index),
     );
   }
 

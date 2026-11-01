@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stpvelox/application/overview/overview_settings_provider.dart';
 import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 import 'package:stpvelox/core/di/injection.dart';
 import 'package:stpvelox/core/router/app_router.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/utils/sudo_process.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
@@ -24,22 +26,29 @@ class DisplaySettingsScreen extends ConsumerWidget {
         child: ResponsiveGrid(
           children: [
             ResponsiveGridTile(
-              icon: Icons.display_settings,
-              label: 'Calibrate',
-              color: Colors.purple[600]!,
-              onPressed: () => context.push(AppRoutes.touchCalibration),
+              icon: Icons.palette,
+              label: 'Color Theme',
+              color: TileColor.pink,
+              onPressed: () => context.push(AppRoutes.colorTheme),
             ),
             ResponsiveGridTile(
               icon: Icons.screen_rotation,
               label: 'Rotate',
-              color: Colors.teal[600]!,
+              color: TileColor.teal,
               onPressed: () => context.push(AppRoutes.screenRotation),
             ),
+            const _OverviewSideTile(),
             _ScreensaverTile(prefs: prefs),
+            ResponsiveGridTile(
+              icon: Icons.display_settings,
+              label: 'Calibrate',
+              color: TileColor.purple,
+              onPressed: () => context.push(AppRoutes.touchCalibration),
+            ),
             ResponsiveGridTile(
               icon: Icons.remove_red_eye,
               label: 'Hide UI',
-              color: Colors.blueGrey[600]!,
+              color: TileColor.blueGrey,
               onPressed: () => _confirmHideUi(context),
             ),
           ],
@@ -147,8 +156,41 @@ class _ScreensaverTileState extends State<_ScreensaverTile> {
     return ResponsiveGridTile(
       icon: _enabled ? Icons.face : Icons.face_retouching_off,
       label: _enabled ? 'Screensaver On' : 'Screensaver Off',
-      color: _enabled ? Colors.cyan[600]! : Colors.grey[700]!,
+      color: _enabled ? TileColor.cyan : TileColor.grey,
       onPressed: _toggle,
+    );
+  }
+}
+
+/// Switches which half of the main screen the overview section is on.
+class _OverviewSideTile extends ConsumerWidget {
+  const _OverviewSideTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final side = ref.watch(overviewSideProvider);
+    final (icon, label, color) = switch (side) {
+      OverviewSide.left => (
+          Icons.align_horizontal_left,
+          'Overview Left',
+          TileColor.indigo
+        ),
+      OverviewSide.right => (
+          Icons.align_horizontal_right,
+          'Overview Right',
+          TileColor.indigo
+        ),
+      OverviewSide.off => (
+          Icons.visibility_off,
+          'Overview Off',
+          TileColor.grey
+        ),
+    };
+    return ResponsiveGridTile(
+      icon: icon,
+      label: label,
+      color: color,
+      onPressed: () => ref.read(overviewSideProvider.notifier).toggle(),
     );
   }
 }

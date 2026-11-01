@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:stpvelox/core/router/app_router.dart';
-import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/calib_board/application/calib_board_providers.dart';
 import 'package:stpvelox/features/calib_board/domain/entities/calib_board_status.dart';
 import 'package:stpvelox/features/calib_board/presentation/widgets/calib_status_tile.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
 /// Sub-Sensor-Screen für das Calibration-Board.  Zeigt drei Tiles
 /// (Optical Flow / BNO / ICM) — alle drei sind sichtbar, aber per
@@ -36,7 +36,7 @@ class CalibBoardScreen extends ConsumerWidget {
             CalibStatusTile(
               label: 'Optical Flow',
               icon: Icons.mouse_outlined,
-              color: AppColors.getTileColor(SensorCategory.analog.index),
+              color: TileColor.byIndex(SensorCategory.analog.index),
               state: status.paa,
               detail: status.paaDetail,
               onPressed: () => context.push(AppRoutes.calibPaa),
@@ -44,7 +44,7 @@ class CalibBoardScreen extends ConsumerWidget {
             CalibStatusTile(
               label: 'ICM (IMU)',
               icon: Icons.threed_rotation,
-              color: AppColors.getTileColor(SensorCategory.gyro.index),
+              color: TileColor.byIndex(SensorCategory.gyro.index),
               state: status.icm,
               detail: status.icmDetail,
               onPressed: () => context.push(AppRoutes.calibIcm),
@@ -52,7 +52,7 @@ class CalibBoardScreen extends ConsumerWidget {
             CalibStatusTile(
               label: 'Odometry',
               icon: Icons.navigation,
-              color: AppColors.getTileColor(SensorCategory.heading.index),
+              color: TileColor.byIndex(SensorCategory.heading.index),
               // Odometrie ist verfügbar wenn ICM läuft (PAA-cm-Werte
               // fließen aus Defaults, auch wenn PAA "absent" ist — der
               // Pose verändert sich dann eben nur per Rotation).
@@ -63,7 +63,7 @@ class CalibBoardScreen extends ConsumerWidget {
             CalibStatusTile(
               label: 'BNO (Fusion)',
               icon: Icons.explore,
-              color: AppColors.getTileColor(SensorCategory.orientation.index),
+              color: TileColor.byIndex(SensorCategory.orientation.index),
               state: status.bno,
               detail: 'hardware not present',
               onPressed: () => context.push(AppRoutes.calibBno),

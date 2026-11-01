@@ -8,6 +8,7 @@ import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
 import 'package:stpvelox/features/wifi/domain/application/network_mode_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
 class WifiHomeScreen extends ConsumerStatefulWidget {
   const WifiHomeScreen({super.key});
@@ -263,7 +264,7 @@ class _WifiAction {
 
   final String title;
   final IconData icon;
-  final Color color;
+  final TileColor color;
   final String route;
 }
 
@@ -274,19 +275,19 @@ List<_WifiAction> _actionsForMode(NetworkMode mode) {
         _WifiAction(
           title: 'Scan Networks',
           icon: Icons.wifi_find,
-          color: Color(0xFF00897B),
+          color: TileColor.teal,
           route: AppRoutes.wifiScan,
         ),
         _WifiAction(
           title: 'Saved Networks',
           icon: Icons.bookmarks_rounded,
-          color: Color(0xFF43A047),
+          color: TileColor.green,
           route: AppRoutes.wifiSavedNetworks,
         ),
         _WifiAction(
           title: 'Device Info',
           icon: Icons.info_outline,
-          color: Color(0xFF546E7A),
+          color: TileColor.blueGrey,
           route: AppRoutes.wifiDeviceInfo,
         ),
       ];
@@ -295,19 +296,19 @@ List<_WifiAction> _actionsForMode(NetworkMode mode) {
         _WifiAction(
           title: 'Hotspot Settings',
           icon: Icons.router_rounded,
-          color: Color(0xFF8E24AA),
+          color: TileColor.purple,
           route: AppRoutes.wifiAccessPointConfig,
         ),
         _WifiAction(
           title: 'Network Status',
           icon: Icons.network_check_rounded,
-          color: Color(0xFFFB8C00),
+          color: TileColor.orange,
           route: AppRoutes.wifiAccessPointStatus,
         ),
         _WifiAction(
           title: 'Device Info',
           icon: Icons.info_outline,
-          color: Color(0xFF546E7A),
+          color: TileColor.blueGrey,
           route: AppRoutes.wifiDeviceInfo,
         ),
       ];
@@ -316,13 +317,13 @@ List<_WifiAction> _actionsForMode(NetworkMode mode) {
         _WifiAction(
           title: 'LAN Status',
           icon: Icons.cable_rounded,
-          color: Color(0xFF6D4C41),
+          color: TileColor.brown,
           route: AppRoutes.wifiLanStatus,
         ),
         _WifiAction(
           title: 'Device Info',
           icon: Icons.info_outline,
-          color: Color(0xFF546E7A),
+          color: TileColor.blueGrey,
           route: AppRoutes.wifiDeviceInfo,
         ),
       ];

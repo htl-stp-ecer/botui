@@ -4,6 +4,7 @@ import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
 class WifiMenuScreen extends StatelessWidget {
   const WifiMenuScreen({super.key});
@@ -28,13 +29,13 @@ class WifiMenuScreen extends StatelessWidget {
               _WifiMenuTile(
                 title: 'Manage Connection',
                 icon: Icons.settings_ethernet_rounded,
-                color: Color(0xFF00897B),
+                color: TileColor.teal,
                 route: AppRoutes.wifiManage,
               ),
               _WifiMenuTile(
                 title: 'Network Scan',
                 icon: Icons.wifi_tethering_rounded,
-                color: Color(0xFF1E88E5),
+                color: TileColor.blue,
                 route: AppRoutes.wifiChannelScan,
               ),
             ],
@@ -55,7 +56,7 @@ class _WifiMenuTile extends StatelessWidget {
 
   final String title;
   final IconData icon;
-  final Color color;
+  final TileColor color;
   final String route;
 
   @override

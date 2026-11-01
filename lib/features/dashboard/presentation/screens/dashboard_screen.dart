@@ -1,53 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/overview/overview_settings_provider.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
+import 'package:stpvelox/core/utils/radii.dart';
+import 'package:stpvelox/core/utils/spacing.dart';
+import 'package:stpvelox/features/dashboard/presentation/widgets/overview_section.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final side = ref.watch(overviewSideProvider);
+    final menu = Column(
+      children: [
+        Expanded(
+          flex: 1,
+          child: _DashboardTile(
+            index: 0,
+          label: "Sensors & Actors",
+            icon: Icons.sensors,
+            route: AppRoutes.sensors,
+            color: TileColor.blue,
+            borderRadius: const BorderRadius.vertical(
+              top: AppRadii.outerRadius,
+              bottom: AppRadii.innerRadius,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.tileGap),
+        Expanded(
+          flex: 1,
+          child: _DashboardTile(
+            index: 1,
+          label: "Programs",
+            icon: Icons.code,
+            route: AppRoutes.programs,
+            color: TileColor.green,
+            borderRadius: const BorderRadius.all(AppRadii.innerRadius),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.tileGap),
+        Expanded(
+          flex: 1,
+          child: _DashboardTile(
+            index: 2,
+          label: "Settings",
+            icon: Icons.settings,
+            route: AppRoutes.settings,
+            color: TileColor.orange,
+            borderRadius: const BorderRadius.vertical(
+              top: AppRadii.innerRadius,
+              bottom: AppRadii.outerRadius,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // 50:50 split; the overview takes the configured half, the menu the other.
+    // With the overview off the menu fills the whole screen.
+    final Widget content;
+    if (side == OverviewSide.off) {
+      content = menu;
+    } else {
+      const overview = OverviewSection();
+      final halves =
+          side == OverviewSide.left ? [overview, menu] : [menu, overview];
+      content = Row(
+        children: [
+          Expanded(child: halves[0]),
+          const SizedBox(width: AppSpacing.tileGap),
+          Expanded(child: halves[1]),
+        ],
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
-          child: Column(
-            children: [
-              Expanded(
-                flex: 1,
-                child: _DashboardTile(
-                  label: "Sensors & Actors",
-                  icon: Icons.sensors,
-                  route: AppRoutes.sensors,
-                  color: AppColors.sensors,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                flex: 2,
-                child: _DashboardTile(
-                  label: "Programs",
-                  icon: Icons.code,
-                  route: AppRoutes.programs,
-                  color: AppColors.programs,
-                  isMain: true,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                flex: 1,
-                child: _DashboardTile(
-                  label: "Settings",
-                  icon: Icons.settings,
-                  route: AppRoutes.settings,
-                  color: AppColors.settings,
-                ),
-              ),
-            ],
-          ),
+          child: content,
         ),
       ),
     );
@@ -55,23 +93,28 @@ class DashboardScreen extends ConsumerWidget {
 }
 
 /// Dashboard tile that navigates using go_router
-class _DashboardTile extends StatelessWidget {
+class _DashboardTile extends ConsumerWidget {
   final String label;
   final IconData icon;
   final String route;
-  final Color color;
-  final bool isMain;
+  final TileColor color;
+  final BorderRadius borderRadius;
+  final int index;
 
   const _DashboardTile({
     required this.label,
     required this.icon,
     required this.route,
     required this.color,
-    this.isMain = false,
+    required this.borderRadius,
+    required this.index,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    final tileColor = theme.tileColor(color, index);
+    final fg = theme.textColor;
     return Semantics(
       label: label,
       button: true,
@@ -79,8 +122,8 @@ class _DashboardTile extends StatelessWidget {
         onTap: () => context.push(route),
         child: Container(
           decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(20),
+            color: tileColor,
+            borderRadius: borderRadius,
             boxShadow: const [
               BoxShadow(
                 color: Colors.black45,
@@ -90,21 +133,23 @@ class _DashboardTile extends StatelessWidget {
             ],
           ),
           child: Center(
-            child: Column(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   icon,
-                  size: isMain ? 60 : 50,
-                  color: Colors.white,
+                  size: 50,
+                  color: fg,
                 ),
-                SizedBox(height: isMain ? 12 : 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: isMain ? 26 : 22,
-                    fontWeight: isMain ? FontWeight.bold : FontWeight.normal,
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: fg,
+                      fontSize: 22,
+                    ),
                   ),
                 ),
               ],

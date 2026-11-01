@@ -1,20 +1,22 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/router/app_router.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/service/sensors/digital_sensor.dart';
 import 'package:stpvelox/core/service/sensors/servo_sensor.dart';
 import 'package:stpvelox/core/service/shutdown_status_service.dart';
-import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/imu_accuracy_display.dart';
 import 'package:stpvelox/core/widgets/imu_temperature_display.dart';
+import 'package:stpvelox/core/utils/spacing.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
+import 'package:stpvelox/core/widgets/tile_position.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:raccoon_transport/messages/types/scalar_i32_t.g.dart';
 import 'package:raccoon_transport/messages/types/scalar_i8_t.g.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
@@ -49,21 +51,30 @@ class SensorCategoryScreen extends ConsumerWidget {
         // servoModeCommand is the dedicated COMMAND channel — using
         // servoMode here would round-trip through the reader's own
         // state publisher (5 ms self-loopback floor).
-        transportService.publish(Channels.servoModeCommand(i), ScalarI8T(timestamp: DateTime.now().microsecondsSinceEpoch, dir: ServoMode.fullyDisabled.value), options: reliable);
+        transportService.publish(
+            Channels.servoModeCommand(i),
+            ScalarI8T(
+                timestamp: DateTime.now().microsecondsSinceEpoch,
+                dir: ServoMode.fullyDisabled.value),
+            options: reliable);
       }
     }
 
     Future<void> stopAllMotors() async {
       for (int i = 0; i < 4; i++) {
         // motorPowerCommand uses plain delivery (continuous control loop)
-        transportService.publish(Channels.motorPowerCommand(i), ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: 0));
+        transportService.publish(
+            Channels.motorPowerCommand(i),
+            ScalarI32T(
+                timestamp: DateTime.now().microsecondsSinceEpoch, value: 0));
       }
     }
 
     /// Check if shutdown is blocking this category and show dialog if so
     Future<bool> checkShutdownAndNavigate(Sensor sensorItem) async {
-      final isShutdownBlocking = (isMotorCategory && shutdownStatus.motorShutdown) ||
-          (isServoCategory && shutdownStatus.servoShutdown);
+      final isShutdownBlocking =
+          (isMotorCategory && shutdownStatus.motorShutdown) ||
+              (isServoCategory && shutdownStatus.servoShutdown);
 
       if (!isShutdownBlocking) {
         return true; // Allow navigation
@@ -76,7 +87,9 @@ class SensorCategoryScreen extends ConsumerWidget {
         builder: (ctx) => _ShutdownWarningDialog(
           isMotor: isMotorCategory,
           onDisableShutdown: () async {
-            await ref.read(shutdownStatusServiceProvider.notifier).setShutdown(false);
+            await ref
+                .read(shutdownStatusServiceProvider.notifier)
+                .setShutdown(false);
           },
         ),
       );
@@ -109,32 +122,32 @@ class SensorCategoryScreen extends ConsumerWidget {
       body: Column(
         children: [
           Expanded(
-            child: ResponsiveGrid(
-              crossAxisCount: isDigitalCategory ? 5 : null,
-              isScrollable: true,
-              children: sensor.asMap().entries.map((entry) {
-                if (isDigitalCategory) {
-                  return _DigitalSensorTile(
-                    sensor: entry.value,
-                    index: entry.key,
-                  );
-                }
-                return ResponsiveGridTile(
-                  label: entry.value.name,
-                  icon: Icons.auto_graph,
-                  onPressed: () async {
-                    if (isMotorCategory || isServoCategory) {
-                      final shouldProceed = await checkShutdownAndNavigate(entry.value);
-                      if (!shouldProceed) return;
-                    }
-                    if (context.mounted) {
-                      context.push(AppRoutes.sensorScreen, extra: entry.value.screen);
-                    }
-                  },
-                  color: AppColors.getTileColor(category.index),
-                );
-              }).toList(),
-            ),
+            child: isDigitalCategory && sensor.length == 11
+                ? _DigitalPorts(
+                    sensors: sensor,
+                    color: TileColor.byIndex(category.index),
+                  )
+                : ResponsiveGrid(
+                    isScrollable: true,
+                    children: sensor.map((s) {
+                      return ResponsiveGridTile(
+                        label: s.name,
+                        icon: Icons.auto_graph,
+                        onPressed: () async {
+                          if (isMotorCategory || isServoCategory) {
+                            final shouldProceed =
+                                await checkShutdownAndNavigate(s);
+                            if (!shouldProceed) return;
+                          }
+                          if (context.mounted) {
+                            context.push(AppRoutes.sensorScreen,
+                                extra: s.screen);
+                          }
+                        },
+                        color: TileColor.byIndex(category.index),
+                      );
+                    }).toList(),
+                  ),
           ),
           if (isMotorCategory)
             _CategoryActionButton(
@@ -152,52 +165,136 @@ class SensorCategoryScreen extends ConsumerWidget {
   }
 }
 
-class _DigitalSensorTile extends StatefulWidget {
-  final Sensor sensor;
-  final int index;
+/// The digital ports as a 2x6 grid: ports 0-4 on the top row, 5-9 on the
+/// bottom row, and port 10 (the on-board button) in the sixth column spanning
+/// both rows.
+class _DigitalPorts extends StatelessWidget {
+  final List<Sensor> sensors; // exactly 11, by port
+  final TileColor color;
 
-  const _DigitalSensorTile({required this.sensor, required this.index});
-
-  @override
-  State<_DigitalSensorTile> createState() => _DigitalSensorTileState();
-}
-
-class _DigitalSensorTileState extends State<_DigitalSensorTile> {
-  late Future<int> _future;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    // TODO: Use digital sensor hooks
-    _future = Future.value(0); // KiprPlugin.getDigital(widget.index);
-    _timer = Timer.periodic(const Duration(milliseconds: 200), (_) {
-      if (mounted) {
-        setState(() =>
-            _future = Future.value(0)); // KiprPlugin.getDigital(widget.index));
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
+  const _DigitalPorts({required this.sensors, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<int>(
-      future: _future,
-      builder: (context, snapshot) {
-        final isClicked = snapshot.data ?? 0;
-        return ResponsiveGridTile(
-          label: widget.sensor.name,
-          icon: Icons.auto_graph,
-          onPressed: () => context.push(AppRoutes.sensorScreen, extra: widget.sensor.screen),
-          color: isClicked == 1 ? Colors.red : Colors.green,
+    const gap = AppSpacing.tileGap;
+
+    Widget tile(int port) => Expanded(
+          child: TilePosition(
+            index: port,
+            child: _DigitalSensorTile(
+                sensor: sensors[port], port: port, color: color),
+          ),
+        );
+
+    Widget row(int from) => Expanded(
+          child: Row(
+            children: [
+              for (var i = 0; i < 5; i++) ...[
+                if (i > 0) const SizedBox(width: gap),
+                tile(from + i),
+              ],
+            ],
+          ),
+        );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Six equal columns: five of them are the left block.
+        final columnWidth = (constraints.maxWidth - 2 * gap - 5 * gap) / 6;
+        return Padding(
+          padding: const EdgeInsets.all(gap),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  children: [
+                    row(0),
+                    const SizedBox(height: gap),
+                    row(5),
+                  ],
+                ),
+              ),
+              const SizedBox(width: gap),
+              SizedBox(
+                width: columnWidth,
+                child: TilePosition(
+                  index: 10,
+                  child: _DigitalSensorTile(
+                    sensor: sensors[10],
+                    port: 10,
+                    color: color,
+                    caption: 'Built-In\nButton',
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
+    );
+  }
+}
+
+/// One digital port: the icon shows live whether the button is pressed, the
+/// name is at the bottom, tapping opens the graph.
+class _DigitalSensorTile extends ConsumerWidget {
+  final Sensor sensor;
+  final int port;
+  final TileColor color;
+
+  /// Optional text above the name (e.g. "Built-In\nButton" for port 10).
+  final String? caption;
+
+  const _DigitalSensorTile({
+    required this.sensor,
+    required this.port,
+    required this.color,
+    this.caption,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    final tileColor = theme.tileColor(color, TilePosition.maybeOf(context));
+    final fg = theme.textColor;
+    final pressed = useDigitalValue(ref, port) == true;
+
+    return GestureDetector(
+      onTap: () => context.push(AppRoutes.sensorScreen, extra: sensor.screen),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+        decoration: BoxDecoration(
+          color: tileColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Icon(
+                  pressed ? Icons.circle : Icons.circle_outlined,
+                  color: fg,
+                  size: 64,
+                ),
+              ),
+            ),
+            if (caption != null) ...[
+              Text(
+                caption!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: fg, fontSize: 17),
+              ),
+              const SizedBox(height: 10),
+            ],
+            Text(
+              sensor.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: fg, fontSize: 18),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:stpvelox/core/widgets/error_popup.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 
 const _serverUrl = 'http://localhost:8421';
@@ -18,11 +19,10 @@ class AppStatusScreen extends StatefulWidget {
 
 class _AppStatusScreenState extends State<AppStatusScreen> {
   Map<String, String?>? _versions;
-  String? _error;
   bool _loading = true;
 
   static const _componentOrder = [
-    ('ui', 'ui', Icons.phone_android),
+    ('ui', 'botui', Icons.phone_android),
     ('raccoon-cli', 'raccoon-cli', Icons.terminal),
     ('raccoon-lib', 'raccoon-lib', Icons.library_books),
     ('raccoon-transport', 'raccoon-transport', Icons.swap_horiz),
@@ -37,10 +37,8 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
   }
 
   Future<void> _fetchVersions() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _loading = true);
+    String? error;
 
     try {
       final client = HttpClient();
@@ -57,31 +55,26 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
         };
         // ui version is known locally — override what the server reports
         versions['ui'] = _uiVersion;
-        setState(() {
-          _versions = versions;
-          _loading = false;
-        });
+        _versions = versions;
       } else {
-        setState(() {
-          _error = 'Server returned ${response.statusCode}';
-          _loading = false;
-        });
+        error = 'Server returned ${response.statusCode}';
       }
     } catch (e) {
       // Server unreachable — still show ui version locally
-      setState(() {
-        _versions = {'ui': _uiVersion};
-        _error = 'raccoon-server not reachable';
-        _loading = false;
-      });
+      _versions = {'ui': _uiVersion};
+      error = 'raccoon-server not reachable';
     }
+
+    if (!mounted) return;
+    setState(() => _loading = false);
+    if (error != null) await showErrorPopup(context, error);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black87,
-      appBar: createTopBar(context, 'App Status', actions: [
+      appBar: createTopBar(context, 'Versions', actions: [
         IconButton(
           onPressed: _loading ? null : _fetchVersions,
           icon: _loading
@@ -101,31 +94,32 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warning_amber_rounded,
-                              color: Colors.orange, size: 18),
-                          const SizedBox(width: 8),
-                          Text(
-                            _error!,
-                            style: const TextStyle(
-                                color: Colors.orange, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ),
                   Expanded(
                     child: ListView.separated(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      itemCount: _componentOrder.length,
-                      separatorBuilder: (_, __) =>
-                          Divider(color: Colors.grey[800], height: 1),
+                          horizontal: 16, vertical: 8),
+                      // Row 0 is the bundle version, followed by the components.
+                      itemCount: _componentOrder.length + 1,
+                      separatorBuilder: (_, i) => i == 0
+                          // Extra gap between the bundle row and the components.
+                          ? Column(
+                              children: [
+                                const SizedBox(height: 8),
+                                Divider(color: Colors.grey[800], height: 1),
+                                const SizedBox(height: 8),
+                              ],
+                            )
+                          : Divider(color: Colors.grey[800], height: 1),
                       itemBuilder: (context, i) {
-                        final (key, label, icon) = _componentOrder[i];
+                        if (i == 0) {
+                          // TODO: replace with the real bundle version.
+                          return const _VersionRow(
+                            icon: Icons.inventory_2,
+                            label: 'Bundle Version',
+                            version: 'TODO',
+                          );
+                        }
+                        final (key, label, icon) = _componentOrder[i - 1];
                         final version = _versions?[key];
                         return _VersionRow(
                           icon: icon,
@@ -157,7 +151,7 @@ class _VersionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final installed = version != null;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
           Icon(icon, color: Colors.grey[400], size: 24),

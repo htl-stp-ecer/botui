@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/utils/sudo_process.dart';
+import 'package:stpvelox/core/widgets/error_popup.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 
 class ServiceStatusScreen extends StatefulWidget {
@@ -17,11 +18,10 @@ class _ServiceStatusScreenState extends State<ServiceStatusScreen> {
 
   // Services we want to manage
   static const _targetServices = [
-    ('flutter-ui.service', 'Flutter UI', Icons.phone_android),
-    ('stm32_data_reader.service', 'STM32 Reader', Icons.memory),
     ('ssh.service', 'SSH', Icons.terminal),
     ('raccoon.service', 'Raccoon', Icons.pets),
-    ('ide-backend.service', 'IDE Backend', Icons.code),
+    ('flutter-ui.service', 'Bot UI', Icons.phone_android),
+    ('stm32_data_reader.service', 'STM32 Reader', Icons.memory),
     ('raccoon-cam.service', 'Camera', Icons.camera_alt),
   ];
 
@@ -31,74 +31,94 @@ class _ServiceStatusScreenState extends State<ServiceStatusScreen> {
     _fetchServices();
   }
 
-  Future<void> _fetchServices() async {
+  static const _fetchTimeout = Duration(seconds: 10);
+
+  /// [showSudoPopup] is false for the silent refetch after returning from a
+  /// service's control page; the cards still show `error` in that case.
+  Future<void> _fetchServices({bool showSudoPopup = true}) async {
     setState(() => _loading = true);
 
-    final parsed = <String, Map<String, String>>{};
-
-    for (final (serviceName, displayName, icon) in _targetServices) {
-      try {
-        final result = await SudoProcess.run(
-          'systemctl',
-          ['show', serviceName, '--no-pager', '--property=ActiveState,SubState,LoadState'],
-        );
-
-        if (result.exitCode == 0) {
-          final lines = (result.stdout as String).split('\n');
-          String active = 'unknown';
-          String sub = 'unknown';
-          String load = 'unknown';
-
-          for (var line in lines) {
-            if (line.startsWith('ActiveState=')) {
-              active = line.split('=')[1];
-            } else if (line.startsWith('SubState=')) {
-              sub = line.split('=')[1];
-            } else if (line.startsWith('LoadState=')) {
-              load = line.split('=')[1];
-            }
-          }
-
-          parsed[serviceName] = {
-            'unit': serviceName,
-            'displayName': displayName,
-            'icon': icon.codePoint.toString(),
-            'active': active,
-            'sub': sub,
-            'load': load,
-          };
-        } else {
-          parsed[serviceName] = {
-            'unit': serviceName,
-            'displayName': displayName,
-            'icon': icon.codePoint.toString(),
-            'active': 'not-found',
-            'sub': 'not-found',
-            'load': 'not-found',
-          };
-        }
-      } catch (e) {
-        parsed[serviceName] = {
-          'unit': serviceName,
-          'displayName': displayName,
-          'icon': icon.codePoint.toString(),
-          'active': 'error',
-          'sub': 'error',
-          'load': 'error',
+    if (!await SudoProcess.isPasswordless('systemctl')) {
+      if (!mounted) return;
+      setState(() {
+        _services = {
+          for (final (unit, name, icon) in _targetServices)
+            unit: {
+              'unit': unit,
+              'displayName': name,
+              'icon': icon.codePoint.toString(),
+              'active': 'error',
+              'sub': 'error',
+              'load': 'error',
+            },
         };
+        _loading = false;
+      });
+      if (showSudoPopup) {
+        await showErrorPopup(
+            context, "Missing passwordless sudo, can't fetch services");
       }
+      return;
     }
+
+    // All services are queried in parallel, each capped at [_fetchTimeout],
+    // so the screen can never load for longer than that.
+    final entries = await Future.wait(
+      _targetServices.map((s) => _fetchService(s.$1, s.$2, s.$3)),
+    );
 
     if (mounted) {
       setState(() {
-        _services = parsed;
+        _services = {for (final e in entries) e['unit']!: e};
         _loading = false;
       });
     }
   }
 
+  Future<Map<String, String>> _fetchService(
+      String serviceName, String displayName, IconData icon) async {
+    Map<String, String> entry(String active, String sub, String load) => {
+          'unit': serviceName,
+          'displayName': displayName,
+          'icon': icon.codePoint.toString(),
+          'active': active,
+          'sub': sub,
+          'load': load,
+        };
+
+    try {
+      final result = await SudoProcess.run(
+        'systemctl',
+        ['show', serviceName, '--no-pager', '--property=ActiveState,SubState,LoadState'],
+      ).timeout(_fetchTimeout);
+
+      if (result.exitCode != 0) {
+        return entry('not-found', 'not-found', 'not-found');
+      }
+
+      String active = 'unknown';
+      String sub = 'unknown';
+      String load = 'unknown';
+      for (final line in (result.stdout as String).split('\n')) {
+        if (line.startsWith('ActiveState=')) {
+          active = line.split('=')[1];
+        } else if (line.startsWith('SubState=')) {
+          sub = line.split('=')[1];
+        } else if (line.startsWith('LoadState=')) {
+          load = line.split('=')[1];
+        }
+      }
+      return entry(active, sub, load);
+    } catch (e) {
+      // Includes TimeoutException.
+      return entry('error', 'error', 'error');
+    }
+  }
+
   void _navigateToServiceControl(Map<String, String> service) {
-    context.push(AppRoutes.serviceTile, extra: service).then((_) => _fetchServices());
+    context
+        .push(AppRoutes.serviceTile, extra: service)
+        .then((_) => _fetchServices(showSudoPopup: false));
   }
 
   @override
@@ -144,6 +164,12 @@ class _ServiceStatusScreenState extends State<ServiceStatusScreen> {
     );
   }
 }
+
+/// Cards whose name is shown on several lines (the name elsewhere stays on
+/// one line).
+const _cardLabels = {
+  'stm32_data_reader.service': 'STM32\nReader',
+};
 
 class _ServiceCard extends StatelessWidget {
   final Map<String, String> service;
@@ -207,16 +233,22 @@ class _ServiceCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              displayName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+            // Room for two lines on every card, so the status badges line up.
+            SizedBox(
+              height: 36,
+              child: Center(
+                child: Text(
+                  _cardLabels[service['unit']] ?? displayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 8),
             Container(

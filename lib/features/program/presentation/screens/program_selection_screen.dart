@@ -3,11 +3,12 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/router/app_router.dart';
-import 'package:stpvelox/core/utils/colors/colors.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/program/domain/entities/program.dart';
 import 'package:stpvelox/features/program/presentation/providers/program_providers.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
 class ProgramSelectionScreen extends HookConsumerWidget {
   const ProgramSelectionScreen({super.key});
@@ -28,7 +29,12 @@ class ProgramSelectionScreen extends HookConsumerWidget {
         body: state.when(
           data: (programs) {
             if (programs.isEmpty) {
-              return Center(child: Image.asset("assets/racoon.png"));
+              return Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset("assets/racoon.png"),
+                ),
+              );
             }
             return ResponsiveGrid(
               children: [
@@ -53,31 +59,35 @@ class ProgramSelectionScreen extends HookConsumerWidget {
     final versionLabel =
         synced ? 'v${program.syncState!.version}' : 'NOT SYNCED';
 
+    final theme = ref.watch(colorThemeProvider);
+    final tileColor = theme.tileColor(TileColor.byIndex(index), index);
+    final fg = theme.textColor;
+
     return GestureDetector(
       onTap: () => context.push(AppRoutes.programRun, extra: program),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.getTileColor(index),
+          color: tileColor,
           borderRadius: BorderRadius.circular(8.0),
         ),
         padding: const EdgeInsets.all(12),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.code, color: Colors.white, size: 88),
+            Icon(Icons.code, color: fg, size: 88),
             const SizedBox(height: 8),
             Text(
               program.name,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontSize: 18),
+              style: TextStyle(color: fg, fontSize: 18),
             ),
             const SizedBox(height: 6),
             Text(
               versionLabel,
               style: TextStyle(
-                color: synced ? Colors.white : Colors.red.shade100,
+                color: synced ? fg : Colors.red.shade100,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,

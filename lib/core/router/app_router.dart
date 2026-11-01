@@ -45,6 +45,7 @@ import 'package:stpvelox/features/settings/presentation/pages/service_tile_page.
 import 'package:stpvelox/features/settings/presentation/pages/service_log_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/robot_personality_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/display_settings_screen.dart';
+import 'package:stpvelox/features/settings/presentation/pages/color_theme_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/system_settings_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/hostname_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/keyboard_locale_screen.dart';
@@ -131,6 +132,7 @@ abstract class AppRoutes {
   static const serviceLog = '/settings/services/log';
   static const personality = '/settings/personality';
   static const displaySettings = '/settings/display';
+  static const colorTheme = '/settings/color-theme';
   static const systemSettings = '/settings/system';
   static const hostnameSettings = '/settings/hostname';
   static const keyboardLocale = '/settings/keyboard';
@@ -393,6 +395,11 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.personality,
         name: 'personality',
         builder: (context, state) => const RobotPersonalityScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.colorTheme,
+        name: 'colorTheme',
+        builder: (context, state) => const ColorThemeScreen(),
       ),
       GoRoute(
         path: AppRoutes.displaySettings,
