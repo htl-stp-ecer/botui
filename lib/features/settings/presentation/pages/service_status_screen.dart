@@ -165,6 +165,12 @@ class _ServiceStatusScreenState extends State<ServiceStatusScreen> {
   }
 }
 
+/// Cards whose name is shown on several lines (the name elsewhere stays on
+/// one line).
+const _cardLabels = {
+  'stm32_data_reader.service': 'STM32\nReader',
+};
+
 class _ServiceCard extends StatelessWidget {
   final Map<String, String> service;
   final IconData icon;
@@ -227,16 +233,22 @@ class _ServiceCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              displayName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+            // Room for two lines on every card, so the status badges line up.
+            SizedBox(
+              height: 36,
+              child: Center(
+                child: Text(
+                  _cardLabels[service['unit']] ?? displayName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 8),
             Container(
