@@ -9,6 +9,7 @@ import 'package:stpvelox/features/sensors/domain/entities/sensor.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/features/sensors/presentation/utils/sensor_category_icon.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class ImuSelectionScreen extends ConsumerWidget {
@@ -45,7 +46,7 @@ class ImuSelectionScreen extends ConsumerWidget {
       BuildContext context, SensorCategory category, List<Sensor> sensors) {
     return ResponsiveGridTile(
       label: category.name,
-      icon: _getIconForCategory(category),
+      icon: sensorCategoryIcon(category),
       onPressed: () {
         if (sensors.length == 1) {
           context.push(AppRoutes.sensorScreen, extra: sensors.first.screen);
@@ -58,16 +59,5 @@ class ImuSelectionScreen extends ConsumerWidget {
       },
       color: TileColor.byIndex(category.index),
     );
-  }
-
-  IconData _getIconForCategory(SensorCategory category) {
-    return switch (category) {
-      SensorCategory.gyro => Icons.rotate_right,
-      SensorCategory.accel => Icons.speed,
-      SensorCategory.mag => Icons.explore,
-      SensorCategory.orientation => Icons.threed_rotation,
-      SensorCategory.heading => Icons.navigation,
-      _ => Icons.auto_graph,
-    };
   }
 }

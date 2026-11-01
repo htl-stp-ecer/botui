@@ -17,6 +17,7 @@ import 'package:stpvelox/features/sensors/domain/entities/sensor.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/features/sensors/presentation/utils/sensor_category_icon.dart';
 import 'package:raccoon_transport/messages/types/scalar_i32_t.g.dart';
 import 'package:raccoon_transport/messages/types/scalar_i8_t.g.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
@@ -132,7 +133,7 @@ class SensorCategoryScreen extends ConsumerWidget {
                     children: sensor.map((s) {
                       return ResponsiveGridTile(
                         label: s.name,
-                        icon: Icons.auto_graph,
+                        icon: sensorCategoryIcon(category),
                         onPressed: () async {
                           if (isMotorCategory || isServoCategory) {
                             final shouldProceed =

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/overview/overview_info_provider.dart';
 import 'package:stpvelox/core/service/sensors/battery_voltage_sensor.dart';
-import 'package:stpvelox/core/utils/battery_level.dart';
+import 'package:stpvelox/core/service/sensors/system_health_sensor.dart';
 import 'package:stpvelox/core/utils/radii.dart';
-import 'package:stpvelox/features/settings/data/system_config_service.dart';
-import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 
 /// The overview/status half of the main screen: a centered vertical stack.
 class OverviewSection extends ConsumerStatefulWidget {
@@ -15,45 +14,40 @@ class OverviewSection extends ConsumerStatefulWidget {
 }
 
 class _OverviewSectionState extends ConsumerState<OverviewSection> {
-  String _hostname = '';
-  String? _ssid;
-  String? _ipv4;
-  bool _networkLoaded = false;
-
   @override
   void initState() {
     super.initState();
-    _loadHostname();
-    _loadNetwork();
-  }
-
-  Future<void> _loadHostname() async {
-    final name = await const SystemConfigService().getHostname();
-    if (mounted) setState(() => _hostname = name);
-  }
-
-  Future<void> _loadNetwork() async {
-    String? ssid;
-    String? ip;
-    try {
-      final info = await ref.read(getDeviceInfoProvider)();
-      ssid = info.connectedNetwork?.ssid;
-      ip = info.ipAddress;
-    } catch (_) {/* leave unknown, shown as "not connected" */}
-    if (!mounted) return;
-    setState(() {
-      _ssid = ssid;
-      _ipv4 = ip;
-      _networkLoaded = true;
+    // The data is cached (see overviewInfoProvider): the panel shows the last
+    // known values right away and this refreshes them in the background.
+    Future.microtask(() {
+      if (mounted) ref.read(overviewInfoProvider.notifier).refresh();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final connected = _ssid != null && _ssid!.isNotEmpty;
+    final info = ref.watch(overviewInfoProvider);
+    final ssid = info.ssid;
+    final ipv4 = info.ipv4;
+    final connected = ssid != null && ssid.isNotEmpty;
     final voltage = useBatteryVoltage(ref);
     final hasBattery = voltage != null && voltage > 0;
-    final percent = hasBattery ? BatteryLevel.percentFromVoltage(voltage) : 0;
+
+    // The health sensor is recreated (and starts at zeros) every time the main
+    // screen is shown, so fall back to the last real reading until new data
+    // arrives. Nothing is shown before the very first reading.
+    final live = ref.watch(systemHealthSensorProvider);
+    final notifier = ref.read(overviewInfoProvider.notifier);
+    if (live.ramTotalMB > 0) notifier.lastHealth = live;
+    final health = live.ramTotalMB > 0 ? live : notifier.lastHealth;
+
+    // Divider between sections, inset from the panel edge.
+    const section = [
+      SizedBox(height: 14),
+      _InsetDivider(),
+      SizedBox(height: 14),
+    ];
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[900],
@@ -63,19 +57,17 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 1. Identity
             Image.asset('assets/raccoon-logo.png', width: 70, height: 70),
             const SizedBox(height: 16),
             Text(
-              _hostname,
+              info.hostname ?? '',
               style: const TextStyle(color: Colors.white, fontSize: 22),
             ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Divider(color: Colors.grey[700], height: 1),
-            ),
-            const SizedBox(height: 16),
-            if (_networkLoaded) ...[
+
+            // 2. Network (N/A while unknown)
+            ...[
+              ...section,
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -86,51 +78,124 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    connected ? _ssid! : 'Not connected',
+                    !info.networkLoaded
+                        ? 'N/A'
+                        : (connected ? ssid : 'Not connected'),
                     style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
               Text(
-                _ipv4 ?? '',
+                (ipv4 != null && ipv4.isNotEmpty) ? ipv4 : 'N/A',
                 style: TextStyle(color: Colors.grey[400], fontSize: 16),
               ),
             ],
-            if (hasBattery) ...[
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Divider(color: Colors.grey[700], height: 1),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.battery_4_bar_rounded,
-                    color: percent < 15 ? Colors.redAccent : Colors.grey[400],
-                    size: 24,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '$percent %',
-                    style: TextStyle(
-                      color: percent < 15 ? Colors.redAccent : Colors.white,
-                      fontSize: 18,
+
+            // 3. Stats: battery, CPU, RAM and disk stacked
+            ...[
+              ...section,
+              SizedBox(
+                width: 300,
+                child: Column(
+                  children: [
+                    _StatRow(
+                      icon: Icons.battery_4_bar_rounded,
+                      label: 'Battery',
+                      value: hasBattery
+                          ? '${voltage.toStringAsFixed(2)} V'
+                          : 'N/A',
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${voltage.toStringAsFixed(2)} V',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 14),
-                  ),
-                ],
+                    if (health != null) const SizedBox(height: 6),
+                    if (health != null) ...[
+                      _StatRow(
+                        icon: Icons.memory,
+                        label: 'CPU',
+                        value: '${health.cpuPercent.toStringAsFixed(0)} %',
+                      ),
+                      const SizedBox(height: 6),
+                      _StatRow(
+                        icon: Icons.storage,
+                        label: 'RAM',
+                        value: '${health.ramPercent.toStringAsFixed(0)} %',
+                        detail: '${health.ramUsedMB} / ${health.ramTotalMB} MB',
+                      ),
+                      const SizedBox(height: 6),
+                      _StatRow(
+                        icon: Icons.sd_storage,
+                        label: 'Disk',
+                        value: '${health.diskPercent.toStringAsFixed(0)} %',
+                        detail:
+                            '${health.diskUsedGB.toStringAsFixed(1)} / ${health.diskTotalGB.toStringAsFixed(1)} GB',
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _InsetDivider extends StatelessWidget {
+  const _InsetDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Divider(color: Colors.grey[700], height: 1),
+    );
+  }
+}
+
+/// One stat line: icon and label on the left, the value on the right,
+/// optionally a grey detail (e.g. "1234 / 4096 MB") before it.
+class _StatRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final String? detail;
+
+  const _StatRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.detail,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.grey[400], size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(color: Colors.grey[400], fontSize: 16),
+          ),
+        ),
+        if (detail != null) ...[
+          Text(
+            detail!,
+            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+          ),
+          const SizedBox(width: 10),
+        ],
+        // Fixed width so the values line up in a column.
+        SizedBox(
+          width: 58,
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
+        ),
+      ],
     );
   }
 }

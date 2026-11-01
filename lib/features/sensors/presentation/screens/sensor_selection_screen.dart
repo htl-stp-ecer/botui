@@ -14,6 +14,7 @@ import 'package:stpvelox/features/calib_board/application/calib_board_providers.
 import 'package:stpvelox/features/calib_board/domain/entities/calib_board_status.dart';
 import 'package:stpvelox/features/calib_board/presentation/widgets/calib_status_tile.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/features/sensors/presentation/utils/sensor_category_icon.dart';
 
 const _imuCategories = {
   SensorCategory.gyro,
@@ -99,18 +100,9 @@ class SensorSelectionScreen extends ConsumerWidget {
 
   Widget _buildSensorTile(
       BuildContext context, SensorCategory category, List<Sensor> sensor) {
-    final icon = switch (category) {
-      SensorCategory.analog => Icons.show_chart,
-      SensorCategory.digital => Icons.toggle_on,
-      SensorCategory.motor => Icons.settings,
-      SensorCategory.servo => Icons.precision_manufacturing,
-      SensorCategory.system => Icons.monitor_heart,
-      SensorCategory.camera => Icons.videocam,
-      _ => Icons.auto_graph,
-    };
     return ResponsiveGridTile(
       label: category.name,
-      icon: icon,
+      icon: sensorCategoryIcon(category),
       onPressed: () {
         if (sensor.length == 1) {
           context.push(AppRoutes.sensorScreen, extra: sensor.first.screen);
