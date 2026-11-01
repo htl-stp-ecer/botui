@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/router/app_router.dart';
-import 'package:stpvelox/core/utils/sudo_process.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/core/widgets/error_popup.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/settings/domain/usecases/reboot.dart';
@@ -19,34 +20,28 @@ class SystemSettingsScreen extends StatelessWidget {
         child: ResponsiveGrid(
           children: [
             ResponsiveGridTile(
-              icon: Icons.analytics_outlined,
-              label: 'Services',
-              color: Colors.green[600]!,
-              onPressed: () => context.push(AppRoutes.serviceStatus),
-            ),
-            ResponsiveGridTile(
               icon: Icons.dns,
               label: 'Hostname',
-              color: Colors.blue[600]!,
+              color: TileColor.green,
               onPressed: () => context.push(AppRoutes.hostnameSettings),
             ),
             ResponsiveGridTile(
               icon: Icons.keyboard,
               label: 'Keyboard',
-              color: Colors.indigo[400]!,
+              color: TileColor.blue,
               onPressed: () => context.push(AppRoutes.keyboardLocale),
             ),
             ResponsiveGridTile(
               icon: Icons.refresh,
               label: 'Reboot',
-              color: Colors.orange[600]!,
-              onPressed: () => RebootDevice().call(),
+              color: TileColor.orange,
+              onPressed: () => _confirmPowerAction(context, shutdown: false),
             ),
             ResponsiveGridTile(
               icon: Icons.power_settings_new,
               label: 'Shutdown',
-              color: Colors.red[600]!,
-              onPressed: () => _confirmShutdown(context),
+              color: TileColor.red,
+              onPressed: () => _confirmPowerAction(context, shutdown: true),
             ),
           ],
         ),
@@ -54,7 +49,13 @@ class SystemSettingsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmShutdown(BuildContext context) async {
+  Future<void> _confirmPowerAction(BuildContext context,
+      {required bool shutdown}) async {
+    final title = shutdown ? 'Shutdown' : 'Reboot';
+    final icon = shutdown ? Icons.power_off : Icons.refresh;
+    final color = shutdown ? Colors.red : Colors.orange;
+    final text =
+        shutdown ? 'The device will power off.' : 'The device will restart.';
     final confirmed = await showDialog<bool>(
       context: context,
       barrierColor: Colors.black87,
@@ -66,15 +67,15 @@ class SystemSettingsScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.power_off, color: Colors.red, size: 48),
+              Icon(icon, color: color, size: 48),
               const SizedBox(height: 16),
-              const Text(
-                'Shutdown?',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+              Text(
+                '$title?',
+                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Text(
-                'The device will power off.',
+                text,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey[400], fontSize: 16),
               ),
@@ -102,11 +103,12 @@ class SystemSettingsScreen extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () => Navigator.of(ctx).pop(true),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[700],
+                          backgroundColor: shutdown ? Colors.red[700] : Colors.orange[700],
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Shutdown',
-                            style: TextStyle(fontSize: 18, color: Colors.white)),
+                        child: Text(title,
+                            style: const TextStyle(
+                                fontSize: 18, color: Colors.white)),
                       ),
                     ),
                   ),
@@ -118,7 +120,14 @@ class SystemSettingsScreen extends StatelessWidget {
       ),
     );
     if (confirmed == true) {
-      await SudoProcess.run('shutdown', ['-h', 'now']);
+      final ok = await RebootDevice().call(shutdown);
+      if (!ok && context.mounted) {
+        await showErrorPopup(
+            context,
+            shutdown
+                ? "Missing passwordless sudo, can't shut down"
+                : "Missing passwordless sudo, can't reboot");
+      }
     }
   }
 }

@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:stpvelox/core/router/app_router.dart';
-import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/calib_board/application/calib_board_providers.dart';
 import 'package:stpvelox/features/calib_board/domain/entities/calib_board_status.dart';
 import 'package:stpvelox/features/calib_board/presentation/widgets/calib_status_tile.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
 /// ICM-Submenü.  Mirrort das IMU-Pattern: ein Sub-Grid pro Sensor mit
 /// Sub-Tiles für jede Größe.  Jeder Leaf-Screen kriegt 800×480 für sich
@@ -34,35 +34,35 @@ class CalibIcmScreen extends ConsumerWidget {
             CalibStatusTile(
               label: 'Accelerometer',
               icon: Icons.speed,
-              color: AppColors.getTileColor(SensorCategory.accel.index),
+              color: TileColor.byIndex(SensorCategory.accel.index),
               state: state,
               onPressed: () => context.push(AppRoutes.calibIcmAccel),
             ),
             CalibStatusTile(
               label: 'Gyroscope',
               icon: Icons.rotate_right,
-              color: AppColors.getTileColor(SensorCategory.gyro.index),
+              color: TileColor.byIndex(SensorCategory.gyro.index),
               state: state,
               onPressed: () => context.push(AppRoutes.calibIcmGyro),
             ),
             CalibStatusTile(
               label: 'Temperature',
               icon: Icons.thermostat,
-              color: AppColors.getTileColor(SensorCategory.system.index),
+              color: TileColor.byIndex(SensorCategory.system.index),
               state: state,
               onPressed: () => context.push(AppRoutes.calibIcmTemp),
             ),
             CalibStatusTile(
               label: 'Orientation',
               icon: Icons.threed_rotation,
-              color: AppColors.getTileColor(SensorCategory.orientation.index),
+              color: TileColor.byIndex(SensorCategory.orientation.index),
               state: state,
               onPressed: () => context.push(AppRoutes.calibIcmOrientation),
             ),
             CalibStatusTile(
               label: 'Calibration',
               icon: Icons.tune,
-              color: AppColors.getTileColor(SensorCategory.heading.index),
+              color: TileColor.byIndex(SensorCategory.heading.index),
               state: state,
               onPressed: () => context.push(AppRoutes.calibIcmCalibration),
             ),

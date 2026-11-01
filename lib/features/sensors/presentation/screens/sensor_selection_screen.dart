@@ -9,11 +9,11 @@ import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
 import 'package:stpvelox/features/sensors/application/sensor_providers.dart';
-import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
 import 'package:stpvelox/features/calib_board/application/calib_board_providers.dart';
 import 'package:stpvelox/features/calib_board/domain/entities/calib_board_status.dart';
 import 'package:stpvelox/features/calib_board/presentation/widgets/calib_status_tile.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
 const _imuCategories = {
   SensorCategory.gyro,
@@ -93,15 +93,21 @@ class SensorSelectionScreen extends ConsumerWidget {
       onPressed: () {
         context.push(AppRoutes.imuSelection, extra: imuGroups);
       },
-      color: AppColors.getTileColor(SensorCategory.gyro.index),
+      color: TileColor.byIndex(SensorCategory.gyro.index),
     );
   }
 
   Widget _buildSensorTile(
       BuildContext context, SensorCategory category, List<Sensor> sensor) {
-    final icon = category == SensorCategory.system
-        ? Icons.monitor_heart
-        : Icons.auto_graph;
+    final icon = switch (category) {
+      SensorCategory.analog => Icons.show_chart,
+      SensorCategory.digital => Icons.toggle_on,
+      SensorCategory.motor => Icons.settings,
+      SensorCategory.servo => Icons.precision_manufacturing,
+      SensorCategory.system => Icons.monitor_heart,
+      SensorCategory.camera => Icons.videocam,
+      _ => Icons.auto_graph,
+    };
     return ResponsiveGridTile(
       label: category.name,
       icon: icon,
@@ -116,7 +122,7 @@ class SensorSelectionScreen extends ConsumerWidget {
           extra: {'category': category, 'sensors': sensor},
         );
       },
-      color: AppColors.getTileColor(category.index),
+      color: TileColor.byIndex(category.index),
     );
   }
 }
@@ -131,7 +137,7 @@ class _CalibBoardTile extends ConsumerWidget {
     return CalibStatusTile(
       label: 'Calib Board',
       icon: Icons.developer_board,
-      color: AppColors.getTileColor(SensorCategory.heading.index),
+      color: TileColor.byIndex(SensorCategory.heading.index),
       state: status.boardConnected
           ? CalibSensorState.ok
           : CalibSensorState.unavailable,

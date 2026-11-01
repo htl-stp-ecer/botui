@@ -7,7 +7,6 @@ import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/sensors/servo_sensor.dart';
 import 'package:stpvelox/core/service/shutdown_status_service.dart';
-import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/imu_accuracy_display.dart';
 import 'package:stpvelox/core/widgets/imu_temperature_display.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
@@ -15,6 +14,7 @@ import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor_category.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:raccoon_transport/messages/types/scalar_i32_t.g.dart';
 import 'package:raccoon_transport/messages/types/scalar_i8_t.g.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
@@ -49,21 +49,30 @@ class SensorCategoryScreen extends ConsumerWidget {
         // servoModeCommand is the dedicated COMMAND channel — using
         // servoMode here would round-trip through the reader's own
         // state publisher (5 ms self-loopback floor).
-        transportService.publish(Channels.servoModeCommand(i), ScalarI8T(timestamp: DateTime.now().microsecondsSinceEpoch, dir: ServoMode.fullyDisabled.value), options: reliable);
+        transportService.publish(
+            Channels.servoModeCommand(i),
+            ScalarI8T(
+                timestamp: DateTime.now().microsecondsSinceEpoch,
+                dir: ServoMode.fullyDisabled.value),
+            options: reliable);
       }
     }
 
     Future<void> stopAllMotors() async {
       for (int i = 0; i < 4; i++) {
         // motorPowerCommand uses plain delivery (continuous control loop)
-        transportService.publish(Channels.motorPowerCommand(i), ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: 0));
+        transportService.publish(
+            Channels.motorPowerCommand(i),
+            ScalarI32T(
+                timestamp: DateTime.now().microsecondsSinceEpoch, value: 0));
       }
     }
 
     /// Check if shutdown is blocking this category and show dialog if so
     Future<bool> checkShutdownAndNavigate(Sensor sensorItem) async {
-      final isShutdownBlocking = (isMotorCategory && shutdownStatus.motorShutdown) ||
-          (isServoCategory && shutdownStatus.servoShutdown);
+      final isShutdownBlocking =
+          (isMotorCategory && shutdownStatus.motorShutdown) ||
+              (isServoCategory && shutdownStatus.servoShutdown);
 
       if (!isShutdownBlocking) {
         return true; // Allow navigation
@@ -76,7 +85,9 @@ class SensorCategoryScreen extends ConsumerWidget {
         builder: (ctx) => _ShutdownWarningDialog(
           isMotor: isMotorCategory,
           onDisableShutdown: () async {
-            await ref.read(shutdownStatusServiceProvider.notifier).setShutdown(false);
+            await ref
+                .read(shutdownStatusServiceProvider.notifier)
+                .setShutdown(false);
           },
         ),
       );
@@ -124,14 +135,16 @@ class SensorCategoryScreen extends ConsumerWidget {
                   icon: Icons.auto_graph,
                   onPressed: () async {
                     if (isMotorCategory || isServoCategory) {
-                      final shouldProceed = await checkShutdownAndNavigate(entry.value);
+                      final shouldProceed =
+                          await checkShutdownAndNavigate(entry.value);
                       if (!shouldProceed) return;
                     }
                     if (context.mounted) {
-                      context.push(AppRoutes.sensorScreen, extra: entry.value.screen);
+                      context.push(AppRoutes.sensorScreen,
+                          extra: entry.value.screen);
                     }
                   },
-                  color: AppColors.getTileColor(category.index),
+                  color: TileColor.byIndex(category.index),
                 );
               }).toList(),
             ),
@@ -173,8 +186,11 @@ class _DigitalSensorTileState extends State<_DigitalSensorTile> {
     _future = Future.value(0); // KiprPlugin.getDigital(widget.index);
     _timer = Timer.periodic(const Duration(milliseconds: 200), (_) {
       if (mounted) {
-        setState(() =>
-            _future = Future.value(0)); // KiprPlugin.getDigital(widget.index));
+        // Block body: an arrow function would return the Future, which
+        // setState() rejects ("callback argument returned a Future").
+        setState(() {
+          _future = Future.value(0); // KiprPlugin.getDigital(widget.index)
+        });
       }
     });
   }
@@ -194,8 +210,9 @@ class _DigitalSensorTileState extends State<_DigitalSensorTile> {
         return ResponsiveGridTile(
           label: widget.sensor.name,
           icon: Icons.auto_graph,
-          onPressed: () => context.push(AppRoutes.sensorScreen, extra: widget.sensor.screen),
-          color: isClicked == 1 ? Colors.red : Colors.green,
+          onPressed: () =>
+              context.push(AppRoutes.sensorScreen, extra: widget.sensor.screen),
+          color: isClicked == 1 ? TileColor.red : TileColor.green,
         );
       },
     );

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/core/widgets/tile_position.dart';
 
 import 'package:stpvelox/features/calib_board/domain/entities/calib_board_status.dart';
 
 /// Tile-Variante mit Disabled-Status.  Mirrort die Optik von
 /// [ResponsiveGridTile] aus dem Wifi-Modul, aber rendert grau wenn nicht
 /// verfügbar und schaltet den Tap-Handler ab.
-class CalibStatusTile extends StatelessWidget {
+class CalibStatusTile extends ConsumerWidget {
   final String label;
   final IconData icon;
-  final Color color;
+  final TileColor color;
   final CalibSensorState state;
   final VoidCallback onPressed;
 
@@ -29,9 +33,11 @@ class CalibStatusTile extends StatelessWidget {
   bool get _enabled => state == CalibSensorState.ok;
 
   @override
-  Widget build(BuildContext context) {
-    final tileColor = _enabled ? color : Colors.grey.shade800;
-    final fg       = _enabled ? Colors.white : Colors.white60;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    final themed = theme.tileColor(color, TilePosition.maybeOf(context));
+    final tileColor = _enabled ? themed : Colors.grey.shade800;
+    final fg       = _enabled ? theme.textColor : Colors.white60;
 
     return Opacity(
       opacity: _enabled ? 1.0 : 0.55,
@@ -40,7 +46,7 @@ class CalibStatusTile extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: tileColor,
-            borderRadius: BorderRadius.circular(8.0),
+            borderRadius: BorderRadius.circular(10),
           ),
           padding: const EdgeInsets.all(8),
           child: Column(

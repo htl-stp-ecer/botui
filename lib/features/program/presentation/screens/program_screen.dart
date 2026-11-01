@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
+import 'package:stpvelox/core/widgets/tile_position.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/program/domain/entities/program.dart';
 import 'package:stpvelox/features/program/domain/entities/program_session.dart';
@@ -12,6 +13,7 @@ import 'package:stpvelox/features/program/presentation/providers/program_provide
 import 'package:stpvelox/features/program/presentation/widgets/program_sync_widgets.dart';
 import 'package:stpvelox/features/sensors/domain/entities/args/arg.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:xterm/xterm.dart';
 
 final _log = Logger('ProgramScreen');
@@ -84,8 +86,8 @@ class ProgramScreen extends HookConsumerWidget {
               color: Colors.black,
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -95,35 +97,41 @@ class ProgramScreen extends HookConsumerWidget {
                           SizedBox(
                             width: 180,
                             height: 180,
-                            child: ResponsiveGridTile(
-                              label: 'Start',
-                              icon: Icons.play_arrow,
-                              color: Colors.green,
-                              onPressed: () {
-                                createArgOverlay(
-                                    context,
-                                    overlayEntry,
-                                    {},
-                                    current,
-                                    0,
-                                    current.args.firstOrNull,
-                                    ref,
-                                    const []);
-                              },
+                            child: TilePosition(
+                              index: 0,
+                              child: ResponsiveGridTile(
+                                label: 'Start',
+                                icon: Icons.play_arrow,
+                                color: TileColor.green,
+                                onPressed: () {
+                                  createArgOverlay(
+                                      context,
+                                      overlayEntry,
+                                      {},
+                                      current,
+                                      0,
+                                      current.args.firstOrNull,
+                                      ref,
+                                      const []);
+                                },
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
                           SizedBox(
                             width: 180,
                             height: 180,
-                            child: ResponsiveGridTile(
-                              label: 'Advanced',
-                              icon: Icons.tune,
-                              color: Colors.blueGrey,
-                              onPressed: () {
-                                createAdvancedOverlay(
-                                    context, overlayEntry, current, ref);
-                              },
+                            child: TilePosition(
+                              index: 1,
+                              child: ResponsiveGridTile(
+                                label: 'Advanced',
+                                icon: Icons.tune,
+                                color: TileColor.blueGrey,
+                                onPressed: () {
+                                  createAdvancedOverlay(
+                                      context, overlayEntry, current, ref);
+                                },
+                              ),
                             ),
                           ),
                         ],
@@ -191,7 +199,7 @@ void createArgOverlay(
                   child: ResponsiveGridTile(
                     label: 'Submit',
                     icon: Icons.hide_image_rounded,
-                    color: Colors.blue,
+                    color: TileColor.blue,
                     onPressed: () {
                       if (idx + 1 >= program.args.length) {
                         createArgOverlay(context, overlayEntry, args, program,
@@ -215,11 +223,8 @@ void createArgOverlay(
   Overlay.of(context).insert(overlayEntry.value!);
 }
 
-void createAdvancedOverlay(
-    BuildContext context,
-    ValueNotifier<OverlayEntry?> overlayEntry,
-    Program program,
-    WidgetRef ref) {
+void createAdvancedOverlay(BuildContext context,
+    ValueNotifier<OverlayEntry?> overlayEntry, Program program, WidgetRef ref) {
   removeOverlay(overlayEntry);
   assert(overlayEntry.value == null);
 
@@ -265,36 +270,42 @@ void createAdvancedOverlay(
                         SizedBox(
                           width: 160,
                           height: 160,
-                          child: ResponsiveGridTile(
-                            label: 'Cancel',
-                            icon: Icons.close,
-                            color: Colors.redAccent,
-                            onPressed: () => removeOverlay(overlayEntry),
+                          child: TilePosition(
+                            index: 0,
+                            child: ResponsiveGridTile(
+                              label: 'Cancel',
+                              icon: Icons.close,
+                              color: TileColor.red,
+                              onPressed: () => removeOverlay(overlayEntry),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
                         SizedBox(
                           width: 160,
                           height: 160,
-                          child: ResponsiveGridTile(
-                            label: 'Start',
-                            icon: Icons.play_arrow,
-                            color: Colors.green,
-                            onPressed: () {
-                              final flags = <String>[
-                                if (devEnabled) '--dev',
-                                if (noCalibrateEnabled) '--no-calibrate',
-                              ];
-                              createArgOverlay(
-                                  context,
-                                  overlayEntry,
-                                  {},
-                                  program,
-                                  0,
-                                  program.args.firstOrNull,
-                                  ref,
-                                  flags);
-                            },
+                          child: TilePosition(
+                            index: 1,
+                            child: ResponsiveGridTile(
+                              label: 'Start',
+                              icon: Icons.play_arrow,
+                              color: TileColor.green,
+                              onPressed: () {
+                                final flags = <String>[
+                                  if (devEnabled) '--dev',
+                                  if (noCalibrateEnabled) '--no-calibrate',
+                                ];
+                                createArgOverlay(
+                                    context,
+                                    overlayEntry,
+                                    {},
+                                    program,
+                                    0,
+                                    program.args.firstOrNull,
+                                    ref,
+                                    flags);
+                              },
+                            ),
                           ),
                         ),
                       ],

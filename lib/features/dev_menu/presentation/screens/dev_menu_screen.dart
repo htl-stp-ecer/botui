@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logging/logging.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/dev_menu/presentation/dev_menu_active_provider.dart';
@@ -47,9 +49,10 @@ class DevMenuScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _DevMenuTile(
+                      index: 0,
                       label: 'Stop Program',
                       icon: Icons.stop_circle,
-                      color: isRunning ? Colors.red.shade700 : Colors.grey.shade700,
+                      color: isRunning ? TileColor.red : TileColor.grey,
                       onTap: isRunning
                           ? () async {
                               _log.warning(
@@ -72,18 +75,20 @@ class DevMenuScreen extends ConsumerWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _DevMenuTile(
+                      index: 1,
                       label: 'Restart UI',
                       icon: Icons.refresh,
-                      color: Colors.orange,
+                      color: TileColor.orange,
                       onTap: () => _restartUI(context),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: _DevMenuTile(
+                      index: 2,
                       label: 'Reboot Robot',
                       icon: Icons.power_settings_new,
-                      color: Colors.red,
+                      color: TileColor.red,
                       onTap: () => _rebootRobot(context),
                     ),
                   ),
@@ -105,27 +110,30 @@ class DevMenuScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: _DevMenuTile(
+                            index: 3,
                             label: 'Flappy Wombat',
                             icon: Icons.games,
-                            color: Colors.green,
+                            color: TileColor.green,
                             onTap: () => openRoute(AppRoutes.flappyWombat),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: _DevMenuTile(
+                            index: 4,
                             label: 'Tilt Maze',
                             icon: Icons.explore,
-                            color: Colors.purple,
+                            color: TileColor.purple,
                             onTap: () => openRoute(AppRoutes.tiltMaze),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: _DevMenuTile(
+                            index: 5,
                             label: 'Reset STM32',
                             icon: Icons.memory,
-                            color: Colors.teal,
+                            color: TileColor.teal,
                             onTap: () => _resetStm32(context),
                           ),
                         ),
@@ -163,13 +171,15 @@ class DevMenuScreen extends ConsumerWidget {
   }
 }
 
-class _DevMenuTile extends StatelessWidget {
+class _DevMenuTile extends ConsumerWidget {
   final String label;
   final IconData icon;
-  final Color color;
+  final TileColor color;
   final VoidCallback? onTap;
+  final int index;
 
   const _DevMenuTile({
+    required this.index,
     required this.label,
     required this.icon,
     required this.color,
@@ -177,13 +187,16 @@ class _DevMenuTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    final tileColor = theme.tileColor(color, index);
+    final fg = theme.textColor;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(16),
+          color: tileColor,
+          borderRadius: BorderRadius.circular(10),
           boxShadow: const [
             BoxShadow(color: Colors.black38, offset: Offset(0, 4), blurRadius: 6),
           ],
@@ -191,12 +204,12 @@ class _DevMenuTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 48, color: Colors.white),
+            Icon(icon, size: 48, color: fg),
             const SizedBox(height: 12),
             Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: fg,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
