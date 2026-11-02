@@ -32,7 +32,6 @@ void main() {
     expect(find.text('System mismatch'), findsNothing);
     await tester.pumpWidget(app(result(contractOk)));
     expect(find.text('System mismatch'), findsNothing);
-    expect(find.text('DEV TRANSPORT'), findsNothing);
   });
 
   testWidgets('a mismatch shows the popup until it is acknowledged', (tester) async {
@@ -58,10 +57,10 @@ void main() {
     expect(find.textContaining('component version mismatch'), findsOneWidget);
   });
 
-  testWidgets('dev mode shows only a badge', (tester) async {
+  testWidgets('dev mode shows nothing on top of the UI (the Versions page shows the bundle)', (tester) async {
     await tester.pumpWidget(app(result(contractDevWarning)));
-    expect(find.text('DEV TRANSPORT'), findsOneWidget);
     expect(find.text('System mismatch'), findsNothing);
+    expect(find.textContaining('DEV'), findsNothing);
   });
 
   test('popup message names both sides', () {

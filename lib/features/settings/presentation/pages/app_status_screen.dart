@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:stpvelox/core/contract/bundle_file.dart';
 import 'package:stpvelox/core/widgets/error_popup.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 
@@ -19,6 +20,7 @@ class AppStatusScreen extends StatefulWidget {
 
 class _AppStatusScreenState extends State<AppStatusScreen> {
   Map<String, String?>? _versions;
+  BundleFile? _bundle;
   bool _loading = true;
 
   static const _componentOrder = [
@@ -39,6 +41,8 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
   Future<void> _fetchVersions() async {
     setState(() => _loading = true);
     String? error;
+    // The bundle file is local to the robot, so it is shown even if the server is down.
+    _bundle = BundleFile.read();
 
     try {
       final client = HttpClient();
@@ -70,6 +74,63 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
     if (error != null) await showErrorPopup(context, error);
   }
 
+  Widget _divider({double gap = 0}) => Column(
+        children: [
+          SizedBox(height: gap),
+          Divider(color: Colors.grey[800], height: 1),
+          SizedBox(height: gap),
+        ],
+      );
+
+  /// The bundle name, the installed components, then the bundle file as written.
+  List<Widget> _rows() {
+    final bundle = _bundle;
+    final rows = <Widget>[
+      _VersionRow(
+        icon: Icons.inventory_2,
+        label: 'Bundle Version',
+        version: bundle?.name,
+        missingText: bundle?.error == null ? 'not set' : 'bundle file ${bundle!.error}',
+      ),
+      _divider(gap: 8),
+    ];
+    for (var i = 0; i < _componentOrder.length; i++) {
+      final (key, label, icon) = _componentOrder[i];
+      if (i > 0) rows.add(_divider());
+      rows.add(_VersionRow(icon: icon, label: label, version: _versions?[key]));
+    }
+
+    rows.add(_divider(gap: 8));
+    rows.add(Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      child: Text(
+        'Bundle file (${bundle?.path ?? '/etc/raccoon-bundle.json'})',
+        style: TextStyle(color: Colors.grey[400], fontSize: 13),
+      ),
+    ));
+    final entries = bundle?.entries ?? const <MapEntry<String, String>>[];
+    if (entries.isEmpty) {
+      rows.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          bundle?.error == null ? 'no entries' : 'bundle file ${bundle!.error}',
+          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+        ),
+      ));
+    }
+    for (var i = 0; i < entries.length; i++) {
+      if (i > 0) rows.add(_divider());
+      rows.add(_VersionRow(
+        icon: entries[i].key == 'contract_hash' ? Icons.fingerprint : Icons.label_outline,
+        label: entries[i].key,
+        version: entries[i].value,
+        // Shown exactly as in the file, including empty values.
+        showEmpty: true,
+      ));
+    }
+    return rows;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -95,38 +156,10 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: ListView.separated(
+                    child: ListView(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
-                      // Row 0 is the bundle version, followed by the components.
-                      itemCount: _componentOrder.length + 1,
-                      separatorBuilder: (_, i) => i == 0
-                          // Extra gap between the bundle row and the components.
-                          ? Column(
-                              children: [
-                                const SizedBox(height: 8),
-                                Divider(color: Colors.grey[800], height: 1),
-                                const SizedBox(height: 8),
-                              ],
-                            )
-                          : Divider(color: Colors.grey[800], height: 1),
-                      itemBuilder: (context, i) {
-                        if (i == 0) {
-                          // TODO: replace with the real bundle version.
-                          return const _VersionRow(
-                            icon: Icons.inventory_2,
-                            label: 'Bundle Version',
-                            version: 'TODO',
-                          );
-                        }
-                        final (key, label, icon) = _componentOrder[i - 1];
-                        final version = _versions?[key];
-                        return _VersionRow(
-                          icon: icon,
-                          label: label,
-                          version: version,
-                        );
-                      },
+                      children: _rows(),
                     ),
                   ),
                 ],
@@ -141,15 +174,23 @@ class _VersionRow extends StatelessWidget {
   final String label;
   final String? version;
 
+  /// Text when [version] is null.
+  final String missingText;
+
+  /// Show an empty string as it is instead of treating it as missing (bundle file rows).
+  final bool showEmpty;
+
   const _VersionRow({
     required this.icon,
     required this.label,
     required this.version,
+    this.missingText = 'not installed',
+    this.showEmpty = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final installed = version != null;
+    final installed = version != null && (showEmpty || version!.isNotEmpty);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -182,7 +223,7 @@ class _VersionRow extends StatelessWidget {
             )
           else
             Text(
-              'not installed',
+              missingText,
               style: TextStyle(color: Colors.grey[600], fontSize: 13),
             ),
         ],

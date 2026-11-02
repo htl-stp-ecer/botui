@@ -3,11 +3,10 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
 import 'package:stpvelox/core/contract/contract_check.dart';
 
-/// Shows the result of the transport contract check on top of the UI:
-/// a blocking popup when this UI does not match the installed system, and a
-/// small "DEV TRANSPORT" badge while the bundle is in dev mode (mismatches are
-/// then not enforced anywhere). Nothing is shown when everything matches or the
-/// UI does not run on a Raccoon device.
+/// Shows a blocking popup when this UI does not match the installed system
+/// (transport contract check). Nothing is shown when everything matches, in dev
+/// mode, or when the UI does not run on a Raccoon device; the bundle's values
+/// (including `dev`) are on the Versions page.
 class ContractOverlay extends ConsumerWidget {
   const ContractOverlay({super.key});
 
@@ -24,33 +23,7 @@ class ContractOverlay extends ConsumerWidget {
         onAcknowledge: () => ref.read(contractPopupDismissedProvider.notifier).dismiss(),
       );
     }
-    if (result.result == contractDevWarning) return const _DevBadge();
     return const SizedBox.shrink();
-  }
-}
-
-class _DevBadge extends StatelessWidget {
-  const _DevBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      top: 4,
-      right: 4,
-      child: IgnorePointer(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: Colors.amber[800],
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: const Text(
-            'DEV TRANSPORT',
-            style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
-    );
   }
 }
 
