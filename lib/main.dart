@@ -8,6 +8,8 @@ import 'package:stpvelox/application/inactivity/inactivity_listener.dart';
 import 'package:stpvelox/application/inactivity/inactivity_notifier.dart';
 import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 import 'package:stpvelox/core/framerate/frame_stall_watchdog.dart';
+import 'package:stpvelox/core/contract/contract_check.dart';
+import 'package:stpvelox/core/contract/contract_overlay.dart';
 import 'package:stpvelox/core/logging/logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/error_message_service.dart';
@@ -38,8 +40,13 @@ void main() async {
   // Initialize providers
   final (sharedPreferences, touchCalibrator) = await initializeProviders();
 
+  // Transport contract: does this UI match the bundle installed on the device?
+  // Recorded for the Pi server; shown as a popup / dev badge by ContractOverlay.
+  final contractResult = runContractCheck();
+
   runApp(ProviderScope(
     overrides: [
+      contractCheckResultProvider.overrideWithValue(contractResult),
       sharedPreferencesProvider.overrideWithValue(sharedPreferences),
       touchCalibratorProvider.overrideWithValue(touchCalibrator),
     ],
@@ -280,6 +287,7 @@ class _AppServicesStarter extends ConsumerWidget {
     return Stack(
       children: [
         child,
+        const ContractOverlay(),
         if (!hasCustomScreen && showWarning) const _LowBatteryOverlay(),
         if (!hasCustomScreen && showShutdown)
           _WatchdogShutdownOverlay(status: shutdownStatus),
