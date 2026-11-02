@@ -48,5 +48,6 @@ String contractPopupMessage(ContractCheckResult result) {
         "system expects ${result.expectedHash}, transport ${result.expectedTransportVersion ?? 'unknown'}). "
         "$advice";
   }
+  // Version mismatch or a broken bundle file: the check's own message says what is wrong.
   return '${result.message}. $advice';
 }

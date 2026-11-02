@@ -29,19 +29,19 @@ Widget app(ContractCheckResult? r) => ProviderScope(
 void main() {
   testWidgets('nothing is shown without a result or when everything matches', (tester) async {
     await tester.pumpWidget(app(null));
-    expect(find.text('Transport mismatch'), findsNothing);
+    expect(find.text('System mismatch'), findsNothing);
     await tester.pumpWidget(app(result(contractOk)));
-    expect(find.text('Transport mismatch'), findsNothing);
+    expect(find.text('System mismatch'), findsNothing);
     expect(find.text('DEV TRANSPORT'), findsNothing);
   });
 
   testWidgets('a mismatch shows the popup until it is acknowledged', (tester) async {
     await tester.pumpWidget(app(result(contractMismatch)));
-    expect(find.text('Transport mismatch'), findsOneWidget);
+    expect(find.text('System mismatch'), findsOneWidget);
     expect(find.textContaining('flash the latest Raccoon image'), findsOneWidget);
     await tester.tap(find.text('Acknowledge'));
     await tester.pump();
-    expect(find.text('Transport mismatch'), findsNothing);
+    expect(find.text('System mismatch'), findsNothing);
   });
 
   testWidgets('a bundle error shows the popup with the reason', (tester) async {
@@ -54,14 +54,14 @@ void main() {
     final r = result(contractVersionMismatch,
         message: 'component version mismatch: botui is 73 but bundle b expects v74; update or reflash so all components match');
     await tester.pumpWidget(app(r));
-    expect(find.text('Transport mismatch'), findsOneWidget);
+    expect(find.text('System mismatch'), findsOneWidget);
     expect(find.textContaining('component version mismatch'), findsOneWidget);
   });
 
   testWidgets('dev mode shows only a badge', (tester) async {
     await tester.pumpWidget(app(result(contractDevWarning)));
     expect(find.text('DEV TRANSPORT'), findsOneWidget);
-    expect(find.text('Transport mismatch'), findsNothing);
+    expect(find.text('System mismatch'), findsNothing);
   });
 
   test('popup message names both sides', () {

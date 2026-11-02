@@ -79,7 +79,7 @@ class _MismatchPopup extends StatelessWidget {
                 const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
                 const SizedBox(height: 16),
                 const Text(
-                  'Transport mismatch',
+                  'System mismatch',
                   style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
