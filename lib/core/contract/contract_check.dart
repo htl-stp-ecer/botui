@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
+import 'package:stpvelox/core/contract/version_check.dart';
 
 /// Where the Bot UI package records its own version (also read by raccoon-server).
 const _versionFile = '/home/pi/stp-velox/version';
@@ -9,7 +10,7 @@ const _versionFile = '/home/pi/stp-velox/version';
 /// Runs the transport contract check once at startup (semantics:
 /// `contract/CHECK_SPEC.md` in raccoon-transport) and records the result in
 /// `/run/raccoon/botui.json` for the Pi server. A broken check must never keep
-/// the UI from starting, so any failure here yields `null` (no popup, no badge).
+/// the UI from starting, so any failure here yields `null` (no popup).
 ContractCheckResult? runContractCheck() {
   try {
     var version = 'unknown';
@@ -19,7 +20,10 @@ ContractCheckResult? runContractCheck() {
     } on FileSystemException {
       // Not installed from the package (dev machine): the check is skipped there anyway.
     }
-    return startupCheck('botui', version, persistent: true);
+    // The UI's own version check (against its bundle entry) is handed to the transport's
+    // startup check as a component check; the transport only merges and records it.
+    return startupCheck('botui', version,
+        persistent: true, componentCheck: botuiVersionCheck(version));
   } catch (_) {
     return null;
   }
