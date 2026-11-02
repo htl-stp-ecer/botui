@@ -50,6 +50,14 @@ void main() {
     expect(find.textContaining('bundle file is missing'), findsOneWidget);
   });
 
+  testWidgets('a wrong UI version shows the popup with the versions', (tester) async {
+    final r = result(contractVersionMismatch,
+        message: 'component version mismatch: botui is 73 but bundle b expects v74; update or reflash so all components match');
+    await tester.pumpWidget(app(r));
+    expect(find.text('Transport mismatch'), findsOneWidget);
+    expect(find.textContaining('component version mismatch'), findsOneWidget);
+  });
+
   testWidgets('dev mode shows only a badge', (tester) async {
     await tester.pumpWidget(app(result(contractDevWarning)));
     expect(find.text('DEV TRANSPORT'), findsOneWidget);
