@@ -13,17 +13,17 @@
 #
 #   version    Debian version string, e.g. 1.0.42 (default 0.0 = local build)
 #   build_dir  flutter-pi build output (default: build/flutter-pi/pi3-64)
-#   output     output path (default: stp-velox_<version>_arm64.deb)
+#   output     output path (default: botui_<version>_arm64.deb)
 set -euo pipefail
 
 VERSION="${1:-0.0}"   # CI passes the release number; a local build is 0.0
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="${2:-$REPO_DIR/build/flutter-pi/pi3-64}"
-OUTPUT="${3:-$REPO_DIR/stp-velox_${VERSION}_arm64.deb}"
+OUTPUT="${3:-$REPO_DIR/botui_${VERSION}_arm64.deb}"
 
 ARCH="arm64"
-PKG="stp-velox"
+PKG="botui"
 APP_DIR="home/pi/stp-velox"          # install target (matches the systemd unit + raccoon-server)
 UNIT_SRC="$REPO_DIR/systemd/flutter-ui.service"
 
@@ -62,6 +62,8 @@ Section: misc
 Priority: optional
 Installed-Size: $INSTALLED_KB
 Depends: libc6, libstdc++6, libgcc-s1
+Replaces: stp-velox
+Conflicts: stp-velox
 Description: StpVelox robotics touch UI (flutter-pi)
  Dynamic Flutter UI for the Raccoon / wombat robotics platform, rendered by
  flutter-pi on the embedded 800x480 display. Installs the application bundle
