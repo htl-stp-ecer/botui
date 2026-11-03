@@ -27,10 +27,10 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
 
   /// (server key, bundle key, label, icon). Both sections use this order.
   static const _componentOrder = [
-    ('ui', 'botui', 'botui', Icons.phone_android),
     ('raccoon-cli', 'raccoon-cli', 'raccoon-cli', Icons.terminal),
     ('raccoon-lib', 'raccoon-lib', 'raccoon-lib', Icons.library_books),
     ('raccoon-transport', 'raccoon-transport', 'raccoon-transport', Icons.swap_horiz),
+    ('ui', 'botui', 'botui', Icons.phone_android),
     ('stm32-data-reader', 'stm32-data-reader', 'stm32-data-reader', Icons.memory),
     ('raccoon-cam', 'raccoon-cam', 'raccoon-cam', Icons.camera_alt),
   ];
