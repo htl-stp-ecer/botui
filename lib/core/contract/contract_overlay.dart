@@ -36,7 +36,9 @@ class _MismatchPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
-      child: ColoredBox(
+      // Material gives the texts a default style; this overlay sits above the
+      // Navigator, without one Flutter paints the yellow double underline.
+      child: Material(
         color: Colors.black87,
         child: Center(
           child: Container(
