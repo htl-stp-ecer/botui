@@ -19,7 +19,8 @@ class AppStatusScreen extends StatefulWidget {
 }
 
 class _AppStatusScreenState extends State<AppStatusScreen> {
-  Map<String, String?>? _versions;
+  // The botui version is compiled in: known before the server answers.
+  Map<String, String?>? _versions = {'ui': _uiVersion};
   // The bundle file is local, so it is read right away and shown without waiting.
   BundleFile _bundle = BundleFile.read();
   bool _loading = true;
