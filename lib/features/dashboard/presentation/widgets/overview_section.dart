@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/application/overview/overview_info_provider.dart';
@@ -14,6 +16,14 @@ class OverviewSection extends ConsumerStatefulWidget {
 }
 
 class _OverviewSectionState extends ConsumerState<OverviewSection> {
+  Timer? _poll;
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -21,6 +31,12 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> {
     // known values right away and this refreshes them in the background.
     Future.microtask(() {
       if (mounted) ref.read(overviewInfoProvider.notifier).refresh();
+    });
+    // The main screen stays mounted underneath the pages opened from it (they are
+    // pushed), so coming back from the Wi-Fi page does not run initState again.
+    // Polling picks up network changes; unchanged data causes no rebuild.
+    _poll = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) ref.read(overviewInfoProvider.notifier).refresh(networkOnly: true);
     });
   }
 

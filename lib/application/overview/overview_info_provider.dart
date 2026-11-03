@@ -50,12 +50,14 @@ class OverviewInfoNotifier extends Notifier<OverviewInfo> {
   /// fresh data is fetched. It is only replaced by data that was actually
   /// read, so a failed or empty fetch never turns the old values into
   /// "Not connected" / blank, and identical data causes no rebuild.
-  Future<void> refresh() async {
+  Future<void> refresh({bool networkOnly = false}) async {
     if (_refreshing) return;
     _refreshing = true;
     try {
       final results = await Future.wait([
-        const SystemConfigService().getHostname().then<String?>((v) => v),
+        networkOnly
+            ? Future<String?>.value(null)
+            : const SystemConfigService().getHostname().then<String?>((v) => v),
         ref
             .read(getDeviceInfoProvider)()
             .then<DeviceInfo?>((v) => v)
