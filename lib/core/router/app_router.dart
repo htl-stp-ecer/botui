@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stpvelox/core/router/route_observer.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // Dashboard
@@ -185,6 +186,7 @@ GoRouter appRouter(Ref ref) {
     initialLocation: AppRoutes.dashboard,
     debugLogDiagnostics: true,
     navigatorKey: rootNavigatorKey,
+    observers: [appRouteObserver],
     routes: [
       // Dashboard
       GoRoute(
