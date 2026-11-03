@@ -253,7 +253,7 @@ class _VersionRow extends StatelessWidget {
               ),
               child: Text(
                 version!,
-                style: const TextStyle(
+                style: TextStyle(
                   color: text,
                   fontSize: 13,
                   fontFamily: 'monospace',
