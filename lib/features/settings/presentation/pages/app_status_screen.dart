@@ -20,16 +20,18 @@ class AppStatusScreen extends StatefulWidget {
 
 class _AppStatusScreenState extends State<AppStatusScreen> {
   Map<String, String?>? _versions;
-  BundleFile? _bundle;
+  // The bundle file is local, so it is read right away and shown without waiting.
+  BundleFile _bundle = BundleFile.read();
   bool _loading = true;
 
+  /// (server key, bundle key, label, icon). Both sections use this order.
   static const _componentOrder = [
-    ('ui', 'botui', Icons.phone_android),
-    ('raccoon-cli', 'raccoon-cli', Icons.terminal),
-    ('raccoon-lib', 'raccoon-lib', Icons.library_books),
-    ('raccoon-transport', 'raccoon-transport', Icons.swap_horiz),
-    ('stm32-data-reader', 'stm32-data-reader', Icons.memory),
-    ('raccoon-cam', 'raccoon-cam', Icons.camera_alt),
+    ('ui', 'botui', 'botui', Icons.phone_android),
+    ('raccoon-cli', 'raccoon-cli', 'raccoon-cli', Icons.terminal),
+    ('raccoon-lib', 'raccoon-lib', 'raccoon-lib', Icons.library_books),
+    ('raccoon-transport', 'raccoon-transport', 'raccoon-transport', Icons.swap_horiz),
+    ('stm32-data-reader', 'stm32-data-reader', 'stm32-data-reader', Icons.memory),
+    ('raccoon-cam', 'raccoon-cam', 'raccoon-cam', Icons.camera_alt),
   ];
 
   @override
@@ -41,7 +43,6 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
   Future<void> _fetchVersions() async {
     setState(() => _loading = true);
     String? error;
-    // The bundle file is local to the robot, so it is shown even if the server is down.
     _bundle = BundleFile.read();
 
     try {
@@ -82,50 +83,62 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
         ],
       );
 
-  /// The bundle name, the installed components, then the bundle file as written.
+  Widget _sectionHeader(String text) => Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: Text(
+          text,
+          style: TextStyle(color: Colors.grey[400], fontSize: 13),
+        ),
+      );
+
+  /// Section 1: what the bundle file says. Section 2: what is installed, same order.
   List<Widget> _rows() {
     final bundle = _bundle;
+    final bundleError = bundle.error == null ? null : 'bundle file ${bundle.error}';
+    final components = bundle.json?['components'];
+    final bundleVersions = components is Map<String, dynamic> ? components : const <String, dynamic>{};
+
     final rows = <Widget>[
+      _sectionHeader('Bundle metadata'),
       _VersionRow(
         icon: Icons.inventory_2,
         label: 'Bundle Version',
-        version: bundle?.name,
-        missingText: bundle?.error == null ? 'not set' : 'bundle file ${bundle!.error}',
+        version: bundle.name,
+        missingText: bundleError ?? 'not set',
       ),
       _divider(gap: 8),
     ];
     for (var i = 0; i < _componentOrder.length; i++) {
-      final (key, label, icon) = _componentOrder[i];
+      final (_, bundleKey, label, icon) = _componentOrder[i];
       if (i > 0) rows.add(_divider());
-      rows.add(_VersionRow(icon: icon, label: label, version: _versions?[key]));
-    }
-
-    rows.add(_divider(gap: 8));
-    rows.add(Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 4),
-      child: Text(
-        'Bundle file (${bundle?.path ?? '/etc/raccoon-bundle.json'})',
-        style: TextStyle(color: Colors.grey[400], fontSize: 13),
-      ),
-    ));
-    final entries = bundle?.entries ?? const <MapEntry<String, String>>[];
-    if (entries.isEmpty) {
-      rows.add(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Text(
-          bundle?.error == null ? 'no entries' : 'bundle file ${bundle!.error}',
-          style: TextStyle(color: Colors.grey[600], fontSize: 13),
-        ),
+      final value = bundleVersions[bundleKey];
+      rows.add(_VersionRow(
+        icon: icon,
+        label: label,
+        version: value == null ? null : '$value',
+        missingText: bundleError ?? 'not in bundle',
       ));
     }
-    for (var i = 0; i < entries.length; i++) {
+    rows.add(_divider());
+    final hash = bundle.json?['contract_hash'];
+    rows.add(_VersionRow(
+      icon: Icons.fingerprint,
+      label: 'contract_hash',
+      version: hash == null ? null : '$hash',
+      missingText: bundleError ?? 'not in bundle',
+    ));
+
+    rows.add(_divider(gap: 8));
+    rows.add(_sectionHeader('Installed'));
+    for (var i = 0; i < _componentOrder.length; i++) {
+      final (key, _, label, icon) = _componentOrder[i];
       if (i > 0) rows.add(_divider());
       rows.add(_VersionRow(
-        icon: entries[i].key == 'contract_hash' ? Icons.fingerprint : Icons.label_outline,
-        label: entries[i].key,
-        version: entries[i].value,
-        // Shown exactly as in the file, including empty values.
-        showEmpty: true,
+        icon: icon,
+        label: label,
+        version: _versions?[key],
+        // The botui version is compiled in; only the server-reported ones load.
+        loading: _loading && key != 'ui',
       ));
     }
     return rows;
@@ -150,20 +163,10 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
         ),
       ]),
       body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      children: _rows(),
-                    ),
-                  ),
-                ],
-              ),
+        child: ListView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          children: _rows(),
+        ),
       ),
     );
   }
@@ -177,20 +180,20 @@ class _VersionRow extends StatelessWidget {
   /// Text when [version] is null.
   final String missingText;
 
-  /// Show an empty string as it is instead of treating it as missing (bundle file rows).
-  final bool showEmpty;
+  /// Show a spinner instead of the value while it is being fetched.
+  final bool loading;
 
   const _VersionRow({
     required this.icon,
     required this.label,
     required this.version,
     this.missingText = 'not installed',
-    this.showEmpty = false,
+    this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final installed = version != null && (showEmpty || version!.isNotEmpty);
+    final installed = version != null && version!.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -203,7 +206,13 @@ class _VersionRow extends StatelessWidget {
               style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
-          if (installed)
+          if (loading)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            )
+          else if (installed)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
