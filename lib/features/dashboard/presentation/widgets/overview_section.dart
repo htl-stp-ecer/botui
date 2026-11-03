@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/application/overview/overview_info_provider.dart';
+import 'package:stpvelox/core/router/route_observer.dart';
 import 'package:stpvelox/core/service/sensors/battery_voltage_sensor.dart';
 import 'package:stpvelox/core/service/sensors/system_health_sensor.dart';
 import 'package:stpvelox/core/utils/radii.dart';
@@ -13,15 +14,43 @@ class OverviewSection extends ConsumerStatefulWidget {
   ConsumerState<OverviewSection> createState() => _OverviewSectionState();
 }
 
-class _OverviewSectionState extends ConsumerState<OverviewSection> {
+class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAware {
+  ModalRoute<void>? _route;
+
   @override
   void initState() {
     super.initState();
     // The data is cached (see overviewInfoProvider): the panel shows the last
     // known values right away and this refreshes them in the background.
+    _refresh();
+  }
+
+  void _refresh() {
     Future.microtask(() {
       if (mounted) ref.read(overviewInfoProvider.notifier).refresh();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // The main screen stays mounted under the pages opened from it (they are pushed),
+    // so initState does not run again when one is closed: refresh on didPopNext.
+    final route = ModalRoute.of(context);
+    if (route != _route) {
+      _route = route;
+      appRouteObserver.unsubscribe(this);
+      if (route != null) appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() => _refresh();
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
   }
 
   @override
