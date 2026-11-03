@@ -1,0 +1,18 @@
+# Linux desktop build of botui for test-locally.py: the UI in a window on your PC.
+# Separate from the Pi image (Dockerfile) so that one stays small.
+FROM ghcr.io/cirruslabs/flutter:3.38.7
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Flutter's Linux desktop toolchain, a C++ compiler for the native raccoon_ring bridge,
+# python for test-locally.py, and Mesa so the window renders without a GPU driver.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+        build-essential python3 \
+        libgl1-mesa-dri libegl1 libgles2 libglx-mesa0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
+    && git config --global --add safe.directory '*'
+
+RUN flutter config --enable-linux-desktop && flutter precache --linux

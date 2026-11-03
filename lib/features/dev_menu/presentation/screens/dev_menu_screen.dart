@@ -10,6 +10,8 @@ import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/dev_menu/presentation/dev_menu_active_provider.dart';
 import 'package:stpvelox/features/program/domain/services/program_lifecycle_service.dart';
 import 'package:stpvelox/features/program/domain/services/raccoon_program_running_provider.dart';
+import 'package:stpvelox/core/utils/local_test.dart';
+import 'package:stpvelox/core/utils/sudo_process.dart';
 
 final _log = Logger('DevMenuScreen');
 
@@ -150,21 +152,25 @@ class DevMenuScreen extends ConsumerWidget {
   }
 
   void _resetStm32(BuildContext context) {
-    Process.run('bash', ['/home/pi/flash_files/reset_coprocessor.sh']);
+    if (kLocalTest) {
+      print('[local-test] not running: bash /home/pi/flash_files/reset_coprocessor.sh');
+    } else {
+      Process.run('bash', ['/home/pi/flash_files/reset_coprocessor.sh']);
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Resetting STM32...'), duration: Duration(seconds: 2)),
     );
   }
 
   void _restartUI(BuildContext context) {
-    Process.run('sudo', ['systemctl', 'restart', 'flutter-ui.service']);
+    SudoProcess.run('systemctl', ['restart', 'flutter-ui.service']);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Restarting UI...'), duration: Duration(seconds: 2)),
     );
   }
 
   void _rebootRobot(BuildContext context) {
-    Process.run('sudo', ['reboot']);
+    SudoProcess.run('reboot', []);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Rebooting robot...'), duration: Duration(seconds: 2)),
     );

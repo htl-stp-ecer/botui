@@ -58,6 +58,14 @@ python3 deploy.py --host <your-pi-ip>
 
 Copies the `.deb` from `builds/` to the Pi and installs it with `apt`. It sets `botui` to `dev` in the Pi's `/etc/raccoon-bundle.json`, because a deployed local build is a custom build. Releases are installed by `raccoon update`.
 
+### Try the UI on your PC
+
+```bash
+python3 test-locally.py
+```
+
+Opens the UI in a window on your PC (`flutter run -d linux` in Docker, 800x480 like the Pi display). Use it to try out styling, margins and layout; press `r` in the terminal for a hot reload, `q` to quit. There is no robot behind it, so screens that need the raccoon server or sensors stay empty or show errors. Nothing changes your PC: the app runs with `LOCAL_TEST=true`, where shutdown, reboot, service and Wi-Fi commands are only printed as `[local-test] not running: ...`. Needs an X11 display (Wayland sessions have XWayland).
+
 ### Local development
 
 [FVM](https://fvm.app/) pins the Flutter version (`.fvmrc`) for your IDE, `flutter analyze` and `flutter test`:

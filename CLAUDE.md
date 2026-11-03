@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building and Development
 - **Debug/Development**: `./debug.sh` - Runs the app in profile mode on a connected Raspberry Pi device
 - **Build**: `python3 build.py` - builds the `.deb` in Docker (Flutter, flutterpi_tool, bridge), result in `builds/`
+- **Try on the PC**: `python3 test-locally.py` - the UI in a window (`flutter run -d linux` in Docker, `LOCAL_TEST=true`: `SudoProcess` runs nothing)
 - **Deploy**: `python3 deploy.py --host <pi>` - installs the `.deb` from `builds/` on the Pi and marks botui `dev` in its bundle file
 - **Flutter Commands**: Standard Flutter commands work (`flutter run`, `flutter build`, `flutter test`)
 - **Analysis**: `flutter analyze` - Static analysis using flutter_lints

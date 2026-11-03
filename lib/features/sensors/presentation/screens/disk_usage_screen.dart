@@ -6,6 +6,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/service/sensors/system_health_sensor.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
+import 'package:stpvelox/core/utils/local_test.dart';
 
 class DirUsage {
   final String name;
@@ -199,11 +200,13 @@ class DiskUsageScreen extends HookConsumerWidget {
         '/media', '/mnt', '/tmp',
       ];
 
-      final result = await Process.run(
-        'sudo',
-        ['du', '-sxb', ...dirs],
-        environment: {'LC_ALL': 'C'},
-      );
+      final result = kLocalTest
+          ? ProcessResult(0, 0, '', '')
+          : await Process.run(
+              'sudo',
+              ['du', '-sxb', ...dirs],
+              environment: {'LC_ALL': 'C'},
+            );
 
       final lines = result.stdout.toString().split('\n');
       final entries = <DirUsage>[];

@@ -153,13 +153,17 @@ def build_deb(build_dir: Path, unit: Path, version: str, output: Path) -> None:
         shutil.rmtree(stage, ignore_errors=True)
 
 
-def run_in_container(version: str, owner: str) -> None:
-    """The actual build. Runs inside the image as root; /src is the repository, read-only."""
-    src = Path("/src")
-    work = Path("/tmp/work")
+def copy_sources(src: Path, work: Path) -> Path:
+    """Copy the repository into the container, leaving out build output and caches."""
     shutil.copytree(src, work, ignore=lambda directory, names: (
         [n for n in names if n in EXCLUDE] if Path(directory) == src else []
     ))
+    return work
+
+
+def run_in_container(version: str, owner: str) -> None:
+    """The actual build. Runs inside the image as root; /src is the repository, read-only."""
+    work = copy_sources(Path("/src"), Path("/tmp/work"))
     os.chdir(work)
     # `dart pub global activate` puts the executables here; `dart pub global run` does not work
     # for flutterpi_tool because it needs the Flutter SDK.

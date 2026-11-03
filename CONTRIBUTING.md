@@ -152,5 +152,6 @@ See [README.md](README.md) for full build and deploy instructions.
 ```bash
 python3 build.py                  # ARM64 .deb in Docker -> builds/
 python3 deploy.py --host <pi>     # install it on the Pi
+python3 test-locally.py           # the UI in a window on your PC (styling, layout)
 bash debug.sh                     # profile mode on connected Pi
 ```
