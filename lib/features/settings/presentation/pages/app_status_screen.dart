@@ -83,6 +83,21 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
         ],
       );
 
+  static String _normalize(String v) {
+    final t = v.trim();
+    return (t.isNotEmpty && (t[0] == 'v' || t[0] == 'V')) ? t.substring(1) : t;
+  }
+
+  static bool _isDev(Object? bundleValue) => bundleValue is String && bundleValue.trim() == 'dev';
+
+  /// Installed differs from what the bundle names. Never when the bundle says
+  /// `dev`, has no version for it, or nothing is installed.
+  static bool _differs(String? installed, Object? bundleValue) {
+    if (installed == null || installed.isEmpty) return false;
+    if (bundleValue is! String || bundleValue.trim().isEmpty || _isDev(bundleValue)) return false;
+    return _normalize(installed) != _normalize(bundleValue);
+  }
+
   Widget _sectionHeader(String text) => Padding(
         padding: const EdgeInsets.only(top: 4, bottom: 4),
         child: Text(
@@ -117,6 +132,7 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
         label: label,
         version: value == null ? null : '$value',
         missingText: bundleError ?? 'not in bundle',
+        tone: _isDev(value) ? _Tone.dev : _Tone.ok,
       ));
     }
     rows.add(_divider());
@@ -128,15 +144,19 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
       missingText: bundleError ?? 'not in bundle',
     ));
 
-    rows.add(_divider(gap: 8));
-    rows.add(_sectionHeader('Installed'));
+    // More room than between the rows, so the two sections read as separate.
+    rows.add(_divider(gap: 20));
+    rows.add(_sectionHeader('Installed Versions'));
     for (var i = 0; i < _componentOrder.length; i++) {
-      final (key, _, label, icon) = _componentOrder[i];
+      final (key, bundleKey, label, icon) = _componentOrder[i];
       if (i > 0) rows.add(_divider());
+      final installed = _versions?[key];
+      final expected = bundleVersions[bundleKey];
       rows.add(_VersionRow(
         icon: icon,
         label: label,
-        version: _versions?[key],
+        version: installed,
+        tone: _differs(installed, expected) ? _Tone.mismatch : _Tone.ok,
         // The botui version is compiled in; only the server-reported ones load.
         loading: _loading && key != 'ui',
       ));
@@ -172,6 +192,8 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
   }
 }
 
+enum _Tone { ok, mismatch, dev }
+
 class _VersionRow extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -183,17 +205,26 @@ class _VersionRow extends StatelessWidget {
   /// Show a spinner instead of the value while it is being fetched.
   final bool loading;
 
+  /// green normally, red for a mismatch with the bundle, blue for `dev`.
+  final _Tone tone;
+
   const _VersionRow({
     required this.icon,
     required this.label,
     required this.version,
     this.missingText = 'not installed',
     this.loading = false,
+    this.tone = _Tone.ok,
   });
 
   @override
   Widget build(BuildContext context) {
     final installed = version != null && version!.isNotEmpty;
+    final (base, text) = switch (tone) {
+      _Tone.ok => (Colors.green, Colors.greenAccent),
+      _Tone.mismatch => (Colors.red, Colors.redAccent),
+      _Tone.dev => (Colors.blue, Colors.lightBlueAccent),
+    };
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -216,14 +247,14 @@ class _VersionRow extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.15),
+                color: base.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                border: Border.all(color: base.withValues(alpha: 0.4)),
               ),
               child: Text(
                 version!,
                 style: const TextStyle(
-                  color: Colors.greenAccent,
+                  color: text,
                   fontSize: 13,
                   fontFamily: 'monospace',
                   fontWeight: FontWeight.w600,
