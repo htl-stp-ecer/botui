@@ -9,14 +9,14 @@
 #   * (prerm)    stop + disable on removal
 #
 # Usage:
-#   packaging/build-deb.sh <version> [build_dir] [output.deb]
+#   packaging/build-deb.sh [version] [build_dir] [output.deb]
 #
-#   version    Debian version string, e.g. 1.0.42
+#   version    Debian version string, e.g. 1.0.42 (default 0.0 = local build)
 #   build_dir  flutter-pi build output (default: build/flutter-pi/pi3-64)
 #   output     output path (default: stp-velox_<version>_arm64.deb)
 set -euo pipefail
 
-VERSION="${1:?usage: build-deb.sh <version> [build_dir] [output.deb]}"
+VERSION="${1:-0.0}"   # CI passes the release number; a local build is 0.0
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="${2:-$REPO_DIR/build/flutter-pi/pi3-64}"

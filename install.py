@@ -11,22 +11,20 @@ Env vars:
 """
 
 import os
-import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 
-def _read_pubspec_version(script_dir: Path) -> str:
-    pubspec = script_dir / "pubspec.yaml"
-    if not pubspec.exists():
-        return "unknown"
-    for line in pubspec.read_text().splitlines():
-        m = re.match(r"^version:\s*([^\s+]+)", line)
-        if m:
-            return m.group(1)
-    return "unknown"
+def _read_build_version(build_dir: Path) -> str:
+    """A local build is version 0.0 everywhere; only releases (the CI) carry a number."""
+    version_file = build_dir / "version"
+    if version_file.is_file():
+        text = version_file.read_text().strip()
+        if text:
+            return text
+    return "0.0"
 
 
 def ssh(host: str, user: str, command: str, check: bool = True) -> int:
@@ -92,7 +90,7 @@ def main() -> None:
     ssh(rpi_host, rpi_user, f"sudo systemctl stop {service_name} || true")
 
     # --- Upload build ---
-    version = _read_pubspec_version(script_dir)
+    version = _read_build_version(build_dir)
     print(f"Uploading build ({version}) to {rpi_host}:{remote_app_dir}...")
     ssh(rpi_host, rpi_user, f"mkdir -p {remote_app_dir}")
     # Use scp -r as cross-platform replacement for rsync

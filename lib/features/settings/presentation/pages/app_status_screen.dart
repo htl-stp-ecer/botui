@@ -9,7 +9,7 @@ import 'package:stpvelox/core/widgets/top_bar.dart';
 const _serverUrl = 'http://localhost:8421';
 
 // Injected at build time via --dart-define=APP_VERSION=<build number> (see build.sh).
-const _uiVersion = String.fromEnvironment('APP_VERSION', defaultValue: '0.0.0');
+const _uiVersion = String.fromEnvironment('APP_VERSION', defaultValue: '0.0');
 
 class AppStatusScreen extends StatefulWidget {
   const AppStatusScreen({super.key});
