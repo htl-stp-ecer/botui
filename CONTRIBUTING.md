@@ -150,7 +150,7 @@ fvm flutter pub run build_runner build -d
 See [README.md](README.md) for full build and deploy instructions.
 
 ```bash
-bash build.sh    # ARM64 release build
-bash deploy.sh   # build + deploy to Pi
-bash debug.sh    # profile mode on connected Pi
+python3 build.py                  # ARM64 .deb in Docker -> builds/
+python3 deploy.py --host <pi>     # install it on the Pi
+bash debug.sh                     # profile mode on connected Pi
 ```
