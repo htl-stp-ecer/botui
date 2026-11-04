@@ -77,42 +77,52 @@ class _ScreenRotationScreenState extends State<ScreenRotationScreen> {
     }
   }
 
+  /// Writes the rotation as a systemd drop-in instead of editing the unit:
+  /// the .deb ships the unit in /lib/systemd/system, so there is no file in
+  /// /etc to rewrite, and a drop-in survives package upgrades.
   Future<void> _updateFlutterPiService(int rotation) async {
-    final readResult =
-        await SudoProcess.run('cat', ['/etc/systemd/system/flutter-ui.service']);
-
-    if (readResult.exitCode != 0) {
-      throw Exception('Failed to read flutter-ui.service file');
+    // `systemctl cat` covers the packaged unit plus all drop-ins.
+    final catResult =
+        await SudoProcess.run('systemctl', ['cat', 'flutter-ui.service']);
+    if (catResult.exitCode != 0) {
+      throw Exception('Failed to read flutter-ui.service: ${catResult.stderr}');
     }
 
-    String serviceContent = readResult.stdout.toString();
-    final lines = serviceContent.split('\n');
-    final updatedLines = <String>[];
-
-    for (String line in lines) {
-      if (line.trim().startsWith('ExecStart=')) {
-        String updatedLine = line.replaceAll(RegExp(r'-r\s+\d+'), '').trim();
-        final match =
-            RegExp(r'(flutter-pi[^\s]*)\s+(.*)').firstMatch(updatedLine);
-        if (match != null) {
-          final flutterPiCmd = match.group(1);
-          final restOfLine = match.group(2) ?? '';
-          updatedLine = 'ExecStart=$flutterPiCmd -r $rotation $restOfLine';
-        } else {
-          updatedLine = '$updatedLine -r $rotation';
-        }
-        updatedLines.add(updatedLine);
-      } else {
-        updatedLines.add(line);
-      }
+    // The last ExecStart= wins (earlier drop-ins may override the unit).
+    final execLines = catResult.stdout
+        .toString()
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.startsWith('ExecStart=') && l.length > 'ExecStart='.length)
+        .toList();
+    if (execLines.isEmpty) {
+      throw Exception('No ExecStart found in flutter-ui.service');
     }
 
-    final newServiceContent = updatedLines.join('\n');
-    await SudoProcess.run('sh', [
-      '-c',
-      'echo "${newServiceContent.replaceAll('"', '\\"')}" > /etc/systemd/system/flutter-ui.service',
-    ]);
-    await SudoProcess.run('systemctl', ['daemon-reload']);
+    var cmd = execLines.last.substring('ExecStart='.length);
+    cmd = cmd.replaceAll(RegExp(r'\s-r\s+\d+'), '');
+    final match = RegExp(r'^(\S*flutter-pi)\s*(.*)$').firstMatch(cmd);
+    if (match == null) {
+      throw Exception('Unexpected ExecStart: $cmd');
+    }
+    final newExec = 'ExecStart=${match.group(1)} -r $rotation ${match.group(2)}';
+
+    final content = '[Service]\nExecStart=\n$newExec\n';
+    const dir = '/etc/systemd/system/flutter-ui.service.d';
+    final mkdir = await SudoProcess.run('mkdir', ['-p', dir]);
+    if (mkdir.exitCode != 0) {
+      throw Exception('Failed to create $dir: ${mkdir.stderr}');
+    }
+    final escaped = content.replaceAll("'", "'\\''");
+    final write = await SudoProcess.run(
+        'sh', ['-c', "printf '%s' '$escaped' > $dir/rotation.conf"]);
+    if (write.exitCode != 0) {
+      throw Exception('Failed to write rotation.conf: ${write.stderr}');
+    }
+    final reload = await SudoProcess.run('systemctl', ['daemon-reload']);
+    if (reload.exitCode != 0) {
+      throw Exception('daemon-reload failed: ${reload.stderr}');
+    }
   }
 
   @override

@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Release: tag, GitHub release, PyPI and notify the other repositories. Untick to only build and test (also works on a branch)."
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -20,7 +25,7 @@ jobs:
   version:
     name: Release number
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && !inputs.release)
     outputs:
       number: ${{ steps.next.outputs.number }}
     steps:
@@ -64,8 +69,8 @@ jobs:
 
   build:
     needs: version
-    # A manual run releases too, so only allow it on main.
-    if: github.ref == 'refs/heads/main'
+    # A manual run releases too, unless "release" is unticked; releasing is only allowed on main.
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && !inputs.release)
     runs-on: ubuntu-latest
 
     steps:
@@ -75,37 +80,18 @@ jobs:
           submodules: recursive
           token: ${{ secrets.GH_PAT }}
 
-      - name: Configure git for private repos
-        run: git config --global url."https://x-access-token:${{ secrets.GH_PAT }}@github.com/".insteadOf "git@github.com:"
-
-      - name: Install aarch64 cross-compiler
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.38.7'
-          cache: true
-
-      - name: Cache flutterpi_tool
-        uses: actions/cache@v4
-        with:
-          path: ~/.pub-cache
-          key: pub-cache-flutterpi-${{ runner.os }}
-          restore-keys: pub-cache-flutterpi-
-
-      - name: Install flutterpi_tool
-        run: dart pub global activate flutterpi_tool
-
+      # The same script that builds locally: Flutter, the bridge and the .deb, all in Docker.
       - name: Build
-        run: BUILD_NUMBER=${{ needs.version.outputs.number }} bash ./build.sh
+        run: python3 build.py --version ${{ needs.version.outputs.number }}
 
-      - name: Build .deb package
-        run: bash ./packaging/build-deb.sh "${{ needs.version.outputs.number }}" build/flutter-pi/pi3-64 stp-velox_${{ needs.version.outputs.number }}_arm64.deb
+      - name: Upload the package
+        uses: actions/upload-artifact@v4
+        with:
+          name: botui-deb
+          path: builds/botui_*_arm64.deb
 
       - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.release)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.number }}
@@ -114,17 +100,18 @@ jobs:
             Install on the Pi (arm64):
 
             ```
-            sudo apt install ./stp-velox_${{ needs.version.outputs.number }}_arm64.deb
+            sudo apt install ./botui_${{ needs.version.outputs.number }}_arm64.deb
             ```
 
             This installs the UI to `/home/pi/stp-velox` and enables + starts the
             `flutter-ui` systemd service automatically.
-          files: stp-velox_${{ needs.version.outputs.number }}_arm64.deb
+          files: builds/botui_${{ needs.version.outputs.number }}_arm64.deb
 
   # Tell raccoon-image that a new botui release exists. Uses the raccoon-os-bot
   # app token; a failure here only warns because the release is already published.
   notify-image:
     needs: [version, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.release)
     runs-on: ubuntu-latest
 
     steps:
