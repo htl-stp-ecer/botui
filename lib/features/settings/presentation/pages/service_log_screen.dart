@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:stpvelox/core/utils/sudo_process.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:xterm/xterm.dart';
+import 'package:stpvelox/core/utils/local_test.dart';
 
 class ServiceLogScreen extends StatefulWidget {
   final String serviceName;
@@ -59,7 +60,7 @@ class _ServiceLogScreenState extends State<ServiceLogScreen> {
       }
 
       // Then start following new logs
-      if (_isFollowing) {
+      if (_isFollowing && !kLocalTest) {
         _journalProcess = await Process.start(
           'sudo',
           ['journalctl', '-u', widget.serviceName, '-f', '-n', '0', '-o', 'short-iso'],

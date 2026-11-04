@@ -6,15 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Building and Development
 - **Debug/Development**: `./debug.sh` - Runs the app in profile mode on a connected Raspberry Pi device
-- **Production Build**: `./deploy.sh` - Builds release version with flutterpi_tool and deploys to Pi via rsync
+- **Build**: `python3 build.py` - builds the `.deb` in Docker (Flutter, flutterpi_tool, bridge), result in `builds/`
+- **Try on the PC**: `python3 test-locally.py` - the UI in a window (`flutter run -d linux` in Docker, `LOCAL_TEST=true`: `SudoProcess` runs nothing)
+- **Deploy**: `python3 deploy.py --host <pi>` - installs the `.deb` from `builds/` on the Pi and marks botui `dev` in its bundle file
 - **Flutter Commands**: Standard Flutter commands work (`flutter run`, `flutter build`, `flutter test`)
 - **Analysis**: `flutter analyze` - Static analysis using flutter_lints
 
 ### Deployment Target
-The app runs on Raspberry Pi hardware (wombat robotics platform) at IP 192.168.20.237. The deploy script:
-1. Builds with `flutterpi_tool build --arch=arm64 --cpu=pi3 --release`
-2. Syncs assets to `/home/pi/stp-velox` on the Pi
-3. Restarts the flutter-ui.service
+The app runs on Raspberry Pi hardware (wombat robotics platform). `build.py` builds with `flutterpi_tool build --arch=arm64 --cpu=pi3 --release` inside Docker and packs the result into a `.deb`. The package installs the app to `/home/pi/stp-velox` and restarts `flutter-ui.service`; `deploy.py` copies and installs it.
 
 ## Architecture Overview
 

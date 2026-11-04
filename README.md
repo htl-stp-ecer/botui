@@ -39,39 +39,48 @@ StpVelox is the graphical environment that runs directly on the [KIPR Wombat](ht
 
 ## Building & deploying
 
-StpVelox uses [FVM](https://fvm.app/) for Flutter version pinning and [flutterpi_tool](https://pub.dev/packages/flutterpi_tool) for ARM64 cross-compilation.
+The build runs in a Docker container, so you only need Docker and Python 3 on your machine — no Flutter, Dart or cross compiler. Flutter and [flutterpi_tool](https://pub.dev/packages/flutterpi_tool) are in the image (see `Dockerfile`).
 
-### Prerequisites
+### Build
 
 ```bash
-# Install FVM
-dart pub global activate fvm
-fvm install   # picks up version from .fvmrc
-
-# Activate flutterpi_tool
-dart pub global activate flutterpi_tool
+python3 build.py                 # local build, version 0.0
+python3 build.py --version 81    # release build (what CI does)
 ```
 
-### Build & deploy to Pi
+Result in `builds/`: `botui_<version>_arm64.deb` and `manifest.json`. The build runs `build_runner` for code generation (Riverpod, Freezed, JSON serialization), cross-compiles for `arm64 / pi3`, builds the `raccoon_ring` bridge and packs everything into the package.
+
+### Deploy to the Pi
 
 ```bash
-# Build release + deploy to Pi in one step
-DEPLOY_HOST=<your-pi-ip> bash deploy.sh
+python3 deploy.py --host <your-pi-ip>
+```
+
+Copies the `.deb` from `builds/` to the Pi and installs it with `apt`. It sets `botui` to `dev` in the Pi's `/etc/raccoon-bundle.json`, because a deployed local build is a custom build. Releases are installed by `raccoon update`.
+
+### Try the UI on your PC
+
+```bash
+python3 test-locally.py
+```
+
+Opens the UI in a window on your PC (`flutter run -d linux` in Docker, 800x480 like the Pi display). Use it to try out styling, margins and layout. The repository is mounted into the container, so what you edit is what runs: press `r` in the terminal for a hot reload, `R` for a hot restart, `q` to quit. The window is up in about 5 to 15 seconds once the image exists. Add `--codegen` after changing annotated code (`@riverpod`, `@freezed`, ...): the generated `*.g.dart` files are in git, so `build_runner` does not run by default. There is no robot behind it, so screens that need the raccoon server or sensors stay empty or show errors. Nothing changes your PC: the app runs with `LOCAL_TEST=true`, where shutdown, reboot, service and Wi-Fi commands are only printed as `[local-test] not running: ...`. Needs an X11 display (Wayland sessions have XWayland).
+
+### Local development
+
+[FVM](https://fvm.app/) pins the Flutter version (`.fvmrc`) for your IDE, `flutter analyze` and `flutter test`:
+
+```bash
+dart pub global activate fvm
+fvm install   # picks up version from .fvmrc
 ```
 
 ### Debug (profile mode on connected Pi)
 
 ```bash
+dart pub global activate flutterpi_tool
 bash debug.sh
 ```
-
-### Build only (output in build/)
-
-```bash
-bash build.sh
-```
-
-The build script runs `build_runner` for code generation (Riverpod, Freezed, JSON serialization), then cross-compiles for `arm64 / pi3`.
 
 ---
 

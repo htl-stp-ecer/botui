@@ -1,0 +1,6 @@
+.git
+build
+builds
+.dart_tool
+coverage
+__pycache__
