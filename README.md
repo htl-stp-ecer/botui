@@ -64,7 +64,7 @@ Copies the `.deb` from `builds/` to the Pi and installs it with `apt`. It sets `
 python3 test-locally.py
 ```
 
-Opens the UI in a window on your PC (`flutter run -d linux` in Docker, 800x480 like the Pi display). Use it to try out styling, margins and layout; press `r` in the terminal for a hot reload, `q` to quit. There is no robot behind it, so screens that need the raccoon server or sensors stay empty or show errors. Nothing changes your PC: the app runs with `LOCAL_TEST=true`, where shutdown, reboot, service and Wi-Fi commands are only printed as `[local-test] not running: ...`. Needs an X11 display (Wayland sessions have XWayland).
+Opens the UI in a window on your PC (`flutter run -d linux` in Docker, 800x480 like the Pi display). Use it to try out styling, margins and layout. The repository is mounted into the container, so what you edit is what runs: press `r` in the terminal for a hot reload, `R` for a hot restart, `q` to quit. The window is up in about 5 to 15 seconds once the image exists. Add `--codegen` after changing annotated code (`@riverpod`, `@freezed`, ...): the generated `*.g.dart` files are in git, so `build_runner` does not run by default. There is no robot behind it, so screens that need the raccoon server or sensors stay empty or show errors. Nothing changes your PC: the app runs with `LOCAL_TEST=true`, where shutdown, reboot, service and Wi-Fi commands are only printed as `[local-test] not running: ...`. Needs an X11 display (Wayland sessions have XWayland).
 
 ### Local development
 
