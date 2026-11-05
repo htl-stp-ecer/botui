@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/widgets/error_popup.dart';
@@ -56,70 +57,16 @@ class SystemSettingsScreen extends StatelessWidget {
     final color = shutdown ? Colors.red : Colors.orange;
     final text =
         shutdown ? 'The device will power off.' : 'The device will restart.';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 48),
-              const SizedBox(height: 16),
-              Text(
-                '$title?',
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                text,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[400], fontSize: 16),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(ctx).pop(false),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[700],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('Cancel',
-                            style: TextStyle(fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(ctx).pop(true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: shutdown ? Colors.red[700] : Colors.orange[700],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(title,
-                            style: const TextStyle(
-                                fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    final confirmed = await showRaccoonConfirmDialog(
+      context,
+      title: '$title?',
+      message: text,
+      confirmLabel: title,
+      icon: icon,
+      iconColor: color,
+      confirmColor: shutdown ? Colors.red[700]! : Colors.orange[700]!,
     );
-    if (confirmed == true) {
+    if (confirmed) {
       final ok = await RebootDevice().call(shutdown);
       if (!ok && context.mounted) {
         await showErrorPopup(

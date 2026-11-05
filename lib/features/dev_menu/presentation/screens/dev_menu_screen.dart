@@ -26,7 +26,7 @@ class DevMenuScreen extends ConsumerWidget {
     // Gate the Stop button on the server's actual running state too, so it is
     // reachable in those cases — otherwise onTap is null and the tile is inert.
     final serverRunning =
-        ref.watch(raccoonProgramRunningProvider).asData?.value ?? false;
+        ref.watch(raccoonProgramRunningProvider).value ?? false;
     final isRunning = (session != null && session.isRunning) || serverRunning;
 
     void close() => ref.read(devMenuActiveProvider.notifier).hide();
@@ -57,6 +57,7 @@ class DevMenuScreen extends ConsumerWidget {
                       color: isRunning ? TileColor.red : TileColor.grey,
                       onTap: isRunning
                           ? () async {
+                              final messenger = ScaffoldMessenger.of(context);
                               _log.warning(
                                   '[StopButton] tapped — isRunning=$isRunning, session=$session');
                               try {
@@ -65,10 +66,29 @@ class DevMenuScreen extends ConsumerWidget {
                                     .stopProgram();
                                 _log.info(
                                     '[StopButton] stopProgram() returned exitCode=$exitCode');
+                                if (exitCode == -1) {
+                                  messenger.showSnackBar(SnackBar(
+                                    content: const Text(
+                                      'Could not stop the program (see log)',
+                                      style: TextStyle(color: Color(0xFFFFFFFF)),
+                                    ),
+                                    backgroundColor: Colors.red[800],
+                                    duration: const Duration(seconds: 3),
+                                  ));
+                                }
                               } catch (e, st) {
                                 _log.severe(
                                     '[StopButton] stopProgram() threw: $e', e, st);
+                                messenger.showSnackBar(SnackBar(
+                                  content: Text(
+                                    'Stop failed: $e',
+                                    style: const TextStyle(color: Color(0xFFFFFFFF)),
+                                  ),
+                                  backgroundColor: Colors.red[800],
+                                  duration: const Duration(seconds: 3),
+                                ));
                               }
+                              ref.invalidate(raccoonProgramRunningProvider);
                               close();
                             }
                           : null,

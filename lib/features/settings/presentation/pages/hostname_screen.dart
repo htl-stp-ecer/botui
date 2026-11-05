@@ -60,7 +60,7 @@ class _HostnameScreenState extends State<HostnameScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(fontSize: 16)),
-        backgroundColor: isError ? Colors.red[700] : Colors.green[700],
+        backgroundColor: isError ? Colors.red[800] : Colors.green[800],
         behavior: SnackBarBehavior.floating,
       ),
     );

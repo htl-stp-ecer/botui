@@ -41,7 +41,7 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
           SnackBar(
             content: Text(next.errorMessage!),
             duration: const Duration(seconds: 4),
-            backgroundColor: Colors.red[700],
+            backgroundColor: Colors.red[800],
           ),
         );
         return;
@@ -52,7 +52,7 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
           SnackBar(
             content: Text('Switched to ${_modeTitle(next.mode)}'),
             duration: const Duration(seconds: 2),
-            backgroundColor: Colors.green[700],
+            backgroundColor: Colors.green[800],
           ),
         );
       }

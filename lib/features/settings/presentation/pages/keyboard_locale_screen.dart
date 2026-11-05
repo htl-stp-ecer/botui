@@ -43,7 +43,7 @@ class _KeyboardLocaleScreenState extends State<KeyboardLocaleScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(outcome.message, style: const TextStyle(fontSize: 16)),
-        backgroundColor: outcome.ok ? Colors.green[700] : Colors.red[700],
+        backgroundColor: outcome.ok ? Colors.green[800] : Colors.red[800],
         behavior: SnackBarBehavior.floating,
       ),
     );

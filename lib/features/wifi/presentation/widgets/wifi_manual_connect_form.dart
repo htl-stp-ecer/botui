@@ -204,7 +204,7 @@ class _WifiManualConnectFormState extends ConsumerState<WifiManualConnectForm> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Colors.red[800]!,
       ),
     );
   }

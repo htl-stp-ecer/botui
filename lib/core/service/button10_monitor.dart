@@ -13,7 +13,7 @@ part 'button10_monitor.g.dart';
 /// running program is done there rather than by the button press directly.
 @riverpod
 class Button10Monitor extends _$Button10Monitor with HasLogger {
-  static const _longPressDuration = Duration(seconds: 3);
+  static const _longPressDuration = Duration(seconds: 2);
 
   DateTime? _holdStart;
   bool _triggered = false;
@@ -70,7 +70,7 @@ class Button10Monitor extends _$Button10Monitor with HasLogger {
       return;
     }
 
-    log.info('Button 10 held for 3 seconds - opening Dev Menu!');
+    log.info('Button 10 held for 2 seconds - opening Dev Menu!');
     ref.read(devMenuActiveProvider.notifier).show();
   }
 }

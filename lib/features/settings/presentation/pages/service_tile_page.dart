@@ -147,7 +147,7 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: color,
+        backgroundColor: color is MaterialColor ? color.shade800 : color,
         duration: const Duration(seconds: 2),
       ),
     );

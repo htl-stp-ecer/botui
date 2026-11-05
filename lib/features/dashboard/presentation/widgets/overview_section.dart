@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/application/overview/overview_info_provider.dart';
@@ -16,6 +18,7 @@ class OverviewSection extends ConsumerStatefulWidget {
 
 class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAware {
   ModalRoute<void>? _route;
+  Timer? _retryTimer;
 
   @override
   void initState() {
@@ -23,6 +26,14 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
     // The data is cached (see overviewInfoProvider): the panel shows the last
     // known values right away and this refreshes them in the background.
     _refresh();
+    // On boot the network is often not up yet when the first lookup runs, so
+    // keep retrying until a connection shows up.
+    _retryTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      final info = ref.read(overviewInfoProvider);
+      final connected = info.ssid != null && info.ssid!.isNotEmpty;
+      final hasIp = info.ipv4 != null && info.ipv4!.isNotEmpty;
+      if (!connected || !hasIp) _refresh();
+    });
   }
 
   void _refresh() {
@@ -49,6 +60,7 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }

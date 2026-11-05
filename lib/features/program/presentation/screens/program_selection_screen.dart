@@ -30,9 +30,24 @@ class ProgramSelectionScreen extends HookConsumerWidget {
           data: (programs) {
             if (programs.isEmpty) {
               return Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.asset("assets/racoon.png"),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'No programs',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      // scale > 1 shows the image slightly smaller.
+                      child: Image.asset("assets/racoon.png", scale: 1.15),
+                    ),
+                  ],
                 ),
               );
             }

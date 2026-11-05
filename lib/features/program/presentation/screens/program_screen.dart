@@ -346,7 +346,7 @@ Future<void> _startProgramWithFeedback(
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Start failed: $e'),
-          backgroundColor: Colors.red.shade800,
+          backgroundColor: Colors.red[800]!,
           duration: const Duration(seconds: 6),
         ),
       );

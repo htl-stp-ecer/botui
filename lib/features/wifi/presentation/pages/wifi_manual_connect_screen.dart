@@ -15,12 +15,12 @@ class WifiManualConnectScreen extends ConsumerWidget {
       if (state.connectedSsid != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Connected to ${state.connectedSsid} successfully!'),
-            backgroundColor: Colors.green));
+            backgroundColor: Colors.green[800]!));
         context.pop();
       } else if (state.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Error: ${state.errorMessage}'),
-            backgroundColor: Colors.red));
+            backgroundColor: Colors.red[800]!));
       }
     });
 

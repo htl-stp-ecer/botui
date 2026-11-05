@@ -222,8 +222,12 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
   }
 
   void _showSnack(BuildContext context, String msg, Color color) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color is MaterialColor ? color.shade800 : color,
+      ),
+    );
   }
 
   Widget _spinner() => const SizedBox(

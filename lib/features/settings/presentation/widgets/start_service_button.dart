@@ -35,7 +35,7 @@ class _StartServiceButtonState extends State<StartServiceButton> {
                 'Service ${widget.serviceName} started successfully',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
-              backgroundColor: Colors.green,
+              backgroundColor: Colors.green[800]!,
               duration: const Duration(seconds: 2),
             ),
           );
@@ -50,7 +50,7 @@ class _StartServiceButtonState extends State<StartServiceButton> {
                 'Failed to start service ${widget.serviceName}: ${result.stderr}',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.red[800]!,
               duration: const Duration(seconds: 3),
             ),
           );
@@ -64,7 +64,7 @@ class _StartServiceButtonState extends State<StartServiceButton> {
               'Error starting service: $e',
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red[800]!,
             duration: const Duration(seconds: 3),
           ),
         );

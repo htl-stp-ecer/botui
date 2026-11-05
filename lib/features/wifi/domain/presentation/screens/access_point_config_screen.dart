@@ -46,7 +46,7 @@ class _AccessPointConfigScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${state.errorMessage}'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red[800]!,
           ),
         );
       }

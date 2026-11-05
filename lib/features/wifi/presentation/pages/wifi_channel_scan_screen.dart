@@ -38,7 +38,7 @@ class _WifiChannelScanScreenState extends ConsumerState<WifiChannelScanScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(next.errorMessage!),
-          backgroundColor: Colors.red[700],
+          backgroundColor: Colors.red[800],
         ),
       );
     });

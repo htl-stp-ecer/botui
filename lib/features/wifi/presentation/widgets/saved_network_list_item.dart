@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/features/wifi/application/saved_networks_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
 import 'package:stpvelox/features/wifi/domain/enities/saved_network.dart';
@@ -152,28 +153,16 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
     }
   }
 
-  void _showRemoveDialog(BuildContext context, String ssid) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text('Remove Network'),
-          content: Text('Remove "$ssid" from saved networks?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                ref.read(savedNetworksProvider.notifier).removeSavedNetwork(ssid);
-              },
-              child: const Text('Remove', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
-      },
+  Future<void> _showRemoveDialog(BuildContext context, String ssid) async {
+    final confirmed = await showRaccoonConfirmDialog(
+      context,
+      title: 'Remove Network',
+      message: 'Remove "$ssid" from saved networks?',
+      confirmLabel: 'Remove',
+      icon: Icons.wifi_off,
     );
+    if (confirmed && mounted) {
+      ref.read(savedNetworksProvider.notifier).removeSavedNetwork(ssid);
+    }
   }
 }
