@@ -66,7 +66,7 @@ class _ScreenRotationScreenState extends State<ScreenRotationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red[800]!,
           ),
         );
       }

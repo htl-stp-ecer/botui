@@ -39,7 +39,7 @@ class _ToggleServiceButtonState extends State<ToggleServiceButton> {
                 'Service ${widget.serviceName} ${action}ed successfully',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
-              backgroundColor: Colors.green,
+              backgroundColor: Colors.green[800]!,
               duration: const Duration(seconds: 2),
             ),
           );
@@ -54,7 +54,7 @@ class _ToggleServiceButtonState extends State<ToggleServiceButton> {
                 'Failed to $action service ${widget.serviceName}: ${result.stderr}',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.red[800]!,
               duration: const Duration(seconds: 3),
             ),
           );
@@ -68,7 +68,7 @@ class _ToggleServiceButtonState extends State<ToggleServiceButton> {
               'Error toggling service: $e',
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red[800]!,
             duration: const Duration(seconds: 3),
           ),
         );

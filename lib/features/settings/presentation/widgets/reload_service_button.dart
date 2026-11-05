@@ -35,7 +35,7 @@ class _ReloadServiceButtonState extends State<ReloadServiceButton> {
                 'Service ${widget.serviceName} reloaded successfully',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
-              backgroundColor: Colors.green,
+              backgroundColor: Colors.green[800]!,
               duration: const Duration(seconds: 2),
             ),
           );
@@ -50,7 +50,7 @@ class _ReloadServiceButtonState extends State<ReloadServiceButton> {
                 'Failed to reload service ${widget.serviceName}: ${result.stderr}',
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.red[800]!,
               duration: const Duration(seconds: 3),
             ),
           );
@@ -64,7 +64,7 @@ class _ReloadServiceButtonState extends State<ReloadServiceButton> {
               'Error reloading service: $e',
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red[800]!,
             duration: const Duration(seconds: 3),
           ),
         );

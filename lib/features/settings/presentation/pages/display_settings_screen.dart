@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/application/overview/overview_settings_provider.dart';
 import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 import 'package:stpvelox/core/di/injection.dart';
@@ -58,69 +59,13 @@ class DisplaySettingsScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmHideUi(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
-              const SizedBox(height: 16),
-              const Text(
-                'Hide UI?',
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'The UI will stop. Reboot required to restore.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[400], fontSize: 16),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(ctx).pop(false),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[700],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('Cancel',
-                            style: TextStyle(fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(ctx).pop(true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[700],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('Hide UI',
-                            style: TextStyle(fontSize: 18, color: Colors.white)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+    final confirmed = await showRaccoonConfirmDialog(
+      context,
+      title: 'Hide UI?',
+      message: 'The UI will stop. Reboot required to restore.',
+      confirmLabel: 'Hide UI',
     );
-    if (confirmed == true) {
+    if (confirmed) {
       await SudoProcess.run('systemctl', ['stop', 'flutter-ui']);
     }
   }

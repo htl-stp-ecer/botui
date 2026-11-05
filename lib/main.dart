@@ -199,6 +199,25 @@ class StpVeloxApp extends HookConsumerWidget {
               headlineLarge: TextStyle(color: Colors.white),
               bodyLarge: TextStyle(color: Colors.white70),
             ),
+            // Badges (bottom notifications): always light text on a dark
+            // background. Without this the dark color scheme gives dark text,
+            // which is unreadable on the red/green badges.
+            snackBarTheme: SnackBarThemeData(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.grey[850],
+              contentTextStyle: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+              actionTextColor: Colors.white,
+              elevation: 6,
+              insetPadding:
+                  const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(150, 80),
