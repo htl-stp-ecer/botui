@@ -180,7 +180,7 @@ class _ServiceLogScreenState extends State<ServiceLogScreen> {
                 controller: _terminalController,
                 textStyle: const TerminalStyle(
                   fontSize: 12,
-                  fontFamily: 'monospace',
+                  fontFamily: 'DejaVu Sans Mono',
                 ),
                 padding: const EdgeInsets.all(8),
               ),
