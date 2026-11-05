@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:stpvelox/core/service/raccoon_execution_client.dart';
@@ -16,6 +18,10 @@ final _log = Logger('RaccoonProgramRunning');
 /// and does not linger once the menu closes.
 final raccoonProgramRunningProvider =
     FutureProvider.autoDispose<bool>((ref) async {
+  // Re-check every 2 s while something watches this (the Dev Menu), so the
+  // Stop button follows programs that start or end while the menu is open.
+  final timer = Timer(const Duration(seconds: 2), ref.invalidateSelf);
+  ref.onDispose(timer.cancel);
   try {
     final client = await RaccoonExecutionClient.create();
     final running = await client.getRunningCommand();
