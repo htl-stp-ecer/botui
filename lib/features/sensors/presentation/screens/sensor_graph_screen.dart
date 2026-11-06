@@ -103,7 +103,7 @@ class SensorGraphScreen extends HookConsumerWidget {
             child: IconButton(
               icon: Icon(
                 frozen.value ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                color: frozen.value ? Colors.orangeAccent : Colors.white,
+                color: Colors.white,
                 size: 32,
               ),
               onPressed: () => frozen.value = !frozen.value,

@@ -1,6 +1,6 @@
+import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
@@ -31,42 +31,42 @@ class CalibPaaScreen extends ConsumerWidget {
               icon: Icons.swap_horiz,
               color: TileColor.byIndex(SensorCategory.analog.index),
               state: state,
-              onPressed: () => context.push(AppRoutes.calibPaaDelta),
+              onPressed: () => context.pushOnce(AppRoutes.calibPaaDelta),
             ),
             CalibStatusTile(
               label: 'SQUAL',
               icon: Icons.signal_cellular_alt,
               color: TileColor.byIndex(SensorCategory.digital.index),
               state: state,
-              onPressed: () => context.push(AppRoutes.calibPaaSqual),
+              onPressed: () => context.pushOnce(AppRoutes.calibPaaSqual),
             ),
             CalibStatusTile(
               label: 'Shutter',
               icon: Icons.camera,
               color: TileColor.byIndex(SensorCategory.servo.index),
               state: state,
-              onPressed: () => context.push(AppRoutes.calibPaaShutter),
+              onPressed: () => context.pushOnce(AppRoutes.calibPaaShutter),
             ),
             CalibStatusTile(
               label: 'Track',
               icon: Icons.timeline,
               color: TileColor.byIndex(SensorCategory.motor.index),
               state: state,
-              onPressed: () => context.push(AppRoutes.calibPaaTrack),
+              onPressed: () => context.pushOnce(AppRoutes.calibPaaTrack),
             ),
             CalibStatusTile(
               label: 'Calibration',
               icon: Icons.tune,
               color: TileColor.byIndex(SensorCategory.system.index),
               state: state,
-              onPressed: () => context.push(AppRoutes.calibPaaCalibration),
+              onPressed: () => context.pushOnce(AppRoutes.calibPaaCalibration),
             ),
             CalibStatusTile(
               label: 'Offset',
               icon: Icons.center_focus_strong,
               color: TileColor.byIndex(SensorCategory.gyro.index),
               state: state,
-              onPressed: () => context.push(AppRoutes.calibPaaOffset),
+              onPressed: () => context.pushOnce(AppRoutes.calibPaaOffset),
             ),
           ],
         ),

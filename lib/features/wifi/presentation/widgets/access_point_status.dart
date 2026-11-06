@@ -1,70 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
 
+/// Compact hotspot state card for the settings screen. The full details
+/// (password, security, band, devices) are on the Device Information page.
 class AccessPointStatus extends StatelessWidget {
   final bool isStarted;
-  final String ssid;
+  final AccessPointConfig? config;
   final String? ipAddress;
+  final int connectedClients;
 
   const AccessPointStatus({
     super.key,
     required this.isStarted,
-    required this.ssid,
+    this.config,
     this.ipAddress,
+    this.connectedClients = 0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final accent =
+        isStarted ? const Color(0xFF81C784) : const Color(0xFF9E9E9E);
+    final details = <String>[
+      if (isStarted && config != null) config!.ssid,
+      if (isStarted && ipAddress != null) ipAddress!,
+      if (isStarted)
+        '$connectedClients device${connectedClients == 1 ? '' : 's'}',
+    ];
+
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isStarted ? Colors.green[900] : Colors.grey[800],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isStarted ? Colors.green[400]! : Colors.grey[600]!,
-          width: 2,
-        ),
+        color: const Color(0xFF11161C),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accent.withValues(alpha: 0.32), width: 1.5),
       ),
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(
-                isStarted ? Icons.router : Icons.router_outlined,
-                color: isStarted ? Colors.green[300] : Colors.grey[400],
-                size: 32,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                isStarted ? 'Hotspot Active' : 'Hotspot Inactive',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isStarted ? Colors.green[300] : Colors.grey[300],
-                ),
-              ),
-            ],
-          ),
-          if (isStarted) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Network: $ssid',
-              style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(14),
             ),
-            if (ipAddress != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                'IP Address: $ipAddress',
-                style: const TextStyle(
-                    fontSize: 16,
+            child: Icon(
+              isStarted ? Icons.router_rounded : Icons.router_outlined,
+              color: accent,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isStarted ? 'Hotspot active' : 'Hotspot inactive',
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w500),
-              ),
-            ],
-          ],
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (details.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    details.join('  ·  '),
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );

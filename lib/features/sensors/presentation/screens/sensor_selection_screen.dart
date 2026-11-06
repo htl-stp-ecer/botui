@@ -1,7 +1,7 @@
 // presentation/screens/sensor_selection_screen.dart
+import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:collection/collection.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
@@ -92,7 +92,7 @@ class SensorSelectionScreen extends ConsumerWidget {
       label: 'IMU',
       icon: Icons.sensors,
       onPressed: () {
-        context.push(AppRoutes.imuSelection, extra: imuGroups);
+        context.pushOnce(AppRoutes.imuSelection, extra: imuGroups);
       },
       color: TileColor.byIndex(SensorCategory.gyro.index),
     );
@@ -105,11 +105,11 @@ class SensorSelectionScreen extends ConsumerWidget {
       icon: sensorCategoryIcon(category),
       onPressed: () {
         if (sensor.length == 1) {
-          context.push(AppRoutes.sensorScreen, extra: sensor.first.screen);
+          context.pushOnce(AppRoutes.sensorScreen, extra: sensor.first.screen);
           return;
         }
 
-        context.push(
+        context.pushOnce(
           AppRoutes.sensorCategory,
           extra: {'category': category, 'sensors': sensor},
         );
@@ -134,7 +134,7 @@ class _CalibBoardTile extends ConsumerWidget {
           ? CalibSensorState.ok
           : CalibSensorState.unavailable,
       detail: status.boardConnected ? status.port : 'USB-C not connected',
-      onPressed: () => context.push(AppRoutes.calibBoard),
+      onPressed: () => context.pushOnce(AppRoutes.calibBoard),
     );
   }
 }

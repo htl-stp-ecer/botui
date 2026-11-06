@@ -1,6 +1,6 @@
+import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/application/overview/overview_settings_provider.dart';
@@ -30,13 +30,13 @@ class DisplaySettingsScreen extends ConsumerWidget {
               icon: Icons.palette,
               label: 'Color Theme',
               color: TileColor.pink,
-              onPressed: () => context.push(AppRoutes.colorTheme),
+              onPressed: () => context.pushOnce(AppRoutes.colorTheme),
             ),
             ResponsiveGridTile(
               icon: Icons.screen_rotation,
               label: 'Rotate',
               color: TileColor.teal,
-              onPressed: () => context.push(AppRoutes.screenRotation),
+              onPressed: () => context.pushOnce(AppRoutes.screenRotation),
             ),
             const _OverviewSideTile(),
             _ScreensaverTile(prefs: prefs),
@@ -44,7 +44,7 @@ class DisplaySettingsScreen extends ConsumerWidget {
               icon: Icons.display_settings,
               label: 'Calibrate',
               color: TileColor.purple,
-              onPressed: () => context.push(AppRoutes.touchCalibration),
+              onPressed: () => context.pushOnce(AppRoutes.touchCalibration),
             ),
             ResponsiveGridTile(
               icon: Icons.remove_red_eye,
@@ -114,15 +114,21 @@ class _OverviewSideTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final side = ref.watch(overviewSideProvider);
+    // In portrait the dashboard stacks the overview: stored "right" is top,
+    // "left" is bottom, so the option is named accordingly.
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     final (icon, label, color) = switch (side) {
       OverviewSide.left => (
-          Icons.align_horizontal_left,
-          'Overview Left',
+          isPortrait
+              ? Icons.align_vertical_bottom
+              : Icons.align_horizontal_left,
+          isPortrait ? 'Overview Bottom' : 'Overview Left',
           TileColor.indigo
         ),
       OverviewSide.right => (
-          Icons.align_horizontal_right,
-          'Overview Right',
+          isPortrait ? Icons.align_vertical_top : Icons.align_horizontal_right,
+          isPortrait ? 'Overview Top' : 'Overview Right',
           TileColor.indigo
         ),
       OverviewSide.off => (

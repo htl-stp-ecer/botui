@@ -1,5 +1,5 @@
+import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/service/sensors/battery_voltage_sensor.dart';
@@ -22,10 +22,10 @@ class SystemHealthScreen extends HookConsumerWidget {
       backgroundColor: Colors.black87,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.all(8),
           child: GridView.count(
             crossAxisCount: 2,
-            mainAxisSpacing: 6,
+            mainAxisSpacing: 8,
             crossAxisSpacing: 8,
             childAspectRatio: 2.6,
             children: [
@@ -35,7 +35,7 @@ class SystemHealthScreen extends HookConsumerWidget {
                 value: '${health.cpuPercent.toStringAsFixed(0)}%',
                 progress: health.cpuPercent / 100,
                 color: _percentColor(health.cpuPercent),
-                onTap: () => context.push(
+                onTap: () => context.pushOnce(
                   AppRoutes.systemHealthGraph,
                   extra: SystemHealthMetric.cpu,
                 ),
@@ -46,7 +46,7 @@ class SystemHealthScreen extends HookConsumerWidget {
                 value: '${health.ramUsedMB} / ${health.ramTotalMB} MB',
                 progress: health.ramPercent / 100,
                 color: _percentColor(health.ramPercent),
-                onTap: () => context.push(
+                onTap: () => context.pushOnce(
                   AppRoutes.systemHealthGraph,
                   extra: SystemHealthMetric.ram,
                 ),
@@ -58,14 +58,14 @@ class SystemHealthScreen extends HookConsumerWidget {
                     '${health.diskUsedGB.toStringAsFixed(1)} / ${health.diskTotalGB.toStringAsFixed(1)} GB',
                 progress: health.diskPercent / 100,
                 color: _percentColor(health.diskPercent),
-                onTap: () => context.push(AppRoutes.diskUsage),
+                onTap: () => context.pushOnce(AppRoutes.diskUsage),
               ),
               _MetricCard(
                 icon: Icons.thermostat,
                 label: 'CPU Temp',
                 value: '${health.cpuTempC.toStringAsFixed(1)}°C',
                 color: _tempColor(health.cpuTempC),
-                onTap: () => context.push(
+                onTap: () => context.pushOnce(
                   AppRoutes.systemHealthGraph,
                   extra: SystemHealthMetric.temperature,
                 ),
@@ -77,7 +77,7 @@ class SystemHealthScreen extends HookConsumerWidget {
                     ? '${imuTemp.toStringAsFixed(1)}°C'
                     : '--',
                 color: _tempColor(imuTemp ?? 0),
-                onTap: () => context.push(
+                onTap: () => context.pushOnce(
                   AppRoutes.systemHealthGraph,
                   extra: SystemHealthMetric.temperature,
                 ),
@@ -89,7 +89,7 @@ class SystemHealthScreen extends HookConsumerWidget {
                     ? '${battery.toStringAsFixed(2)} V'
                     : '--',
                 color: Colors.green,
-                onTap: () => context.push(
+                onTap: () => context.pushOnce(
                   AppRoutes.systemHealthGraph,
                   extra: SystemHealthMetric.battery,
                 ),
@@ -152,7 +152,6 @@ class _MetricCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.grey[900],
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey[800]!, width: 1),
         ),
         child: Row(
           children: [

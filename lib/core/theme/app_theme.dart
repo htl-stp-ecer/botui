@@ -72,9 +72,23 @@ sealed class AppTheme {
   /// Fallback for [preview] when [previewColor] is not set.
   Color get defaultPreview;
 
+  /// The color of "disabled / neutral" things. It is the same in every theme.
+  static const Color disabledColor = Color(0xFF616161);
+
+  /// True for themes that color by position (see [PatternTheme]).
+  bool get isPattern => this is PatternTheme;
+
   /// The color of a tile that asks for [slot] and sits at [position] (0-based)
   /// in its group; [position] is null for tiles that are not in a group.
-  Color tileColor(TileColor slot, int? position);
+  ///
+  /// [TileColor.grey] (disabled) is always [disabledColor], whatever the theme.
+  Color tileColor(TileColor slot, int? position) =>
+      slot == TileColor.grey ? disabledColor : themedColor(slot, position);
+
+  /// What this theme makes of [slot] / [position]. Themes implement this;
+  /// callers use [tileColor], which keeps disabled grey.
+  @protected
+  Color themedColor(TileColor slot, int? position);
 }
 
 class StandardTheme extends AppTheme {
@@ -105,7 +119,7 @@ class StandardTheme extends AppTheme {
   Color get defaultPreview => colors[TileColor.blue] ?? fallback;
 
   @override
-  Color tileColor(TileColor slot, int? position) => colors[slot] ?? fallback;
+  Color themedColor(TileColor slot, int? position) => colors[slot] ?? fallback;
 }
 
 class PatternTheme extends AppTheme {
@@ -126,7 +140,7 @@ class PatternTheme extends AppTheme {
       pattern.isEmpty ? const Color(0xFF616161) : pattern.first;
 
   @override
-  Color tileColor(TileColor slot, int? position) => pattern.isEmpty
+  Color themedColor(TileColor slot, int? position) => pattern.isEmpty
       ? const Color(0xFF616161)
       : pattern[(position ?? 0) % pattern.length];
 }

@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stpvelox/core/service/sensors/battery_voltage_sensor.dart';
+import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 
 part 'battery_check_service.g.dart';
 
@@ -54,51 +55,18 @@ class BatteryCheckService extends _$BatteryCheckService {
 
     _warningVisible = true;
 
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black87,
-      builder: (ctx) {
-        return PopScope(
-          canPop: false,
-          child: Dialog(
-            backgroundColor: Colors.grey[900],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.battery_alert_rounded,
-                    color: Colors.orange,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Low Battery',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Battery voltage is ${voltage.toStringAsFixed(2)}V.\n'
-                    'The robot may restart at any time.\n'
-                    'Please switch the battery now.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    // No button: it closes itself when the voltage recovers.
+    showRaccoonDialog<void>(
+      context,
+      dismissible: false,
+      builder: (_) => RaccoonDialog(
+        icon: Icons.battery_alert_rounded,
+        iconColor: Colors.orange,
+        title: 'Low Battery',
+        message: 'Battery voltage is ${voltage.toStringAsFixed(2)}V.\n'
+            'The robot may restart at any time.\n'
+            'Please switch the battery now.',
+      ),
     ).whenComplete(() {
       _warningVisible = false;
     });

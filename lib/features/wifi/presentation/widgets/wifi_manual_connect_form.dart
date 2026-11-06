@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_credentials.dart';
@@ -201,11 +202,6 @@ class _WifiManualConnectFormState extends ConsumerState<WifiManualConnectForm> {
   }
 
   void _showErrorSnackbar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red[800]!,
-      ),
-    );
+    AppToast.error(message);
   }
 }

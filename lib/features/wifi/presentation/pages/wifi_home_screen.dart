@@ -1,6 +1,7 @@
+import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
@@ -33,28 +34,13 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
         return;
       }
 
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.hideCurrentSnackBar();
-
       if (next.errorMessage != null) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage!),
-            duration: const Duration(seconds: 4),
-            backgroundColor: Colors.red[800],
-          ),
-        );
+        AppToast.error(next.errorMessage!, duration: const Duration(seconds: 4));
         return;
       }
 
       if (previous?.mode != next.mode) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Switched to ${_modeTitle(next.mode)}'),
-            duration: const Duration(seconds: 2),
-            backgroundColor: Colors.green[800],
-          ),
-        );
+        AppToast.success('Switched to ${_modeTitle(next.mode)}', duration: const Duration(seconds: 2));
       }
     });
 
@@ -121,7 +107,7 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
                             label: action.title,
                             icon: action.icon,
                             color: action.color,
-                            onPressed: () => context.push(action.route),
+                            onPressed: () => context.pushOnce(action.route),
                           ),
                       ],
                     ),
@@ -298,12 +284,6 @@ List<_WifiAction> _actionsForMode(NetworkMode mode) {
           icon: Icons.router_rounded,
           color: TileColor.purple,
           route: AppRoutes.wifiAccessPointConfig,
-        ),
-        _WifiAction(
-          title: 'Network Status',
-          icon: Icons.network_check_rounded,
-          color: TileColor.orange,
-          route: AppRoutes.wifiAccessPointStatus,
         ),
         _WifiAction(
           title: 'Device Info',

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:stpvelox/core/utils/sudo_process.dart';
 
@@ -29,45 +30,18 @@ class _StartServiceButtonState extends State<StartServiceButton> {
 
       if (result.exitCode == 0) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Service ${widget.serviceName} started successfully',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-              backgroundColor: Colors.green[800]!,
-              duration: const Duration(seconds: 2),
-            ),
-          );
+          AppToast.success('Service ${widget.serviceName} started successfully', duration: const Duration(seconds: 2));
 
           widget.onServiceChanged();
         }
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Failed to start service ${widget.serviceName}: ${result.stderr}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-              backgroundColor: Colors.red[800]!,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          AppToast.error('Failed to start service ${widget.serviceName}: ${result.stderr}', duration: const Duration(seconds: 3));
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Error starting service: $e',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-            ),
-            backgroundColor: Colors.red[800]!,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        AppToast.error('Error starting service: $e', duration: const Duration(seconds: 3));
       }
     } finally {
       if (mounted) {

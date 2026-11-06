@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -57,7 +58,6 @@ class DevMenuScreen extends ConsumerWidget {
                       color: isRunning ? TileColor.red : TileColor.grey,
                       onTap: isRunning
                           ? () async {
-                              final messenger = ScaffoldMessenger.of(context);
                               _log.warning(
                                   '[StopButton] tapped — isRunning=$isRunning, session=$session');
                               try {
@@ -67,26 +67,12 @@ class DevMenuScreen extends ConsumerWidget {
                                 _log.info(
                                     '[StopButton] stopProgram() returned exitCode=$exitCode');
                                 if (exitCode == -1) {
-                                  messenger.showSnackBar(SnackBar(
-                                    content: const Text(
-                                      'Could not stop the program (see log)',
-                                      style: TextStyle(color: Color(0xFFFFFFFF)),
-                                    ),
-                                    backgroundColor: Colors.red[800],
-                                    duration: const Duration(seconds: 3),
-                                  ));
+                                  AppToast.error('Could not stop the program (see log)', duration: const Duration(seconds: 3));
                                 }
                               } catch (e, st) {
                                 _log.severe(
                                     '[StopButton] stopProgram() threw: $e', e, st);
-                                messenger.showSnackBar(SnackBar(
-                                  content: Text(
-                                    'Stop failed: $e',
-                                    style: const TextStyle(color: Color(0xFFFFFFFF)),
-                                  ),
-                                  backgroundColor: Colors.red[800],
-                                  duration: const Duration(seconds: 3),
-                                ));
+                                AppToast.error('Stop failed: $e', duration: const Duration(seconds: 3));
                               }
                               ref.invalidate(raccoonProgramRunningProvider);
                               close();
@@ -177,23 +163,17 @@ class DevMenuScreen extends ConsumerWidget {
     } else {
       Process.run('bash', ['/home/pi/flash_files/reset_coprocessor.sh']);
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Resetting STM32...'), duration: Duration(seconds: 2)),
-    );
+    AppToast.info('Resetting STM32...', duration: Duration(seconds: 2));
   }
 
   void _restartUI(BuildContext context) {
     SudoProcess.run('systemctl', ['restart', 'flutter-ui.service']);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Restarting UI...'), duration: Duration(seconds: 2)),
-    );
+    AppToast.info('Restarting UI...', duration: Duration(seconds: 2));
   }
 
   void _rebootRobot(BuildContext context) {
     SudoProcess.run('reboot', []);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Rebooting robot...'), duration: Duration(seconds: 2)),
-    );
+    AppToast.info('Rebooting robot...', duration: Duration(seconds: 2));
   }
 }
 

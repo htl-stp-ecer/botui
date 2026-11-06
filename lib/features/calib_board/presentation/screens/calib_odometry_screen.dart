@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'dart:math' as math;
 
 import 'package:fl_chart/fl_chart.dart';
@@ -44,9 +45,7 @@ class CalibOdometryScreen extends HookConsumerWidget {
       ref.read(calibCommandPublisherProvider).sendOdomReset();
       ref.read(calibCommandPublisherProvider).sendResetPosition();
       path.value = const [Offset.zero];
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pose reset')),
-      );
+      AppToast.info('Pose reset');
     }
 
     return Scaffold(

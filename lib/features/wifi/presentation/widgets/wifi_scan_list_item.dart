@@ -1,7 +1,8 @@
 // dart
+import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/features/wifi/application/saved_networks_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
@@ -93,9 +94,6 @@ class _WifiScanListItemState extends ConsumerState<WifiScanListItem>
         )
             : IconButton(
           onPressed: () async {
-            // Save ScaffoldMessenger reference before async operations
-            final scaffoldMessenger = ScaffoldMessenger.of(context);
-
             setState(() {
               _isConnecting = true;
             });
@@ -109,16 +107,12 @@ class _WifiScanListItemState extends ConsumerState<WifiScanListItem>
                   .loadNetworks();
 
               if (mounted) {
-                scaffoldMessenger.showSnackBar(
-                  const SnackBar(content: Text('Connected — list refreshed')),
-                );
+                AppToast.success('Connected — list refreshed');
               }
             } catch (e) {
               log.severe('Quick connect failed for ${network.ssid}: $e');
               if (mounted) {
-                scaffoldMessenger.showSnackBar(
-                  SnackBar(content: Text('Quick connect failed: $e')),
-                );
+                AppToast.error('Quick connect failed: $e');
               }
             } finally {
               if (mounted) {
@@ -137,7 +131,7 @@ class _WifiScanListItemState extends ConsumerState<WifiScanListItem>
           size: 16,
           color: Colors.grey.shade400,
         ),
-        onTap: () => context.push(AppRoutes.wifiDetail, extra: network),
+        onTap: () => context.pushOnce(AppRoutes.wifiDetail, extra: network),
       ),
     );
   }

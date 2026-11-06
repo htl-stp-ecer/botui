@@ -77,6 +77,12 @@ class WifiRepositoryImpl implements IWifiRepository {
   }
 
   @override
+  Future<int> getAccessPointClientCount() async {
+    final status = await api.getAccessPointStatus();
+    return status['connectedClients'] as int? ?? 0;
+  }
+
+  @override
   Future<AccessPointConfig?> getAccessPointConfig() async {
     final json = await api.getAccessPointConfig();
     if (json == null || json.isEmpty) {

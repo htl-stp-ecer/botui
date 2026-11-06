@@ -1,5 +1,5 @@
+import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/application/overview/overview_settings_provider.dart';
 import 'package:stpvelox/application/theme/color_theme_provider.dart';
@@ -69,15 +69,21 @@ class DashboardScreen extends ConsumerWidget {
       content = menu;
     } else {
       const overview = OverviewSection();
-      final halves =
-          side == OverviewSide.left ? [overview, menu] : [menu, overview];
-      content = Row(
-        children: [
-          Expanded(child: halves[0]),
-          const SizedBox(width: AppSpacing.tileGap),
-          Expanded(child: halves[1]),
-        ],
-      );
+      final isPortrait =
+          MediaQuery.orientationOf(context) == Orientation.portrait;
+      // Landscape: side by side, overview left or right. Portrait: stacked;
+      // the stored "right" becomes top and "left" becomes bottom.
+      final overviewFirst =
+          isPortrait ? side == OverviewSide.right : side == OverviewSide.left;
+      final halves = overviewFirst ? [overview, menu] : [menu, overview];
+      final children = <Widget>[
+        Expanded(child: halves[0]),
+        isPortrait
+            ? const SizedBox(height: AppSpacing.tileGap)
+            : const SizedBox(width: AppSpacing.tileGap),
+        Expanded(child: halves[1]),
+      ];
+      content = isPortrait ? Column(children: children) : Row(children: children);
     }
 
     return Scaffold(
@@ -119,7 +125,7 @@ class _DashboardTile extends ConsumerWidget {
       label: label,
       button: true,
       child: GestureDetector(
-        onTap: () => context.push(route),
+        onTap: () => context.pushOnce(route),
         child: Container(
           decoration: BoxDecoration(
             color: tileColor,

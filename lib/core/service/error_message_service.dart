@@ -7,6 +7,7 @@ import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/router/app_router.dart' show rootNavigatorKey;
+import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 
 part 'error_message_service.g.dart';
 
@@ -98,75 +99,8 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
 
     _dialogVisible = true;
 
-    // Custom Dialog matching the app's dark theme (see e.g.
-    // sensor_category_screen.dart's _ShutdownWarningDialog) instead of
-    // the default Material AlertDialog which renders with the platform
-    // light defaults and looks out of place on the Wombat screen.
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black87,
-      builder: (ctx) {
-        return PopScope(
-          canPop: false,
-          child: Dialog(
-            backgroundColor: Colors.grey[900],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    color: Colors.redAccent,
-                    size: 48,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Error',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    message,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey[300],
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red[700],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Acknowledge',
-                        style: TextStyle(fontSize: 18, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    ).whenComplete(() {
+    // Non-dismissible one-button error dialog (shared raccoon dialog).
+    showRaccoonErrorDialog(context, message).whenComplete(() {
       _dialogVisible = false;
     });
   }

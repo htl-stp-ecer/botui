@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:stpvelox/core/widgets/app_toast.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -51,24 +52,14 @@ class _ScreenRotationScreenState extends State<ScreenRotationScreen> {
       await SudoProcess.run('systemctl', ['restart', 'flutter-ui']);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Rotation applied! Restarting...'),
-            duration: Duration(seconds: 2),
-          ),
-        );
+        AppToast.info('Rotation applied! Restarting...', duration: Duration(seconds: 2));
         Future.delayed(const Duration(seconds: 2), () {
           if (mounted) context.pop();
         });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red[800]!,
-          ),
-        );
+        AppToast.error('Error: $e');
       }
     } finally {
       if (mounted) {

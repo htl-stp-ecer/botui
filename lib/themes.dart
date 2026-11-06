@@ -28,7 +28,9 @@
 //   TileColor.brown     LAN Status
 //   TileColor.blueGrey  Hide UI, Device Info, Advanced
 //   TileColor.grey      neutral/disabled: Screensaver off, Overview off,
-//                       Stop Program when no program runs
+//                       Stop Program when no program runs. Always the same
+//                       grey in every theme: whatever a theme defines for
+//                       this slot (or its pattern) is ignored.
 //
 // Sensor categories, IMU entries, programs and the calibration board take
 // their slot by position from this sequence (then it repeats):

@@ -54,7 +54,7 @@ class SystemHealthGraphScreen extends HookConsumerWidget {
     final dataPoints = useState<List<double>>([]);
     final movingAvgPoints = useState<List<double>>([]);
     final lastValue = useState<double?>(null);
-    final autoScale = useState<bool>(true);
+    final autoScale = useState<bool>(false);
 
     final health = ref.watch(systemHealthSensorProvider);
 
@@ -112,7 +112,7 @@ class SystemHealthGraphScreen extends HookConsumerWidget {
             child: IconButton(
               icon: Icon(
                 frozen.value ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                color: frozen.value ? Colors.orangeAccent : Colors.white,
+                color: Colors.white,
                 size: 32,
               ),
               onPressed: () => frozen.value = !frozen.value,
@@ -184,7 +184,7 @@ class SystemHealthGraphScreen extends HookConsumerWidget {
     final cpuMovingAvgPoints = useState<List<double>>([]);
     final lastCpuValue = useState<double?>(null);
 
-    final autoScale = useState<bool>(true);
+    final autoScale = useState<bool>(false);
 
     final imuReading = useTemperature(ref);
     final cpuReading = useCpuTemperature(ref);

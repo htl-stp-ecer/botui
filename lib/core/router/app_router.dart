@@ -60,7 +60,6 @@ import 'package:stpvelox/features/wifi/presentation/pages/wifi_detail_screen.dar
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_manual_connect_screen.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_enterprise_credential_screen.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/device_info_screen.dart';
-import 'package:stpvelox/features/wifi/presentation/pages/access_point_status_screen.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/lan_only_status_screen.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_channel_scan_screen.dart';
 import 'package:stpvelox/features/wifi/domain/presentation/screens/saved_networks_screen.dart';
@@ -148,7 +147,6 @@ abstract class AppRoutes {
   static const wifiEnterprise = '/wifi/enterprise';
   static const wifiSavedNetworks = '/wifi/saved';
   static const wifiAccessPointConfig = '/wifi/ap-config';
-  static const wifiAccessPointStatus = '/wifi/ap-status';
   static const wifiChannelScan = '/wifi/channel-scan';
   static const wifiLanStatus = '/wifi/lan-status';
   static const wifiDeviceInfo = '/wifi/device-info';
@@ -475,11 +473,6 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.wifiAccessPointConfig,
         name: 'wifiAccessPointConfig',
         builder: (context, state) => const AccessPointConfigScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.wifiAccessPointStatus,
-        name: 'wifiAccessPointStatus',
-        builder: (context, state) => const AccessPointStatusScreen(),
       ),
       GoRoute(
         path: AppRoutes.wifiChannelScan,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
@@ -13,14 +14,10 @@ class WifiManualConnectScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen<WifiClientState>(wifiClientProvider, (previous, state) {
       if (state.connectedSsid != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Connected to ${state.connectedSsid} successfully!'),
-            backgroundColor: Colors.green[800]!));
+        AppToast.success('Connected to ${state.connectedSsid} successfully!');
         context.pop();
       } else if (state.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Error: ${state.errorMessage}'),
-            backgroundColor: Colors.red[800]!));
+        AppToast.error('Error: ${state.errorMessage}');
       }
     });
 

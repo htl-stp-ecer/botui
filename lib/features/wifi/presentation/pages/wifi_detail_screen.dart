@@ -1,3 +1,5 @@
+import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -210,7 +212,7 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
   }
 
   void _navigateToEnterpriseCredentials(WifiNetwork network) async {
-    final creds = await context.push<WifiCredentials?>(
+    final creds = await context.pushOnce<WifiCredentials?>(
       AppRoutes.wifiEnterprise,
       extra: network.ssid,
     );
@@ -222,12 +224,11 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
   }
 
   void _showSnack(BuildContext context, String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: color is MaterialColor ? color.shade800 : color,
-      ),
-    );
+    if (color == Colors.red) {
+      AppToast.error(msg);
+    } else {
+      AppToast.success(msg);
+    }
   }
 
   Widget _spinner() => const SizedBox(

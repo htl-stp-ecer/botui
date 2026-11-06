@@ -28,6 +28,7 @@ abstract class IWifiRepository {
   Future<void> startAccessPoint(AccessPointConfig config);
   Future<void> stopAccessPoint();
   Future<bool> isAccessPointActive();
+  Future<int> getAccessPointClientCount();
   Future<AccessPointConfig?> getAccessPointConfig();
   Future<WifiBand> findBestWifiBand();
   Future<int> findBestChannel(WifiBand band);
