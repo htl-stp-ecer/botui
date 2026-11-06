@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
@@ -30,43 +31,36 @@ class _AccessPointConfigScreenState
       // Only show snackbar if isStarted actually changed
       if (previous != null && previous.isStarted != state.isStarted) {
         if (state.isStarted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Hotspot started successfully')),
-          );
+          AppToast.success('Hotspot started successfully');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Hotspot stopped')),
-          );
+          AppToast.info('Hotspot stopped');
         }
       }
 
       // Show error message only if it's new
       if (state.errorMessage != null &&
           state.errorMessage != previous?.errorMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${state.errorMessage}'),
-            backgroundColor: Colors.red[800]!,
-          ),
-        );
+        AppToast.error('Error: ${state.errorMessage}');
       }
     });
 
     final state = ref.watch(accessPointProvider);
 
     return Scaffold(
+      backgroundColor: Colors.black87,
       appBar: createTopBar(context, 'Hotspot Settings'),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AccessPointStatus(
               isStarted: state.isStarted,
-              ssid: state.config?.ssid ?? '',
+              config: state.config,
               ipAddress: state.ipAddress,
+              connectedClients: state.connectedClients,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             AccessPointForm(
               initialConfig: state.config,
               isStarted: state.isStarted,

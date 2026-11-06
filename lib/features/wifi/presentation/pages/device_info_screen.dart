@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
+import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
+import 'package:stpvelox/features/wifi/domain/application/access_point_state.dart';
 import 'package:stpvelox/features/wifi/domain/application/wifi_client_state.dart';
+import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
+import 'package:stpvelox/features/wifi/domain/enities/wifi_band.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_encryption_type.dart';
 
 class DeviceInfoScreen extends ConsumerStatefulWidget {
@@ -15,6 +21,11 @@ class DeviceInfoScreen extends ConsumerStatefulWidget {
 class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _loadingController;
+  Timer? _clientsTimer;
+  bool _showHotspotPassword = false;
+  // False until device info and hotspot state have both loaded, so every card
+  // appears at once instead of the hotspot card popping in afterwards.
+  bool _ready = false;
 
   @override
   void initState() {
@@ -24,13 +35,21 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
       duration: const Duration(milliseconds: 1400),
     )..repeat();
 
-    Future.microtask(() {
-      ref.read(wifiClientProvider.notifier).loadDeviceInfo();
+    Future.microtask(() async {
+      await Future.wait([
+        ref.read(wifiClientProvider.notifier).loadDeviceInfo(),
+        ref.read(accessPointProvider.notifier).refreshStatus(),
+      ]);
+      if (mounted) setState(() => _ready = true);
+    });
+    _clientsTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      ref.read(accessPointProvider.notifier).refreshConnectedClients();
     });
   }
 
   @override
   void dispose() {
+    _clientsTimer?.cancel();
     _loadingController.dispose();
     super.dispose();
   }
@@ -38,6 +57,7 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(wifiClientProvider);
+    final apState = ref.watch(accessPointProvider);
 
     return Scaffold(
       backgroundColor: Colors.black87,
@@ -45,14 +65,14 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 220),
-          child: _buildBody(state),
+          child: _buildBody(state, apState),
         ),
       ),
     );
   }
 
-  Widget _buildBody(WifiClientState state) {
-    if (state.isLoading) {
+  Widget _buildBody(WifiClientState state, AccessPointState apState) {
+    if (!_ready || state.isLoading) {
       return Center(
         key: const ValueKey('loading'),
         child: _LoadingPanel(controller: _loadingController),
@@ -77,62 +97,137 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
 
     final deviceInfo = state.deviceInfo!;
     final network = deviceInfo.connectedNetwork;
+    final hotspot = apState.isStarted ? apState.config : null;
 
-    return ListView(
+    // Column in a SingleChildScrollView (not a lazy ListView) so all cards are
+    // built up front and none pops in or out while scrolling.
+    return SingleChildScrollView(
       key: const ValueKey('content'),
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _InfoCard(
+            title: 'Addressing',
+            accent: const Color(0xFF4FC3F7),
+            children: [
+              _InfoRow(
+                icon: Icons.lan_rounded,
+                label: 'IP Address',
+                value: deviceInfo.ipAddress,
+              ),
+              _InfoRow(
+                icon: Icons.memory_rounded,
+                label: 'MAC Address',
+                value: deviceInfo.macAddress ?? 'Unavailable',
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _InfoCard(
+            title: 'Connection',
+            accent: network != null
+                ? const Color(0xFF81C784)
+                : const Color(0xFFFFB74D),
+            children: [
+              _InfoRow(
+                icon: network != null
+                    ? Icons.wifi_rounded
+                    : hotspot != null
+                        ? Icons.router_rounded
+                        : Icons.wifi_off_rounded,
+                label: 'Status',
+                value: network != null
+                    ? 'Connected'
+                    : hotspot != null
+                        ? 'Hotspot active'
+                        : 'Offline',
+              ),
+              if (network != null) ...[
+                _InfoRow(
+                  icon: Icons.router_rounded,
+                  label: 'SSID',
+                  value: network.ssid,
+                ),
+                _InfoRow(
+                  icon: Icons.lock_outline_rounded,
+                  label: 'Security',
+                  value: network.encryptionType.formatted,
+                ),
+              ] else if (hotspot == null)
+                const _InfoHint(
+                  text: 'No wireless network is currently connected.',
+                ),
+              if (deviceInfo.ethernetIpAddress != null)
+                _InfoRow(
+                  icon: Icons.cable_rounded,
+                  label: 'Ethernet IP',
+                  value: deviceInfo.ethernetIpAddress!,
+                ),
+            ],
+          ),
+          if (hotspot != null) ...[
+            const SizedBox(height: 14),
+            _buildHotspotCard(hotspot, apState.connectedClients),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHotspotCard(AccessPointConfig config, int connectedClients) {
+    final hasPassword = config.encryptionType != WifiEncryptionType.open &&
+        config.password.isNotEmpty;
+    final band = config.channel > 0
+        ? '${config.band.displayName} (channel ${config.channel})'
+        : config.band.displayName;
+
+    return _InfoCard(
+      title: 'Hotspot',
+      accent: const Color(0xFFBA68C8),
       children: [
-        _InfoCard(
-          title: 'Addressing',
-          accent: const Color(0xFF4FC3F7),
-          children: [
-            _InfoRow(
-              icon: Icons.lan_rounded,
-              label: 'IP Address',
-              value: deviceInfo.ipAddress,
-            ),
-            _InfoRow(
-              icon: Icons.memory_rounded,
-              label: 'MAC Address',
-              value: deviceInfo.macAddress ?? 'Unavailable',
-            ),
-          ],
+        _InfoRow(
+          icon: Icons.router_rounded,
+          label: 'Network name',
+          value: config.ssid,
         ),
-        const SizedBox(height: 14),
-        _InfoCard(
-          title: 'Connection',
-          accent: network != null
-              ? const Color(0xFF81C784)
-              : const Color(0xFFFFB74D),
-          children: [
-            _InfoRow(
-              icon:
-                  network != null ? Icons.wifi_rounded : Icons.wifi_off_rounded,
-              label: 'Status',
-              value: network != null ? 'Connected' : 'Offline',
-            ),
-            if (network != null) ...[
-              _InfoRow(
-                icon: Icons.router_rounded,
-                label: 'SSID',
-                value: network.ssid,
-              ),
-              _InfoRow(
-                icon: Icons.lock_outline_rounded,
-                label: 'Security',
-                value: network.encryptionType.formatted,
-              ),
-            ] else
-              const _InfoHint(
-                text: 'No wireless network is currently connected.',
-              ),
-            if (deviceInfo.ethernetIpAddress != null)
-              _InfoRow(
-                icon: Icons.cable_rounded,
-                label: 'Ethernet IP',
-                value: deviceInfo.ethernetIpAddress!,
-              ),
-          ],
+        _InfoRow(
+          icon: Icons.key_rounded,
+          label: 'Password',
+          value: !hasPassword
+              ? 'None'
+              : _showHotspotPassword
+                  ? config.password
+                  : '\u2022' * 8,
+          trailing: hasPassword
+              ? IconButton(
+                  tooltip:
+                      _showHotspotPassword ? 'Hide password' : 'Show password',
+                  icon: Icon(
+                    _showHotspotPassword
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
+                    color: Colors.white70,
+                  ),
+                  onPressed: () => setState(
+                      () => _showHotspotPassword = !_showHotspotPassword),
+                )
+              : null,
+        ),
+        _InfoRow(
+          icon: Icons.lock_outline_rounded,
+          label: 'Security',
+          value: config.encryptionType.formatted,
+        ),
+        _InfoRow(
+          icon: Icons.network_wifi_rounded,
+          label: 'Band',
+          value: band,
+        ),
+        _InfoRow(
+          icon: Icons.devices_rounded,
+          label: 'Connected devices',
+          value: '$connectedClients',
         ),
       ],
     );
@@ -274,11 +369,13 @@ class _InfoRow extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
+    this.trailing,
   });
 
   final IconData icon;
   final String label;
   final String value;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -320,6 +417,7 @@ class _InfoRow extends StatelessWidget {
               ],
             ),
           ),
+          if (trailing != null) trailing!,
         ],
       ),
     );

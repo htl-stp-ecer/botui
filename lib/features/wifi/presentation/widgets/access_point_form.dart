@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/core/utils/password_generator.dart';
+import 'package:stpvelox/features/wifi/application/access_point_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
+import 'package:stpvelox/features/wifi/domain/application/access_point_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_band.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_encryption_type.dart';
@@ -63,12 +65,58 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
     final apState = ref.watch(accessPointProvider);
     final apNotifier = ref.read(accessPointProvider.notifier);
 
+    return Theme(
+      data: Theme.of(context).copyWith(
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white.withValues(alpha: 0.05),
+          labelStyle: TextStyle(color: Colors.grey[400]),
+          prefixIconColor: Colors.white70,
+          suffixIconColor: Colors.white70,
+          border: _fieldBorder(Colors.white.withValues(alpha: 0.12)),
+          enabledBorder: _fieldBorder(Colors.white.withValues(alpha: 0.12)),
+          focusedBorder: _fieldBorder(_accent),
+          errorBorder: _fieldBorder(Colors.redAccent),
+          focusedErrorBorder: _fieldBorder(Colors.redAccent),
+        ),
+        canvasColor: _cardColor,
+        textTheme: Theme.of(context).textTheme.apply(
+              bodyColor: Colors.white,
+              displayColor: Colors.white,
+            ),
+      ),
+      child: _buildForm(apState, apNotifier),
+    );
+  }
+
+  static const _accent = Color(0xFFBA68C8);
+  static const _cardColor = Color(0xFF11161C);
+
+  static OutlineInputBorder _fieldBorder(Color color) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: color, width: 1.5),
+      );
+
+  ButtonStyle _buttonStyle(Color color) => ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      );
+
+  Widget _buildForm(AccessPointState apState, AccessPointNotifier apNotifier) {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Card(
+          Container(
+            decoration: BoxDecoration(
+              color: _cardColor,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                  color: _accent.withValues(alpha: 0.32), width: 1.5),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -76,14 +124,17 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                 children: [
                   const Text(
                     'Network Configuration',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _ssidController,
                     decoration: const InputDecoration(
                         labelText: 'Network Name (SSID)',
-                        border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.wifi)),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Enter network name';
@@ -97,7 +148,6 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                     obscureText: !_showPassword,
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      border: const OutlineInputBorder(),
                       prefixIcon: const Icon(Icons.lock),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -128,9 +178,9 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<WifiBand>(
                     value: _selectedBand,
+                    dropdownColor: const Color(0xFF1A2027),
                     decoration: const InputDecoration(
                       labelText: 'WiFi Band',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.signal_wifi_4_bar),
                     ),
                     items: WifiBand.values
@@ -143,9 +193,9 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<WifiEncryptionType>(
                     value: _encryptionType,
+                    dropdownColor: const Color(0xFF1A2027),
                     decoration: const InputDecoration(
                       labelText: 'Security',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.security),
                     ),
                     items: [
@@ -167,8 +217,13 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                   ),
                   const SizedBox(height: 16),
                   SwitchListTile(
-                    title: const Text('Hidden Network'),
-                    subtitle: const Text('Won\'t appear in scan results'),
+                    contentPadding: EdgeInsets.zero,
+                    activeColor: _accent,
+                    title: const Text('Hidden Network',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w700)),
+                    subtitle: Text('Won\'t appear in scan results',
+                        style: TextStyle(color: Colors.grey[400])),
                     value: _isHidden,
                     onChanged: (v) => setState(() => _isHidden = v),
                   ),
@@ -193,10 +248,7 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                           )
                         : const Icon(Icons.stop),
                     label: const Text('Stop Hotspot'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red[600],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
+                    style: _buttonStyle(Colors.red.shade600),
                     onPressed: widget.isLoading ? null : apNotifier.stopHotspot,
                   ),
                 ),
@@ -214,10 +266,7 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                           )
                         : const Icon(Icons.refresh),
                     label: const Text('Restart'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
+                    style: _buttonStyle(Colors.blue.shade600),
                     onPressed: widget.isLoading
                         ? null
                         : () {
@@ -247,10 +296,7 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                           )
                         : const Icon(Icons.router),
                     label: Text(widget.isLoading ? 'Starting...' : 'Start Hotspot'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[600],
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
+                    style: _buttonStyle(Colors.green.shade600),
                     onPressed: widget.isLoading
                         ? null
                         : () {

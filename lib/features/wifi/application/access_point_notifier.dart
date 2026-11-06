@@ -29,10 +29,13 @@ class AccessPointNotifier extends Notifier<AccessPointState> {
       final isActive = await manageAccessPoint.isAccessPointActive();
       final config = await manageAccessPoint.getAccessPointConfig();
       final deviceInfo = await ref.read(wifiRepositoryProvider).getDeviceInfo();
+      final clients =
+          isActive ? await manageAccessPoint.getAccessPointClientCount() : 0;
       state = state.copyWith(
         isStarted: isActive,
         config: config,
         ipAddress: _hotspotIpAddress(deviceInfo),
+        connectedClients: clients,
         isLoading: false,
         errorMessage: null,
       );
@@ -42,6 +45,15 @@ class AccessPointNotifier extends Notifier<AccessPointState> {
         errorMessage: e.toString(),
       );
     }
+  }
+
+  /// Updates only the connected-device count, without the loading spinner.
+  Future<void> refreshConnectedClients() async {
+    if (!state.isStarted) return;
+    try {
+      final clients = await manageAccessPoint.getAccessPointClientCount();
+      state = state.copyWith(connectedClients: clients);
+    } catch (_) {}
   }
 
   Future<void> startAccessPoint(AccessPointConfig config) async {
@@ -68,6 +80,7 @@ class AccessPointNotifier extends Notifier<AccessPointState> {
       state = state.copyWith(
         isStarted: false,
         ipAddress: null,
+        connectedClients: 0,
         isLoading: false,
         errorMessage: null,
       );

@@ -5,6 +5,7 @@ class AccessPointState {
   AccessPointConfig? config;
   String? errorMessage;
   String? ipAddress;
+  int connectedClients;
   bool isLoading;
 
   static const Object _unset = Object();
@@ -14,6 +15,7 @@ class AccessPointState {
     this.config,
     this.errorMessage,
     this.ipAddress,
+    this.connectedClients = 0,
     this.isLoading = false,
   });
 
@@ -22,6 +24,7 @@ class AccessPointState {
     Object? config = _unset,
     Object? errorMessage = _unset,
     Object? ipAddress = _unset,
+    int? connectedClients,
     bool? isLoading,
   }) {
     return AccessPointState(
@@ -34,6 +37,7 @@ class AccessPointState {
           : errorMessage as String?,
       ipAddress:
           identical(ipAddress, _unset) ? this.ipAddress : ipAddress as String?,
+      connectedClients: connectedClients ?? this.connectedClients,
       isLoading: isLoading ?? this.isLoading,
     );
   }

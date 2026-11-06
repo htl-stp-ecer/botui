@@ -20,6 +20,10 @@ class ManageAccessPoint {
     return await repository.isAccessPointActive();
   }
 
+  Future<int> getAccessPointClientCount() async {
+    return await repository.getAccessPointClientCount();
+  }
+
   Future<AccessPointConfig?> getAccessPointConfig() async {
     return await repository.getAccessPointConfig();
   }
