@@ -17,18 +17,18 @@ class BatteryStatus extends HookConsumerWidget {
       padding: const EdgeInsets.fromLTRB(0, 0, 8.0, 0),
       child: Row(
         children: [
-          const Icon(
-            Icons.battery_4_bar_rounded,
-            color: Colors.white,
-            size: 40,
-          ),
-          const SizedBox(width: 8),
           Text(
             '${batteryVoltage.toStringAsFixed(2)}V',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
             ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.battery_4_bar_rounded,
+            color: Colors.white,
+            size: 28,
           ),
         ],
       ),

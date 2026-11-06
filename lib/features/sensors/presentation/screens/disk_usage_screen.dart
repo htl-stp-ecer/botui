@@ -157,8 +157,12 @@ class DiskUsageScreen extends HookConsumerWidget {
 
   Widget _buildLegend(List<DirUsage> entries, int freeBytes, int totalBytes,
       ValueNotifier<int> touchedIndex) {
-    return ListView.builder(
-      itemCount: entries.length + 1, // +1 for free space
+    // Center + shrinkWrap: a short list sits in the vertical middle instead of
+    // at the top; a long one fills the height and scrolls as before.
+    return Center(
+      child: ListView.builder(
+        shrinkWrap: true,
+        itemCount: entries.length + 1, // +1 for free space
       itemBuilder: (context, i) {
         if (i == entries.length) {
           // Free space row
@@ -187,6 +191,7 @@ class DiskUsageScreen extends HookConsumerWidget {
           onTap: () => touchedIndex.value = i,
         );
       },
+      ),
     );
   }
 

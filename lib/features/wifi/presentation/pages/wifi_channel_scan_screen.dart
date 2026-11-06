@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:stpvelox/core/widgets/app_toast.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,12 +36,7 @@ class _WifiChannelScanScreenState extends ConsumerState<WifiChannelScanScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(next.errorMessage!),
-          backgroundColor: Colors.red[800],
-        ),
-      );
+      AppToast.error(next.errorMessage!);
     });
 
     final state = ref.watch(wifiChannelScanProvider);
@@ -118,8 +114,6 @@ class _ControlBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF11161C),
         borderRadius: BorderRadius.circular(18),
-        border:
-            Border.all(color: const Color(0xFF64B5F6).withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [
@@ -149,11 +143,7 @@ class _ControlBar extends StatelessWidget {
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
-                    side: BorderSide(
-                      color: selectedBand == band
-                          ? const Color(0xFF64B5F6)
-                          : Colors.white.withValues(alpha: 0.10),
-                    ),
+                    side: BorderSide.none,
                   ),
               ],
             ),
@@ -244,7 +234,6 @@ class _StatTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.38)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -652,8 +641,6 @@ class _ChannelDetailCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
-                          border:
-                              Border.all(color: color.withValues(alpha: 0.28)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -768,10 +755,6 @@ class _LegendCard extends StatelessWidget {
                         color:
                             _legendColor(network.ssid).withValues(alpha: 0.14),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: _legendColor(network.ssid)
-                              .withValues(alpha: 0.35),
-                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -830,7 +813,6 @@ BoxDecoration _cardDecoration(Color accent) {
   return BoxDecoration(
     color: const Color(0xFF11161C),
     borderRadius: BorderRadius.circular(20),
-    border: Border.all(color: accent.withValues(alpha: 0.32), width: 1.3),
   );
 }
 

@@ -114,15 +114,21 @@ class _OverviewSideTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final side = ref.watch(overviewSideProvider);
+    // In portrait the dashboard stacks the overview: stored "right" is top,
+    // "left" is bottom, so the option is named accordingly.
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
     final (icon, label, color) = switch (side) {
       OverviewSide.left => (
-          Icons.align_horizontal_left,
-          'Overview Left',
+          isPortrait
+              ? Icons.align_vertical_bottom
+              : Icons.align_horizontal_left,
+          isPortrait ? 'Overview Bottom' : 'Overview Left',
           TileColor.indigo
         ),
       OverviewSide.right => (
-          Icons.align_horizontal_right,
-          'Overview Right',
+          isPortrait ? Icons.align_vertical_top : Icons.align_horizontal_right,
+          isPortrait ? 'Overview Top' : 'Overview Right',
           TileColor.indigo
         ),
       OverviewSide.off => (

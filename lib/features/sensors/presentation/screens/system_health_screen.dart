@@ -22,10 +22,10 @@ class SystemHealthScreen extends HookConsumerWidget {
       backgroundColor: Colors.black87,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.all(8),
           child: GridView.count(
             crossAxisCount: 2,
-            mainAxisSpacing: 6,
+            mainAxisSpacing: 8,
             crossAxisSpacing: 8,
             childAspectRatio: 2.6,
             children: [
@@ -152,7 +152,6 @@ class _MetricCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.grey[900],
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey[800]!, width: 1),
         ),
         child: Row(
           children: [

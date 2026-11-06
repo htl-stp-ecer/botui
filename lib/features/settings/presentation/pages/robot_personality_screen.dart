@@ -105,7 +105,6 @@ class _RobotPersonalityScreenState extends ConsumerState<RobotPersonalityScreen>
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade800, width: 2),
       ),
       clipBehavior: Clip.antiAlias,
       child: AnimatedBuilder(
