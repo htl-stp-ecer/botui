@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/settings/data/system_config_service.dart';
 
 /// Lets the user pick the physical keyboard layout (XKB / libinput).
-class KeyboardLocaleScreen extends StatefulWidget {
+class KeyboardLocaleScreen extends ConsumerStatefulWidget {
   const KeyboardLocaleScreen(
       {super.key, this.service = const SystemConfigService()});
 
   final SystemConfigService service;
 
   @override
-  State<KeyboardLocaleScreen> createState() => _KeyboardLocaleScreenState();
+  ConsumerState<KeyboardLocaleScreen> createState() =>
+      _KeyboardLocaleScreenState();
 }
 
-class _KeyboardLocaleScreenState extends State<KeyboardLocaleScreen> {
+class _KeyboardLocaleScreenState extends ConsumerState<KeyboardLocaleScreen> {
   bool _loading = true;
   bool _saving = false;
   String? _selected;
@@ -40,17 +45,23 @@ class _KeyboardLocaleScreenState extends State<KeyboardLocaleScreen> {
     final outcome = await widget.service.setKeyboardLayout(code);
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(outcome.message, style: const TextStyle(fontSize: 16)),
-        backgroundColor: outcome.ok ? Colors.green[800] : Colors.red[800],
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (outcome.ok) {
+      AppToast.success(outcome.message);
+    } else {
+      AppToast.error(outcome.message);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = ref.watch(colorThemeProvider);
+    final layouts = SystemConfigService.keyboardLayouts;
+    // One color pattern over the whole screen: the rows take positions
+    // 0..n-1 and the Apply button the next one. In the colorful theme the
+    // selection is blue and Apply is green; pattern themes color by position.
+    final applyColor = theme.tileColor(TileColor.green, layouts.length);
+    final fg = theme.textColor;
+
     return Scaffold(
       backgroundColor: Colors.black87,
       appBar: createTopBar(context, 'Keyboard Locale'),
@@ -62,12 +73,20 @@ class _KeyboardLocaleScreenState extends State<KeyboardLocaleScreen> {
                   Expanded(
                     child: ListView.separated(
                       padding: const EdgeInsets.all(16),
-                      itemCount: SystemConfigService.keyboardLayouts.length,
+                      itemCount: layouts.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
-                        final layout =
-                            SystemConfigService.keyboardLayouts[index];
+                        final layout = layouts[index];
                         final selected = layout.code == _selected;
+                        final rowColor =
+                            theme.tileColor(TileColor.blue, index);
+                        final background = selected
+                            ? rowColor
+                            : theme.isPattern
+                                ? Color.alphaBlend(
+                                    rowColor.withValues(alpha: 0.28),
+                                    Colors.grey[850]!)
+                                : Colors.grey[850]!;
                         return InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: () =>
@@ -76,35 +95,30 @@ class _KeyboardLocaleScreenState extends State<KeyboardLocaleScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 18),
                             decoration: BoxDecoration(
-                              color: selected
-                                  ? Colors.blue[700]
-                                  : Colors.grey[850],
+                              color: background,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: selected
-                                    ? Colors.blue.shade300
-                                    : Colors.grey.shade700,
-                                width: 2,
-                              ),
                             ),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: Text(
                                     layout.name,
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 20),
+                                    style: TextStyle(
+                                        color: selected ? fg : Colors.white,
+                                        fontSize: 20),
                                   ),
                                 ),
                                 Text(
                                   layout.code,
                                   style: TextStyle(
-                                      color: Colors.grey[400], fontSize: 16),
+                                      color: selected
+                                          ? fg.withValues(alpha: 0.8)
+                                          : Colors.grey[400],
+                                      fontSize: 16),
                                 ),
                                 if (selected) ...[
                                   const SizedBox(width: 12),
-                                  const Icon(Icons.check_circle,
-                                      color: Colors.white),
+                                  Icon(Icons.check_circle, color: fg),
                                 ],
                               ],
                             ),
@@ -121,24 +135,24 @@ class _KeyboardLocaleScreenState extends State<KeyboardLocaleScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _saving ? null : _save,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[700],
-                          disabledBackgroundColor: Colors.grey[700],
+                          backgroundColor: applyColor,
+                          disabledBackgroundColor:
+                              theme.tileColor(TileColor.grey, null),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         icon: _saving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 24,
                                 height: 24,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                    strokeWidth: 2, color: fg),
                               )
-                            : const Icon(Icons.keyboard, color: Colors.white),
+                            : Icon(Icons.keyboard, color: fg),
                         label: Text(
                           _saving ? 'Applying…' : 'Apply',
-                          style: const TextStyle(
-                              fontSize: 20, color: Colors.white),
+                          style: TextStyle(fontSize: 20, color: fg),
                         ),
                       ),
                     ),

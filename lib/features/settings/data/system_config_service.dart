@@ -30,8 +30,8 @@ class SystemConfigService {
   /// Supported layouts. Austria/Germany share the XKB `de` layout — there is
   /// no separate `at` layout in XKB.
   static const List<KeyboardLayout> keyboardLayouts = [
-    KeyboardLayout('de', 'German (DE / AT)'),
     KeyboardLayout('us', 'English (US)'),
+    KeyboardLayout('de', 'German (DE / AT)'),
   ];
 
   /// Whether [name] is a valid RFC 1123 hostname label.

@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/settings/data/system_config_service.dart';
 
 /// Lets the user change the device hostname and its mDNS (`.local`) name in a
 /// single action.
-class HostnameScreen extends StatefulWidget {
+class HostnameScreen extends ConsumerStatefulWidget {
   const HostnameScreen({super.key, this.service = const SystemConfigService()});
 
   final SystemConfigService service;
 
   @override
-  State<HostnameScreen> createState() => _HostnameScreenState();
+  ConsumerState<HostnameScreen> createState() => _HostnameScreenState();
 }
 
-class _HostnameScreenState extends State<HostnameScreen> {
+class _HostnameScreenState extends ConsumerState<HostnameScreen> {
   final _controller = TextEditingController();
   bool _loading = true;
   bool _saving = false;
@@ -57,20 +61,25 @@ class _HostnameScreenState extends State<HostnameScreen> {
   }
 
   void _showSnack(String message, {required bool isError}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontSize: 16)),
-        backgroundColor: isError ? Colors.red[800] : Colors.green[800],
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (isError) {
+      AppToast.error(message);
+    } else {
+      AppToast.success(message);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = ref.watch(colorThemeProvider);
+    // One palette for the screen: the name field is position 0 (blue slot),
+    // Apply is position 1 (green slot). Same scheme as the keyboard screen.
+    final fieldColor = theme.tileColor(TileColor.blue, 0);
+    final applyColor = theme.tileColor(TileColor.green, 1);
+    final fg = theme.textColor;
+
     return Scaffold(
       backgroundColor: Colors.black87,
-      appBar: createTopBar(context, 'Hostname & mDNS'),
+      appBar: createTopBar(context, 'Hostname'),
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -111,16 +120,15 @@ class _HostnameScreenState extends State<HostnameScreen> {
                         fillColor: Colors.grey.shade800,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade600),
+                          borderSide: BorderSide.none,
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade600),
+                          borderSide: BorderSide.none,
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: Colors.blue, width: 2),
+                          borderSide: BorderSide(color: fieldColor, width: 2),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 16),
@@ -130,8 +138,7 @@ class _HostnameScreenState extends State<HostnameScreen> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Icon(Icons.travel_explore,
-                            color: Colors.grey[500], size: 20),
+                        Icon(Icons.travel_explore, color: fieldColor, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           _controller.text.trim().isEmpty
@@ -148,24 +155,24 @@ class _HostnameScreenState extends State<HostnameScreen> {
                       child: ElevatedButton.icon(
                         onPressed: _saving ? null : _save,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[700],
-                          disabledBackgroundColor: Colors.grey[700],
+                          backgroundColor: applyColor,
+                          disabledBackgroundColor:
+                              theme.tileColor(TileColor.grey, null),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         icon: _saving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 24,
                                 height: 24,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                    strokeWidth: 2, color: fg),
                               )
-                            : const Icon(Icons.save, color: Colors.white),
+                            : Icon(Icons.save, color: fg),
                         label: Text(
                           _saving ? 'Applying…' : 'Apply',
-                          style: const TextStyle(
-                              fontSize: 20, color: Colors.white),
+                          style: TextStyle(fontSize: 20, color: fg),
                         ),
                       ),
                     ),
