@@ -121,9 +121,11 @@ def main() -> None:
     pi.run("sudo python3 -", stdin=MARK_DEV % {"path": BUNDLE_FILE, "component": COMPONENT})
 
     # A local build is version 0.0, which Debian sorts below every release: allow the downgrade.
+    # --reinstall: redeploying the same 0.0 build would otherwise be skipped ("already the
+    # newest version") and the Pi would keep running the old UI.
     print("Installing...")
     pi.run(
-        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades "
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades --reinstall "
         f"{shlex.quote(f'{REMOTE_TMP}/{deb.name}')}"
     )
 
