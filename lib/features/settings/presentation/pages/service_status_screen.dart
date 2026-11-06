@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/utils/sudo_process.dart';
-import 'package:stpvelox/core/widgets/error_popup.dart';
+import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 
 class ServiceStatusScreen extends StatefulWidget {
@@ -55,7 +55,7 @@ class _ServiceStatusScreenState extends State<ServiceStatusScreen> {
         _loading = false;
       });
       if (showSudoPopup) {
-        await showErrorPopup(
+        await showRaccoonErrorDialog(
             context, "Missing passwordless sudo, can't fetch services");
       }
       return;
@@ -213,7 +213,6 @@ class _ServiceCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.grey[850],
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[700]!, width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

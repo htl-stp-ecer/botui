@@ -1,6 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:stpvelox/core/widgets/error_popup.dart';
+import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logging/logging.dart';
@@ -198,25 +198,6 @@ class StpVeloxApp extends HookConsumerWidget {
             textTheme: const TextTheme(
               headlineLarge: TextStyle(color: Colors.white),
               bodyLarge: TextStyle(color: Colors.white70),
-            ),
-            // Badges (bottom notifications): always light text on a dark
-            // background. Without this the dark color scheme gives dark text,
-            // which is unreadable on the red/green badges.
-            snackBarTheme: SnackBarThemeData(
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.grey[850],
-              contentTextStyle: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-              actionTextColor: Colors.white,
-              elevation: 6,
-              insetPadding:
-                  const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
             ),
             elevatedButtonTheme: ElevatedButtonThemeData(
               style: ElevatedButton.styleFrom(
@@ -504,7 +485,7 @@ class _LowBatteryOverlayState extends ConsumerState<_LowBatteryOverlay> {
                           final reboot = ref.read(rebootDeviceProvider);
                           final ok = await reboot.call(true);
                           if (!ok && context.mounted) {
-                            await showErrorPopup(context,
+                            await showRaccoonErrorDialog(context,
                                 "Missing passwordless sudo, can't shut down");
                           }
                         },

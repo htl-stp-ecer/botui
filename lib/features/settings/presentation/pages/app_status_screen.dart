@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:stpvelox/core/contract/bundle_file.dart';
-import 'package:stpvelox/core/widgets/error_popup.dart';
+import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 
 const _serverUrl = 'http://localhost:8421';
@@ -73,7 +73,7 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
 
     if (!mounted) return;
     setState(() => _loading = false);
-    if (error != null) await showErrorPopup(context, error);
+    if (error != null) await showRaccoonErrorDialog(context, error);
   }
 
   Widget _divider({double gap = 0}) => Column(

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
-import 'package:stpvelox/core/widgets/error_popup.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/settings/domain/usecases/reboot.dart';
@@ -69,7 +68,7 @@ class SystemSettingsScreen extends StatelessWidget {
     if (confirmed) {
       final ok = await RebootDevice().call(shutdown);
       if (!ok && context.mounted) {
-        await showErrorPopup(
+        await showRaccoonErrorDialog(
             context,
             shutdown
                 ? "Missing passwordless sudo, can't shut down"
