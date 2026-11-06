@@ -1,4 +1,5 @@
 import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/utils/sudo_process.dart';
@@ -144,13 +145,12 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
 
   void _showSnackBar(String message, Color color) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: color is MaterialColor ? color.shade800 : color,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    const duration = Duration(seconds: 2);
+    if (color == Colors.red) {
+      AppToast.error(message, duration: duration);
+    } else {
+      AppToast.success(message, duration: duration);
+    }
   }
 
   @override
@@ -206,7 +206,6 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
                   decoration: BoxDecoration(
                     color: Colors.grey[850],
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[700]!, width: 1),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,

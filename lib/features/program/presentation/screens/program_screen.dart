@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -343,13 +344,7 @@ Future<void> _startProgramWithFeedback(
   } catch (e, st) {
     _log.severe('[startProgram] failed to start ${program.name}', e, st);
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Start failed: $e'),
-          backgroundColor: Colors.red[800]!,
-          duration: const Duration(seconds: 6),
-        ),
-      );
+      AppToast.error('Start failed: $e', duration: const Duration(seconds: 6));
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:stpvelox/core/widgets/top_bar.dart';
@@ -52,10 +53,7 @@ class CalibIcmCalibrationScreen extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       onPressed: () {
                         ref.read(calibCommandPublisherProvider).sendResetGyroBias();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Gyro bias reset to 0 (RAM only).')),
-                        );
+                        AppToast.info('Gyro bias reset to 0 (RAM only).');
                       },
                       icon: const Icon(Icons.refresh),
                       label: const Text('Reset (RAM)'),
@@ -75,11 +73,7 @@ class CalibIcmCalibrationScreen extends ConsumerWidget {
                               ref
                                   .read(calibCommandPublisherProvider)
                                   .sendSaveGyroBias();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text(
-                                        'Save sent — FW will persist and confirm.')),
-                              );
+                              AppToast.info('Save sent — FW will persist and confirm.');
                             },
                       icon: const Icon(Icons.save),
                       label: const Text('Save to flash'),
