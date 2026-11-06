@@ -31,7 +31,7 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
   final _ssidController = TextEditingController();
   final _passwordController = TextEditingController();
   WifiBand _selectedBand = WifiBand.bandAuto;
-  WifiEncryptionType _encryptionType = WifiEncryptionType.wpa3Personal;
+  WifiEncryptionType _encryptionType = WifiEncryptionType.wpa2Personal;
   bool _isHidden = false;
   bool _showPassword = false;
 
@@ -46,8 +46,8 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
       _encryptionType = config.encryptionType;
       _isHidden = config.hidden;
     } else {
-      _ssidController.text = 'STP-Velox-Robot';
-      _passwordController.text = PasswordGenerator.generateReadablePassword();
+      _ssidController.text = 'RaccoonOS';
+      _passwordController.text = 'raccoonos';
     }
   }
 

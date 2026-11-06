@@ -98,8 +98,8 @@ class AccessPointNotifier extends Notifier<AccessPointState> {
       } else {
         final defaultBand = await manageAccessPoint.findBestWifiBand();
         final defaultConfig = AccessPointConfig(
-          ssid: 'STP-Velox-Robot',
-          password: 'Robot123!',
+          ssid: 'RaccoonOS',
+          password: 'raccoonos',
           band: defaultBand,
         );
         await manageAccessPoint.startAccessPoint(defaultConfig);
