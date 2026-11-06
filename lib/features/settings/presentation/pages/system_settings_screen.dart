@@ -1,5 +1,5 @@
+import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
@@ -24,13 +24,13 @@ class SystemSettingsScreen extends StatelessWidget {
               icon: Icons.dns,
               label: 'Hostname',
               color: TileColor.green,
-              onPressed: () => context.push(AppRoutes.hostnameSettings),
+              onPressed: () => context.pushOnce(AppRoutes.hostnameSettings),
             ),
             ResponsiveGridTile(
               icon: Icons.keyboard,
               label: 'Keyboard',
               color: TileColor.blue,
-              onPressed: () => context.push(AppRoutes.keyboardLocale),
+              onPressed: () => context.pushOnce(AppRoutes.keyboardLocale),
             ),
             ResponsiveGridTile(
               icon: Icons.refresh,

@@ -1,5 +1,5 @@
+import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
@@ -21,37 +21,37 @@ class SettingsScreen extends StatelessWidget {
               icon: Icons.wifi,
               label: 'Network',
               color: TileColor.green,
-              onPressed: () => context.push(AppRoutes.wifi),
+              onPressed: () => context.pushOnce(AppRoutes.wifi),
             ),
             ResponsiveGridTile(
               icon: Icons.tune,
               label: 'System',
               color: TileColor.orange,
-              onPressed: () => context.push(AppRoutes.systemSettings),
+              onPressed: () => context.pushOnce(AppRoutes.systemSettings),
             ),
             ResponsiveGridTile(
               icon: Icons.display_settings,
               label: 'Display',
               color: TileColor.purple,
-              onPressed: () => context.push(AppRoutes.displaySettings),
+              onPressed: () => context.pushOnce(AppRoutes.displaySettings),
             ),
             ResponsiveGridTile(
               icon: Icons.emoji_emotions,
               label: 'Personality',
               color: TileColor.pink,
-              onPressed: () => context.push(AppRoutes.personality),
+              onPressed: () => context.pushOnce(AppRoutes.personality),
             ),
             ResponsiveGridTile(
               icon: Icons.info_outline,
               label: 'Versions',
               color: TileColor.teal,
-              onPressed: () => context.push(AppRoutes.appStatus),
+              onPressed: () => context.pushOnce(AppRoutes.appStatus),
             ),
             ResponsiveGridTile(
               icon: Icons.analytics_outlined,
               label: 'Services',
               color: TileColor.indigo,
-              onPressed: () => context.push(AppRoutes.serviceStatus),
+              onPressed: () => context.pushOnce(AppRoutes.serviceStatus),
             ),
           ],
         ),

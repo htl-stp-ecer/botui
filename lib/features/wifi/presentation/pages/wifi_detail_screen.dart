@@ -1,3 +1,4 @@
+import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -210,7 +211,7 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
   }
 
   void _navigateToEnterpriseCredentials(WifiNetwork network) async {
-    final creds = await context.push<WifiCredentials?>(
+    final creds = await context.pushOnce<WifiCredentials?>(
       AppRoutes.wifiEnterprise,
       extra: network.ssid,
     );
