@@ -12,6 +12,8 @@ import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
 import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_band.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_encryption_type.dart';
+import 'package:stpvelox/features/wifi/domain/enities/wifi_network.dart';
+import 'package:stpvelox/shared/domain/entities/device_info.dart';
 
 class DeviceInfoScreen extends ConsumerStatefulWidget {
   const DeviceInfoScreen({super.key});
@@ -104,6 +106,15 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
     final ethernetMode =
         ref.watch(networkModeProvider).mode == NetworkMode.lanOnly;
 
+    // Two sections: the one of the current tab (hotspot or Wi-Fi details; the
+    // Ethernet tab has none for now) and a general one with the address and
+    // the connection status that every tab shares.
+    final specific = hotspot != null
+        ? _buildHotspotCard(hotspot, apState.connectedClients)
+        : (!ethernetMode && network != null)
+            ? _buildWifiCard(network)
+            : null;
+
     // Column in a SingleChildScrollView (not a lazy ListView) so all cards are
     // built up front and none pops in or out while scrolling.
     return SingleChildScrollView(
@@ -112,87 +123,82 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // In hotspot mode the hotspot is what matters, so it comes first.
-          if (hotspot != null) ...[
-            _buildHotspotCard(hotspot, apState.connectedClients),
+          if (specific != null) ...[
+            specific,
             const SizedBox(height: 14),
           ],
-          _InfoCard(
-            title: 'Addressing',
-            accent: const Color(0xFF4FC3F7),
-            children: [
-              _InfoRow(
-                icon: Icons.lan_rounded,
-                label: 'IP Address',
-                value: deviceInfo.ipAddress,
-              ),
-              _InfoRow(
-                icon: Icons.memory_rounded,
-                label: 'MAC Address',
-                value: deviceInfo.macAddress ?? 'Unavailable',
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _InfoCard(
-            title: 'Connection',
-            accent: network != null ||
-                    (ethernetMode && deviceInfo.ethernetCableConnected)
-                ? const Color(0xFF81C784)
-                : const Color(0xFFFFB74D),
-            children: [
-              // Ethernet Mode: Wi-Fi is off, so the card only says whether the
-              // wired connection is up. (The address is in "Addressing".)
-              if (ethernetMode)
-                _InfoRow(
-                  icon: deviceInfo.ethernetCableConnected
-                      ? Icons.lan_rounded
-                      : Icons.lan_outlined,
-                  label: 'Status',
-                  value: deviceInfo.ethernetCableConnected
-                      ? 'Connected'
-                      : 'Not connected',
-                )
-              else ...[
-              _InfoRow(
-                icon: network != null
-                    ? Icons.wifi_rounded
-                    : hotspot != null
-                        ? Icons.router_rounded
-                        : Icons.wifi_off_rounded,
-                label: 'Status',
-                value: network != null
-                    ? 'Connected'
-                    : hotspot != null
-                        ? 'Hotspot active'
-                        : 'Offline',
-              ),
-              if (network != null) ...[
-                _InfoRow(
-                  icon: Icons.router_rounded,
-                  label: 'SSID',
-                  value: network.ssid,
-                ),
-                _InfoRow(
-                  icon: Icons.lock_outline_rounded,
-                  label: 'Security',
-                  value: network.encryptionType.formatted,
-                ),
-              ] else if (hotspot == null)
-                const _InfoHint(
-                  text: 'No wireless network is currently connected.',
-                ),
-              ],
-              if (!ethernetMode && deviceInfo.ethernetIpAddress != null)
-                _InfoRow(
-                  icon: Icons.cable_rounded,
-                  label: 'Ethernet IP',
-                  value: deviceInfo.ethernetIpAddress!,
-                ),
-            ],
+          _buildConnectionCard(
+            deviceInfo,
+            ethernetMode: ethernetMode,
+            hotspotActive: hotspot != null,
+            wifiConnected: network != null,
           ),
         ],
       ),
+    );
+  }
+
+  /// The "Connection" card: address and status, the same in every mode. Always the
+  /// last card, below the one of the current tab.
+  Widget _buildConnectionCard(
+    DeviceInfo deviceInfo, {
+    required bool ethernetMode,
+    required bool hotspotActive,
+    required bool wifiConnected,
+  }) {
+    final IconData statusIcon;
+    final String status;
+    final bool up;
+    if (ethernetMode) {
+      up = deviceInfo.ethernetCableConnected;
+      statusIcon = up ? Icons.lan_rounded : Icons.lan_outlined;
+      status = up ? 'Connected' : 'Not connected';
+    } else if (hotspotActive) {
+      up = true;
+      statusIcon = Icons.router_rounded;
+      status = 'Hotspot active';
+    } else {
+      up = wifiConnected;
+      statusIcon = up ? Icons.wifi_rounded : Icons.wifi_off_rounded;
+      status = up ? 'Connected' : 'Offline';
+    }
+
+    return _InfoCard(
+      title: 'Connection',
+      accent: up ? const Color(0xFF81C784) : const Color(0xFFFFB74D),
+      children: [
+        _InfoRow(
+          icon: Icons.lan_rounded,
+          label: 'IP Address',
+          value: deviceInfo.ipAddress,
+        ),
+        _InfoRow(
+          icon: Icons.memory_rounded,
+          label: 'MAC Address',
+          value: deviceInfo.macAddress ?? 'Unavailable',
+        ),
+        _InfoRow(icon: statusIcon, label: 'Status', value: status),
+      ],
+    );
+  }
+
+  /// Details of the Wi-Fi network the robot is connected to (Client tab).
+  Widget _buildWifiCard(WifiNetwork network) {
+    return _InfoCard(
+      title: 'Wi-Fi',
+      accent: const Color(0xFF81C784),
+      children: [
+        _InfoRow(
+          icon: Icons.router_rounded,
+          label: 'SSID',
+          value: network.ssid,
+        ),
+        _InfoRow(
+          icon: Icons.lock_outline_rounded,
+          label: 'Security',
+          value: network.encryptionType.formatted,
+        ),
+      ],
     );
   }
 
@@ -440,31 +446,6 @@ class _InfoRow extends StatelessWidget {
           ),
           if (trailing != null) trailing!,
         ],
-      ),
-    );
-  }
-}
-
-class _InfoHint extends StatelessWidget {
-  const _InfoHint({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.grey[300],
-          fontSize: 13,
-          height: 1.35,
-        ),
       ),
     );
   }
