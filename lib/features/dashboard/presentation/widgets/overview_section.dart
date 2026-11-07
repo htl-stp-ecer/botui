@@ -73,6 +73,8 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
     final connected = ssid != null && ssid.isNotEmpty;
     // In hotspot mode there is no client network; show the hotspot's name.
     final hotspotSsid = connected ? null : info.hotspotSsid;
+    // LAN-only mode: the wired network's name, with a LAN icon.
+    final lanName = info.lanName;
     final voltage = useBatteryVoltage(ref);
     final hasBattery = voltage != null && voltage > 0;
 
@@ -115,7 +117,9 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    connected
+                    lanName != null
+                        ? Icons.lan
+                        : connected
                         ? Icons.wifi
                         : hotspotSsid != null
                             ? Icons.wifi_tethering
@@ -127,9 +131,10 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
                   Text(
                     !info.networkLoaded
                         ? 'N/A'
-                        : (connected
-                            ? ssid
-                            : (hotspotSsid ?? 'Not connected')),
+                        : (lanName ??
+                            (connected
+                                ? ssid
+                                : (hotspotSsid ?? 'Not connected'))),
                     style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],

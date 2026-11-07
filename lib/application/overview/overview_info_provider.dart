@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/core/service/sensors/system_health_sensor.dart';
 import 'package:stpvelox/features/settings/data/system_config_service.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
+import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/shared/domain/entities/device_info.dart';
 
 /// What the overview panel shows besides the live sensors.
@@ -14,12 +15,16 @@ class OverviewInfo {
   /// Name of the robot's own hotspot while it is active, else null.
   final String? hotspotSsid;
 
+  /// Name of the wired network while LAN-only mode is on, else null.
+  final String? lanName;
+
   const OverviewInfo({
     this.hostname,
     this.networkLoaded = false,
     this.ssid,
     this.ipv4,
     this.hotspotSsid,
+    this.lanName,
   });
 
   // Value equality: a refresh that returns the same data does not notify
@@ -31,10 +36,11 @@ class OverviewInfo {
       other.networkLoaded == networkLoaded &&
       other.ssid == ssid &&
       other.ipv4 == ipv4 &&
-      other.hotspotSsid == hotspotSsid;
+      other.hotspotSsid == hotspotSsid &&
+      other.lanName == lanName;
 
   @override
-  int get hashCode => Object.hash(hostname, networkLoaded, ssid, ipv4, hotspotSsid);
+  int get hashCode => Object.hash(hostname, networkLoaded, ssid, ipv4, hotspotSsid, lanName);
 }
 
 /// Cache for the overview panel. The provider is not auto-disposed, so the
@@ -66,11 +72,13 @@ class OverviewInfoNotifier extends Notifier<OverviewInfo> {
             .then<DeviceInfo?>((v) => v)
             .catchError((_) => null as DeviceInfo?),
         _hotspotSsid(),
+        _isLanOnly(),
       ]);
       final hostname = results[0] as String?;
       final device = results[1] as DeviceInfo?;
       // (known, ssid): a failed lookup keeps the old value.
       final hotspot = results[2] as (bool, String?);
+      final lanOnly = results[3] as bool?;
 
       state = OverviewInfo(
         hostname: (hostname != null && hostname.isNotEmpty)
@@ -81,6 +89,9 @@ class OverviewInfoNotifier extends Notifier<OverviewInfo> {
         ssid: device != null ? device.connectedNetwork?.ssid : state.ssid,
         ipv4: device != null ? device.ipAddress : state.ipv4,
         hotspotSsid: hotspot.$1 ? hotspot.$2 : state.hotspotSsid,
+        lanName: lanOnly == null
+            ? state.lanName
+            : (lanOnly ? (device?.ethernetConnectionName ?? 'LAN') : null),
       );
     } finally {
       _refreshing = false;
@@ -100,6 +111,17 @@ extension on OverviewInfoNotifier {
       return (true, (ssid != null && ssid.isNotEmpty) ? ssid : null);
     } catch (_) {
       return (false, null);
+    }
+  }
+}
+
+extension on OverviewInfoNotifier {
+  /// Whether LAN-only mode is on; null if the robot could not be asked.
+  Future<bool?> _isLanOnly() async {
+    try {
+      return await ref.read(getNetworkModeProvider)() == NetworkMode.lanOnly;
+    } catch (_) {
+      return null;
     }
   }
 }

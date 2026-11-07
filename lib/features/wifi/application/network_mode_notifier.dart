@@ -16,48 +16,7 @@ class NetworkModeNotifier extends Notifier<NetworkModeState> with HasLogger {
     _getNetworkMode = ref.read(getNetworkModeProvider);
     _setNetworkMode = ref.read(setNetworkModeProvider);
 
-    // Listen to LAN state changes for cable disconnection
-    _startListeningToLanState();
-
     return NetworkModeState();
-  }
-
-  /// Start listening to LAN state changes to detect cable disconnection
-  void _startListeningToLanState() {
-    ref.listen(
-      lanOnlyProvider,
-      (previous, next) {
-        // Check if cable was disconnected while in LAN only mode
-        if (state.mode == NetworkMode.lanOnly &&
-            next.errorMessage == 'LAN_CABLE_DISCONNECTED') {
-          log.warning('LAN cable disconnected, automatically switching to client mode');
-          _handleCableDisconnection();
-        }
-      },
-    );
-  }
-
-  /// Handle cable disconnection by automatically switching to client mode
-  Future<void> _handleCableDisconnection() async {
-    try {
-      // Disable LAN only mode
-      await ref.read(lanOnlyProvider.notifier).disable();
-
-      // Switch to client mode
-      await _setNetworkMode(NetworkMode.client);
-
-      state = state.copyWith(
-        mode: NetworkMode.client,
-        errorMessage: () => 'LAN cable disconnected. Automatically switched to client mode.',
-      );
-
-      log.info('Automatically switched to client mode due to cable disconnection');
-    } catch (e) {
-      log.severe('Failed to switch to client mode after cable disconnection: $e');
-      state = state.copyWith(
-        errorMessage: () => 'Failed to switch mode after cable disconnection: $e',
-      );
-    }
   }
 
   Future<void> loadNetworkMode() async {
@@ -106,6 +65,9 @@ class NetworkModeNotifier extends Notifier<NetworkModeState> with HasLogger {
 
       state = state.copyWith(mode: mode, isLoading: false, errorMessage: () => null);
       log.info("Network mode updated to ${state.mode}");
+      // The hotspot may have been stopped (or started) by the switch; do not
+      // keep showing the old state.
+      unawaited(ref.read(accessPointProvider.notifier).refreshStatus());
     } catch (e) {
       state = state.copyWith(
         mode: previousMode,

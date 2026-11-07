@@ -3,7 +3,7 @@ import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/core/router/app_router.dart';
-import 'package:stpvelox/core/widgets/responsive_grid.dart';
+import 'package:stpvelox/core/widgets/tile_position.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
 import 'package:stpvelox/features/wifi/domain/application/network_mode_state.dart';
@@ -94,23 +94,46 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
                   ),
                   const SizedBox(height: 12),
                   Expanded(
-                    child: ResponsiveGrid(
-                      isScrollable: false,
-                      crossAxisCount: 3,
-                      maxTileWidth: 220,
-                      childAspectRatio: 1.28,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      padding: EdgeInsets.zero,
-                      children: [
-                        for (final action in actions)
-                          ResponsiveGridTile(
-                            label: action.title,
-                            icon: action.icon,
-                            color: action.color,
-                            onPressed: () => context.pushOnce(action.route),
+                    // The tiles of every tab sit in the middle of the free
+                    // space, horizontally and vertically.
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        const gap = 12.0;
+                        const columns = 3;
+                        const aspectRatio = 1.28;
+                        // Size of a tile in a full row of three; fewer tiles
+                        // keep this size and are centered.
+                        var width = (constraints.maxWidth - (columns - 1) * gap) /
+                            columns;
+                        if (width / aspectRatio > constraints.maxHeight) {
+                          width = constraints.maxHeight * aspectRatio;
+                        }
+                        return Center(
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            runAlignment: WrapAlignment.center,
+                            spacing: gap,
+                            runSpacing: gap,
+                            children: [
+                              for (final (i, action) in actions.indexed)
+                                SizedBox(
+                                  width: width,
+                                  height: width / aspectRatio,
+                                  child: TilePosition(
+                                    index: i,
+                                    child: ResponsiveGridTile(
+                                      label: action.title,
+                                      icon: action.icon,
+                                      color: action.color,
+                                      onPressed: () =>
+                                          context.pushOnce(action.route),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -299,12 +322,6 @@ List<_WifiAction> _actionsForMode(NetworkMode mode) {
     case NetworkMode.lanOnly:
       return const [
         _WifiAction(
-          title: 'LAN Status',
-          icon: Icons.cable_rounded,
-          color: TileColor.brown,
-          route: AppRoutes.wifiLanStatus,
-        ),
-        _WifiAction(
           title: 'Device Info',
           icon: Icons.info_outline,
           color: TileColor.blueGrey,
@@ -321,7 +338,7 @@ String _modeTitle(NetworkMode mode) {
     case NetworkMode.accessPoint:
       return 'Hotspot Mode';
     case NetworkMode.lanOnly:
-      return 'LAN Only Mode';
+      return 'Ethernet Mode';
   }
 }
 
@@ -332,7 +349,7 @@ String _modeButtonLabel(NetworkMode mode) {
     case NetworkMode.accessPoint:
       return 'Hotspot';
     case NetworkMode.lanOnly:
-      return 'LAN Only';
+      return 'Ethernet';
   }
 }
 

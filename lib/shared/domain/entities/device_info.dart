@@ -10,6 +10,9 @@ class DeviceInfo {
   final String? wifiMacAddress;
   final WifiNetwork? connectedNetwork;
 
+  /// Name of the active wired connection (e.g. "Wired connection 1").
+  final String? ethernetConnectionName;
+
   DeviceInfo({
     required this.ipAddress,
     this.macAddress,
@@ -19,5 +22,6 @@ class DeviceInfo {
     this.wifiIpAddress,
     this.wifiMacAddress,
     this.connectedNetwork,
+    this.ethernetConnectionName,
   });
 }

@@ -5,6 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:logging/logging.dart';
 import 'package:stpvelox/application/inactivity/inactivity_listener.dart';
+import 'package:stpvelox/application/ethernet_prompt/ethernet_plug_prompt.dart';
 import 'package:stpvelox/application/inactivity/inactivity_notifier.dart';
 import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 import 'package:stpvelox/core/framerate/frame_stall_watchdog.dart';
@@ -176,8 +177,10 @@ class StpVeloxApp extends HookConsumerWidget {
           routerConfig: router,
           builder: (context, child) {
             return _AppServicesStarter(
-              child: Button10MonitorWidget(
-                child: child ?? const SizedBox.shrink(),
+              child: EthernetPlugPrompt(
+                child: Button10MonitorWidget(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             );
           },

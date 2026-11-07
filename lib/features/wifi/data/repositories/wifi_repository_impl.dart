@@ -180,6 +180,7 @@ class WifiRepositoryImpl implements IWifiRepository {
       ethernetMacAddress: json['ethernetMacAddress'] as String?,
       wifiIpAddress: json['wifiIpAddress'] as String?,
       wifiMacAddress: json['wifiMacAddress'] as String?,
+      ethernetConnectionName: json['ethernetConnectionName'] as String?,
       connectedNetwork: connectedNetworkJson == null
           ? null
           : _wifiNetworkFromJson(connectedNetworkJson),

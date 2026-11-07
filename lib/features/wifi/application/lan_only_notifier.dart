@@ -124,7 +124,7 @@ class LanOnlyNotifier extends Notifier<LanOnlyState> with HasLogger {
       if (!isCableConnected) {
         state = state.copyWith(
           errorMessage:
-              'No ethernet cable detected. Please connect a LAN cable before enabling LAN only mode.',
+              'No ethernet cable detected. Please connect an ethernet cable before enabling Ethernet Mode.',
           isLoading: false,
           isCableConnected: false,
         );

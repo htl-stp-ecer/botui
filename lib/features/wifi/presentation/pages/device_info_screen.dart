@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
+import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 import 'package:stpvelox/features/wifi/domain/application/access_point_state.dart';
 import 'package:stpvelox/features/wifi/domain/application/wifi_client_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
+import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_band.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_encryption_type.dart';
 
@@ -39,6 +41,7 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
       await Future.wait([
         ref.read(wifiClientProvider.notifier).loadDeviceInfo(),
         ref.read(accessPointProvider.notifier).refreshStatus(),
+        ref.read(networkModeProvider.notifier).loadNetworkMode(),
       ]);
       if (mounted) setState(() => _ready = true);
     });
@@ -98,6 +101,8 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
     final deviceInfo = state.deviceInfo!;
     final network = deviceInfo.connectedNetwork;
     final hotspot = apState.isStarted ? apState.config : null;
+    final ethernetMode =
+        ref.watch(networkModeProvider).mode == NetworkMode.lanOnly;
 
     // Column in a SingleChildScrollView (not a lazy ListView) so all cards are
     // built up front and none pops in or out while scrolling.
@@ -131,10 +136,24 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
           const SizedBox(height: 14),
           _InfoCard(
             title: 'Connection',
-            accent: network != null
+            accent: network != null ||
+                    (ethernetMode && deviceInfo.ethernetCableConnected)
                 ? const Color(0xFF81C784)
                 : const Color(0xFFFFB74D),
             children: [
+              // Ethernet Mode: Wi-Fi is off, so the card only says whether the
+              // wired connection is up. (The address is in "Addressing".)
+              if (ethernetMode)
+                _InfoRow(
+                  icon: deviceInfo.ethernetCableConnected
+                      ? Icons.lan_rounded
+                      : Icons.lan_outlined,
+                  label: 'Status',
+                  value: deviceInfo.ethernetCableConnected
+                      ? 'Connected'
+                      : 'Not connected',
+                )
+              else ...[
               _InfoRow(
                 icon: network != null
                     ? Icons.wifi_rounded
@@ -163,7 +182,8 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
                 const _InfoHint(
                   text: 'No wireless network is currently connected.',
                 ),
-              if (deviceInfo.ethernetIpAddress != null)
+              ],
+              if (!ethernetMode && deviceInfo.ethernetIpAddress != null)
                 _InfoRow(
                   icon: Icons.cable_rounded,
                   label: 'Ethernet IP',
