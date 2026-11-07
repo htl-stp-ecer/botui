@@ -37,5 +37,7 @@ InputDecoration themedFieldDecoration(
     border: border(color.withValues(alpha: 0.55)),
     enabledBorder: border(color.withValues(alpha: 0.55)),
     focusedBorder: border(color, width: 2),
+    errorBorder: border(Colors.redAccent),
+    focusedErrorBorder: border(Colors.redAccent, width: 2),
   );
 }

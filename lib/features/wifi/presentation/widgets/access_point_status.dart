@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
 
 /// Compact hotspot state card for the settings screen. The full details
 /// (password, security, band, devices) are on the Device Information page.
-class AccessPointStatus extends StatelessWidget {
+class AccessPointStatus extends ConsumerWidget {
   final bool isStarted;
   final AccessPointConfig? config;
   final String? ipAddress;
@@ -18,9 +21,10 @@ class AccessPointStatus extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final accent =
-        isStarted ? const Color(0xFF81C784) : const Color(0xFF9E9E9E);
+  Widget build(BuildContext context, WidgetRef ref) {
+    // The theme's purple while the hotspot runs, the neutral grey otherwise.
+    final theme = ref.watch(colorThemeProvider);
+    final accent = theme.tileColor(isStarted ? TileColor.purple : TileColor.grey, 0);
     final details = <String>[
       if (isStarted && config != null) config!.ssid,
       if (isStarted && ipAddress != null) ipAddress!,

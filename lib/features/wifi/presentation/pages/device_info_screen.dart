@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
@@ -109,12 +111,14 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
     // Two sections: the one of the current tab (hotspot, Ethernet or Wi-Fi
     // details) and the "Connection" card with the address and status that
     // every tab shares.
+    final theme = ref.watch(colorThemeProvider);
     final specific = hotspot != null
-        ? _buildHotspotCard(hotspot, apState.connectedClients)
+        ? _buildHotspotCard(hotspot, apState.connectedClients,
+            theme.tileColor(TileColor.purple, 0))
         : ethernetMode
-            ? _buildEthernetCard(deviceInfo)
+            ? _buildEthernetCard(deviceInfo, theme.tileColor(TileColor.brown, 0))
             : network != null
-                ? _buildWifiCard(network)
+                ? _buildWifiCard(network, theme.tileColor(TileColor.teal, 0))
                 : null;
 
     // Column in a SingleChildScrollView (not a lazy ListView) so all cards are
@@ -131,6 +135,8 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
           ],
           _buildConnectionCard(
             deviceInfo,
+            theme: theme,
+            position: specific != null ? 1 : 0,
             ethernetMode: ethernetMode,
             hotspotActive: hotspot != null,
             wifiConnected: network != null,
@@ -144,6 +150,8 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
   /// last card, below the one of the current tab.
   Widget _buildConnectionCard(
     DeviceInfo deviceInfo, {
+    required AppTheme theme,
+    required int position,
     required bool ethernetMode,
     required bool hotspotActive,
     required bool wifiConnected,
@@ -167,7 +175,8 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
 
     return _InfoCard(
       title: 'Connection',
-      accent: up ? const Color(0xFF81C784) : const Color(0xFFFFB74D),
+      // The theme's blue while the connection is up, the neutral grey if not.
+      accent: theme.tileColor(up ? TileColor.blue : TileColor.grey, position),
       children: [
         _InfoRow(
           icon: Icons.lan_rounded,
@@ -187,14 +196,14 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
   /// Ethernet tab. First row is the mode: "Client" when the network gave the
   /// robot an address, "Host" when none answered and the robot serves DHCP.
   /// Null (no card) until the robot reports the mode.
-  Widget? _buildEthernetCard(DeviceInfo deviceInfo) {
+  Widget? _buildEthernetCard(DeviceInfo deviceInfo, Color accent) {
     final role = deviceInfo.ethernetRole;
     if (role == null) return null;
     final host = role == 'host';
 
     return _InfoCard(
       title: 'Ethernet',
-      accent: const Color(0xFF81C784),
+      accent: accent,
       children: [
         _InfoRow(
           icon: host ? Icons.dns_rounded : Icons.lan_rounded,
@@ -215,10 +224,10 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
   }
 
   /// Details of the Wi-Fi network the robot is connected to (Client tab).
-  Widget _buildWifiCard(WifiNetwork network) {
+  Widget _buildWifiCard(WifiNetwork network, Color accent) {
     return _InfoCard(
       title: 'Wi-Fi',
-      accent: const Color(0xFF81C784),
+      accent: accent,
       children: [
         _InfoRow(
           icon: Icons.router_rounded,
@@ -234,7 +243,8 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
     );
   }
 
-  Widget _buildHotspotCard(AccessPointConfig config, int connectedClients) {
+  Widget _buildHotspotCard(
+      AccessPointConfig config, int connectedClients, Color accent) {
     final hasPassword = config.encryptionType != WifiEncryptionType.open &&
         config.password.isNotEmpty;
     final band = config.channel > 0
@@ -243,7 +253,7 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
 
     return _InfoCard(
       title: 'Hotspot',
-      accent: const Color(0xFFBA68C8),
+      accent: accent,
       children: [
         _InfoRow(
           icon: Icons.router_rounded,
@@ -294,14 +304,14 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
   }
 }
 
-class _LoadingPanel extends StatelessWidget {
+class _LoadingPanel extends ConsumerWidget {
   const _LoadingPanel({required this.controller});
 
   final AnimationController controller;
 
   @override
-  Widget build(BuildContext context) {
-    const accent = Color(0xFF4FC3F7);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accent = ref.watch(colorThemeProvider).tileColor(TileColor.blue, 0);
 
     return Container(
       width: 320,
@@ -398,7 +408,9 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return _CardAccent(
+      accent: accent,
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF11161C),
@@ -420,8 +432,23 @@ class _InfoCard extends StatelessWidget {
           ...children,
         ],
       ),
+      ),
     );
   }
+}
+
+/// Hands a card's accent color down to its rows.
+class _CardAccent extends InheritedWidget {
+  const _CardAccent({required this.accent, required super.child});
+
+  final Color accent;
+
+  static Color of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_CardAccent>()?.accent ??
+      Colors.white;
+
+  @override
+  bool updateShouldNotify(_CardAccent old) => accent != old.accent;
 }
 
 class _InfoRow extends StatelessWidget {
@@ -439,6 +466,7 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = _CardAccent.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -447,10 +475,10 @@ class _InfoRow extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: accent.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: Colors.white, size: 22),
+            child: Icon(icon, color: accent, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
