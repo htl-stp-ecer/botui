@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/features/program/domain/entities/sync_state.dart';
 
-/// Compact version chip. Green ``v42`` when the project has been verified-synced
-/// at least once, red ``NOT SYNCED`` otherwise. Used in top bars and as an
+/// Compact version chip. ``v42`` in the theme's green when the project has
+/// been verified-synced at least once, ``NOT SYNCED`` in the theme's red
+/// otherwise (both slots follow the active color theme). Used in top bars and as an
 /// overlay badge on program list tiles so devs can see at a glance which
 /// programs on the Pi are up-to-date.
-class ProgramVersionChip extends StatelessWidget {
+class ProgramVersionChip extends ConsumerWidget {
   final SyncState? syncState;
 
   /// Smaller variant is used as a tile corner badge, larger variant in top bars.
@@ -18,10 +22,13 @@ class ProgramVersionChip extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final synced = syncState?.hasBeenSynced ?? false;
     final label = synced ? 'v${syncState!.version}' : 'NOT SYNCED';
-    final background = synced ? Colors.green.shade700 : Colors.red.shade700;
+    final theme = ref.watch(colorThemeProvider);
+    final background = synced
+        ? theme.tileColor(TileColor.green, 0)
+        : theme.tileColor(TileColor.red, 1);
 
     final double fontSize = compact ? 13 : 18;
     final EdgeInsets padding = compact
@@ -37,7 +44,7 @@ class ProgramVersionChip extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: Colors.white,
+          color: theme.textColor,
           fontSize: fontSize,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.5,

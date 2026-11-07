@@ -93,12 +93,33 @@ class RaccoonNetworkApi {
     );
   }
 
-  Future<void> enableLanOnlyMode() async {
-    await _requestMap('POST', '/api/v1/network/lan/enable');
+  /// The stored password of a saved network, or null if it is not saved.
+  Future<String?> getSavedPassword(String ssid) async {
+    final json = await _requestMap(
+      'GET',
+      '/api/v1/network/saved-password/${Uri.encodeComponent(ssid)}',
+      allowEmpty: true,
+    );
+    return json?['password'] as String?;
+  }
+
+  /// Returns "client" (got an address from the network) or "host" (no DHCP
+  /// server answered, the robot hosts the network); null from an older server.
+  Future<String?> enableLanOnlyMode() async {
+    final json = await _requestMap('POST', '/api/v1/network/lan/enable');
+    return json['role'] as String?;
   }
 
   Future<void> disableLanOnlyMode() async {
     await _requestMap('POST', '/api/v1/network/lan/disable');
+  }
+
+  /// Long poll: returns when the cable or the mode changed since [since]
+  /// (a version from an earlier answer; -1 answers at once), or after about
+  /// 20 s with the unchanged state.
+  Future<Map<String, dynamic>> waitLanEvent(int since) async {
+    return await _requestMap(
+        'GET', '/api/v1/network/lan/events?since=$since&timeout=20');
   }
 
   Future<Map<String, dynamic>> getLanStatus() async {

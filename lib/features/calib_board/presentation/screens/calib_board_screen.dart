@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -39,7 +39,7 @@ class CalibBoardScreen extends ConsumerWidget {
               color: TileColor.byIndex(SensorCategory.analog.index),
               state: status.paa,
               detail: status.paaDetail,
-              onPressed: () => context.pushOnce(AppRoutes.calibPaa),
+              onPressed: () => context.push(AppRoutes.calibPaa),
             ),
             CalibStatusTile(
               label: 'ICM (IMU)',
@@ -47,7 +47,7 @@ class CalibBoardScreen extends ConsumerWidget {
               color: TileColor.byIndex(SensorCategory.gyro.index),
               state: status.icm,
               detail: status.icmDetail,
-              onPressed: () => context.pushOnce(AppRoutes.calibIcm),
+              onPressed: () => context.push(AppRoutes.calibIcm),
             ),
             CalibStatusTile(
               label: 'Odometry',
@@ -58,7 +58,7 @@ class CalibBoardScreen extends ConsumerWidget {
               // Pose verändert sich dann eben nur per Rotation).
               state: status.icm,
               detail: 'PAA + IMU fusion',
-              onPressed: () => context.pushOnce(AppRoutes.calibOdometry),
+              onPressed: () => context.push(AppRoutes.calibOdometry),
             ),
             CalibStatusTile(
               label: 'BNO (Fusion)',
@@ -66,7 +66,7 @@ class CalibBoardScreen extends ConsumerWidget {
               color: TileColor.byIndex(SensorCategory.orientation.index),
               state: status.bno,
               detail: 'hardware not present',
-              onPressed: () => context.pushOnce(AppRoutes.calibBno),
+              onPressed: () => context.push(AppRoutes.calibBno),
             ),
           ],
         ),

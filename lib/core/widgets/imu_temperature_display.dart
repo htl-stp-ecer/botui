@@ -16,15 +16,20 @@ class ImuTemperatureDisplay extends HookConsumerWidget {
         ? Colors.blue
         : (temperature < 30 ? Colors.green : Colors.red);
 
+    // Same look as the battery next to it: text 20, icon 28 to its right.
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        Text(
+          '${temperature.toStringAsFixed(1)}°C',
+          style: const TextStyle(color: Colors.white, fontSize: 20),
+        ),
+        const SizedBox(width: 4),
         Icon(
           Icons.thermostat,
           color: color,
-          size: 40,
+          size: 28,
         ),
-        const SizedBox(width: 8),
-        Text('${temperature.toStringAsFixed(1)}°C'),
       ],
     );
   }

@@ -1,7 +1,7 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:stpvelox/core/router/app_router.dart';
-import 'package:stpvelox/core/widgets/responsive_grid.dart';
+import 'package:stpvelox/core/widgets/tile_position.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
@@ -17,28 +17,49 @@ class WifiMenuScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: ResponsiveGrid(
-            isScrollable: false,
-            crossAxisCount: 2,
-            maxTileWidth: 260,
-            childAspectRatio: 1.12,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            padding: EdgeInsets.zero,
-            children: const [
-              _WifiMenuTile(
-                title: 'Manage Connection',
-                icon: Icons.settings_ethernet_rounded,
-                color: TileColor.teal,
-                route: AppRoutes.wifiManage,
-              ),
-              _WifiMenuTile(
-                title: 'Network Scan',
-                icon: Icons.wifi_tethering_rounded,
-                color: TileColor.blue,
-                route: AppRoutes.wifiChannelScan,
-              ),
-            ],
+          // Two tiles, 0.75x the size they had in the grid, centered on both axes.
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const gap = 12.0;
+              const aspectRatio = 1.12;
+              const scale = 0.75;
+              // The size a tile had when the two filled the row.
+              var width = (constraints.maxWidth - gap) / 2;
+              if (width / aspectRatio > constraints.maxHeight) {
+                width = constraints.maxHeight * aspectRatio;
+              }
+              width *= scale;
+              const tiles = [
+                _WifiMenuTile(
+                  title: 'Manage Connection',
+                  icon: Icons.settings_ethernet_rounded,
+                  color: TileColor.teal,
+                  route: AppRoutes.wifiManage,
+                ),
+                _WifiMenuTile(
+                  title: 'Network Scan',
+                  icon: Icons.wifi_tethering_rounded,
+                  color: TileColor.blue,
+                  route: AppRoutes.wifiChannelScan,
+                ),
+              ];
+              return Center(
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  runAlignment: WrapAlignment.center,
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    for (final (i, tile) in tiles.indexed)
+                      SizedBox(
+                        width: width,
+                        height: width / aspectRatio,
+                        child: TilePosition(index: i, child: tile),
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -65,7 +86,7 @@ class _WifiMenuTile extends StatelessWidget {
       label: title,
       icon: icon,
       color: color,
-      onPressed: () => context.pushOnce(route),
+      onPressed: () => context.push(route),
     );
   }
 }

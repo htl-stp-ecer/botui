@@ -1,6 +1,14 @@
 import 'dart:math';
 
 class PasswordGenerator {
+  /// Default hotspot name: "Raccoon-Robot-" plus three random digits.
+  static String defaultHotspotSsid() =>
+      'Raccoon-Robot-${Random.secure().nextInt(1000).toString().padLeft(3, '0')}';
+
+  /// Default hotspot password: "raccoon" plus three random digits.
+  static String defaultHotspotPassword() =>
+      'raccoon${Random.secure().nextInt(1000).toString().padLeft(3, '0')}';
+
   static const String _letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
   static const String _numbers = '0123456789';
   static const String _symbols = '!@#\$%^&*';

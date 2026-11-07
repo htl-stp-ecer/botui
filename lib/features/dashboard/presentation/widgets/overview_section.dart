@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +17,6 @@ class OverviewSection extends ConsumerStatefulWidget {
 
 class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAware {
   ModalRoute<void>? _route;
-  Timer? _retryTimer;
 
   @override
   void initState() {
@@ -26,14 +24,9 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
     // The data is cached (see overviewInfoProvider): the panel shows the last
     // known values right away and this refreshes them in the background.
     _refresh();
-    // On boot the network is often not up yet when the first lookup runs, so
-    // keep retrying until a connection shows up.
-    _retryTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      final info = ref.read(overviewInfoProvider);
-      final connected = info.ssid != null && info.ssid!.isNotEmpty;
-      final hasIp = info.ipv4 != null && info.ipv4!.isNotEmpty;
-      if (!connected || !hasIp) _refresh();
-    });
+    // No polling: the robot announces network changes (see
+    // EthernetPlugPrompt), which refreshes this panel; on boot the first answer
+    // comes as soon as the server is up.
   }
 
   void _refresh() {
@@ -60,7 +53,6 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
 
   @override
   void dispose() {
-    _retryTimer?.cancel();
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -71,6 +63,10 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
     final ssid = info.ssid;
     final ipv4 = info.ipv4;
     final connected = ssid != null && ssid.isNotEmpty;
+    // In hotspot mode there is no client network; show the hotspot's name.
+    final hotspotSsid = connected ? null : info.hotspotSsid;
+    // LAN-only mode: the wired network's name, with a LAN icon.
+    final lanName = info.lanName;
     final voltage = useBatteryVoltage(ref);
     final hasBattery = voltage != null && voltage > 0;
 
@@ -113,7 +109,13 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    connected ? Icons.wifi : Icons.wifi_off,
+                    lanName != null
+                        ? Icons.lan
+                        : connected
+                        ? Icons.wifi
+                        : hotspotSsid != null
+                            ? Icons.wifi_tethering
+                            : Icons.wifi_off,
                     color: Colors.grey[400],
                     size: 22,
                   ),
@@ -121,7 +123,10 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
                   Text(
                     !info.networkLoaded
                         ? 'N/A'
-                        : (connected ? ssid : 'Not connected'),
+                        : (lanName ??
+                            (connected
+                                ? ssid
+                                : (hotspotSsid ?? 'Not connected'))),
                     style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],

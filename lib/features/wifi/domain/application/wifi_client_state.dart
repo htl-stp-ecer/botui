@@ -25,13 +25,26 @@ class WifiClientState {
     String? connectedSsid,
     String? forgottenSsid,
     DeviceInfo? deviceInfo,
+
+    /// Forget the result of the previous operation (error, connected network,
+    /// forgotten network). Passing null for them does not, because
+    /// `errorMessage ?? this.errorMessage` keeps the old value.
+    bool clearResult = false,
+
+    /// Forget only the error (a new load starts: an old error must not make
+    /// the Device Info page show its error panel).
+    bool clearError = false,
   }) {
     return WifiClientState(
       isLoading: isLoading ?? this.isLoading,
       networks: networks ?? this.networks,
-      errorMessage: errorMessage ?? this.errorMessage,
-      connectedSsid: connectedSsid ?? this.connectedSsid,
-      forgottenSsid: forgottenSsid ?? this.forgottenSsid,
+      errorMessage: (clearResult || clearError)
+          ? errorMessage
+          : (errorMessage ?? this.errorMessage),
+      connectedSsid:
+          clearResult ? connectedSsid : (connectedSsid ?? this.connectedSsid),
+      forgottenSsid:
+          clearResult ? forgottenSsid : (forgottenSsid ?? this.forgottenSsid),
       deviceInfo: deviceInfo ?? this.deviceInfo,
     );
   }

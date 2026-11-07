@@ -25,7 +25,7 @@
 //   TileColor.indigo    Services, Overview left/right
 //   TileColor.purple    Display, Calibrate, Hotspot Settings, Tilt Maze
 //   TileColor.pink      Personality, Color Theme
-//   TileColor.brown     LAN Status
+//   TileColor.brown     Ethernet Status
 //   TileColor.blueGrey  Hide UI, Device Info, Advanced
 //   TileColor.grey      neutral/disabled: Screensaver off, Overview off,
 //                       Stop Program when no program runs. Always the same

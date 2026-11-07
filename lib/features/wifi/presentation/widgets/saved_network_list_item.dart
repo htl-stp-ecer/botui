@@ -1,5 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/overview/overview_info_provider.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
+import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/features/wifi/application/saved_networks_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
@@ -17,15 +24,55 @@ class SavedNetworkListItem extends ConsumerStatefulWidget {
 
 class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
   bool _showPassword = false;
+  // Fetched from the robot the first time the eye is tapped; the list itself
+  // never carries passwords.
+  String? _password;
+  bool _loadingPassword = false;
 
   @override
   Widget build(BuildContext context) {
+    final theme = ref.watch(colorThemeProvider);
+    // The overview keeps the connected network up to date from the robot's
+    // network events.
+    final connectedSsid = ref.watch(overviewInfoProvider.select((i) => i.ssid));
+    final isConnected = connectedSsid != null &&
+        connectedSsid.isNotEmpty &&
+        connectedSsid == widget.network.ssid;
+    // Is it in range? From the last scan of the network list. Until a scan
+    // has found anything we do not know, and the button stays usable.
+    final scanned = ref.watch(wifiClientProvider.select((s) => s.networks));
+    final inRange = scanned.isEmpty ||
+        isConnected ||
+        scanned.any((n) => n.ssid == widget.network.ssid);
+    // Left to right; the color comes from the theme by position in this row.
+    final buttons = [
+      if (widget.network.credentials is PersonalCredentials)
+        (
+          slot: TileColor.blue,
+          icon: _showPassword ? Icons.visibility_off : Icons.visibility,
+          onPressed: _togglePassword,
+          enabled: true,
+        ),
+      (
+        slot: TileColor.green,
+        icon: Icons.wifi,
+        onPressed: _connect,
+        enabled: inRange,
+      ),
+      (
+        slot: TileColor.red,
+        icon: Icons.delete,
+        onPressed: () {
+          _showRemoveDialog(context, widget.network.ssid);
+        },
+        enabled: true,
+      ),
+    ];
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.grey[850],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[700]!, width: 1),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
@@ -41,34 +88,26 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Last connected: ${_formatDateTime(widget.network.lastConnected)}',
-              style: const TextStyle(color: Colors.grey),
+              isConnected
+                  ? 'Connected'
+                  : inRange
+                      ? 'Last connected: ${_formatDateTime(widget.network.lastConnected)}'
+                      : 'Not in range',
+              style: TextStyle(
+                color: isConnected
+                    ? theme.tileColor(TileColor.blue, 0)
+                    : Colors.grey,
+                fontWeight: isConnected ? FontWeight.w700 : FontWeight.normal,
+              ),
             ),
             if (widget.network.credentials is PersonalCredentials) ...[
               const SizedBox(height: 4),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Password: ${_getPasswordText()}',
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _showPassword = !_showPassword;
-                      });
-                    },
-                    icon: Icon(
-                      _showPassword ? Icons.visibility_off : Icons.visibility,
-                      size: 20,
-                    ),
-                  ),
-                ],
+              Text(
+                'Password: ${_getPasswordText()}',
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                ),
               ),
             ] else if (widget.network.credentials is EnterpriseCredentials) ...[
               const SizedBox(height: 4),
@@ -82,58 +121,101 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
             ],
           ],
         ),
+        // The network the robot is connected to right now: a blue Wi-Fi icon
+        // instead of the bookmark.
         leading: Icon(
-          Icons.bookmark,
-          color: widget.network.autoConnect ? Colors.green : Colors.grey,
+          isConnected ? Icons.wifi : Icons.bookmark,
+          color: isConnected
+              ? theme.tileColor(TileColor.blue, 0)
+              : (widget.network.autoConnect ? Colors.green : Colors.grey),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              child: ElevatedButton(
-                onPressed: () {
-                  ref
-                      .read(wifiClientProvider.notifier)
-                      .connectToNetwork(widget.network.ssid, widget.network.encryptionType, widget.network.credentials);
-                },
+            for (final (i, button) in buttons.indexed) ...[
+              if (i > 0) const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: button.enabled ? button.onPressed : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[600],
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(60, 48),
+                  backgroundColor: theme.tileColor(button.slot, i),
+                  foregroundColor: theme.textColor,
+                  // Greyed out (the theme's neutral grey) when it cannot work.
+                  disabledBackgroundColor: theme.tileColor(TileColor.grey, i),
+                  disabledForegroundColor:
+                      theme.textColor.withValues(alpha: 0.45),
+                  minimumSize: const Size(75, 60),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Icon(Icons.wifi, size: 24),
+                child: Icon(button.icon, size: 30),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _showRemoveDialog(context, widget.network.ssid);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[600],
-                foregroundColor: Colors.white,
-                minimumSize: const Size(60, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Icon(Icons.delete, size: 24),
-            ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  String _getPasswordText() {
-    if (widget.network.credentials is PersonalCredentials) {
-      final creds = widget.network.credentials as PersonalCredentials;
-      return _showPassword ? creds.password : '••••••••';
+  /// Connects to this network and says so at the bottom: "Connecting ..." while
+  /// it runs (it can take several seconds), then the result in its place.
+  Future<void> _connect() async {
+    final ssid = widget.network.ssid;
+    AppToast.info('Connecting to $ssid...', duration: const Duration(seconds: 60));
+
+    // Everything needed afterwards is taken now: this row can be gone when the
+    // list reloads during the connection, and a widget must not use its `ref`
+    // after that. The badge has to be replaced in every case.
+    final client = ref.read(wifiClientProvider.notifier);
+    final savedNetworks = ref.read(savedNetworksProvider.notifier);
+    var connected = false;
+    String? failure;
+    try {
+      connected = await client.connectToNetwork(
+          ssid, widget.network.encryptionType, widget.network.credentials);
+      if (!connected) failure = client.lastError;
+    } catch (e) {
+      failure = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
     }
-    return '';
+
+    if (connected) {
+      AppToast.success('Connected to $ssid');
+      // The list is ordered by last connection.
+      unawaited(savedNetworks.loadSavedNetworks());
+    } else {
+      AppToast.error('Could not connect to $ssid: ${failure ?? 'unknown error'}',
+          duration: const Duration(seconds: 5));
+    }
+  }
+
+  String _getPasswordText() {
+    if (!_showPassword) return '••••••••';
+    if (_loadingPassword) return 'Loading...';
+    final password = _password ?? '';
+    return password.isEmpty ? '(not stored)' : password;
+  }
+
+  Future<void> _togglePassword() async {
+    if (_showPassword) {
+      setState(() => _showPassword = false);
+      return;
+    }
+    setState(() => _showPassword = true);
+    if (_password != null) return;
+    setState(() => _loadingPassword = true);
+    try {
+      final password = await ref
+          .read(manageSavedNetworksProvider)
+          .getSavedPassword(widget.network.ssid);
+      if (mounted) setState(() => _password = password ?? '');
+    } catch (e) {
+      if (mounted) {
+        setState(() => _showPassword = false);
+        AppToast.error('Could not read password: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _loadingPassword = false);
+    }
   }
 
   String _formatDateTime(DateTime dateTime) {

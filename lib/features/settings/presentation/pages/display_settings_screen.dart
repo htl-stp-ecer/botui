@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,13 +30,13 @@ class DisplaySettingsScreen extends ConsumerWidget {
               icon: Icons.palette,
               label: 'Color Theme',
               color: TileColor.pink,
-              onPressed: () => context.pushOnce(AppRoutes.colorTheme),
+              onPressed: () => context.push(AppRoutes.colorTheme),
             ),
             ResponsiveGridTile(
               icon: Icons.screen_rotation,
               label: 'Rotate',
               color: TileColor.teal,
-              onPressed: () => context.pushOnce(AppRoutes.screenRotation),
+              onPressed: () => context.push(AppRoutes.screenRotation),
             ),
             const _OverviewSideTile(),
             _ScreensaverTile(prefs: prefs),
@@ -44,7 +44,7 @@ class DisplaySettingsScreen extends ConsumerWidget {
               icon: Icons.display_settings,
               label: 'Calibrate',
               color: TileColor.purple,
-              onPressed: () => context.pushOnce(AppRoutes.touchCalibration),
+              onPressed: () => context.push(AppRoutes.touchCalibration),
             ),
             ResponsiveGridTile(
               icon: Icons.remove_red_eye,

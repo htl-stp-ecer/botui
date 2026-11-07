@@ -27,7 +27,7 @@ class _LanOnlyStatusScreenState extends ConsumerState<LanOnlyStatusScreen> {
     final lanState = ref.watch(lanOnlyProvider);
 
     return Scaffold(
-      appBar: createTopBar(context, 'LAN Status'),
+      appBar: createTopBar(context, 'Ethernet Status'),
       body: Padding(
         padding: const EdgeInsets.all(32.0),
         child: lanState.isLoading

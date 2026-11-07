@@ -1,4 +1,3 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -109,11 +108,14 @@ class SensorCategoryScreen extends ConsumerWidget {
         'Orientation' => AccuracyType.quaternion,
         _ => null,
       };
+      // Left to right: temperature, accuracy, then the battery (added by the
+      // top bar itself).
+      actions.add(const ImuTemperatureDisplay());
+      actions.add(const SizedBox(width: 14));
       if (accuracyType != null) {
         actions.add(ImuAccuracyDisplay(type: accuracyType));
-        actions.add(const SizedBox(width: 16));
+        actions.add(const SizedBox(width: 14));
       }
-      actions.add(const ImuTemperatureDisplay());
     }
 
     return Scaffold(
@@ -139,7 +141,7 @@ class SensorCategoryScreen extends ConsumerWidget {
                             if (!shouldProceed) return;
                           }
                           if (context.mounted) {
-                            context.pushOnce(AppRoutes.sensorScreen,
+                            context.push(AppRoutes.sensorScreen,
                                 extra: s.screen);
                           }
                         },
@@ -259,7 +261,7 @@ class _DigitalSensorTile extends ConsumerWidget {
     final pressed = useDigitalValue(ref, port) == true;
 
     return GestureDetector(
-      onTap: () => context.pushOnce(AppRoutes.sensorScreen, extra: sensor.screen),
+      onTap: () => context.push(AppRoutes.sensorScreen, extra: sensor.screen),
       child: Container(
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
         decoration: BoxDecoration(

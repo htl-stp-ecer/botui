@@ -2,14 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
+import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 import 'package:stpvelox/features/wifi/domain/application/access_point_state.dart';
 import 'package:stpvelox/features/wifi/domain/application/wifi_client_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
+import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_band.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_encryption_type.dart';
+import 'package:stpvelox/features/wifi/domain/enities/wifi_network.dart';
+import 'package:stpvelox/shared/domain/entities/device_info.dart';
 
 class DeviceInfoScreen extends ConsumerStatefulWidget {
   const DeviceInfoScreen({super.key});
@@ -39,6 +45,7 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
       await Future.wait([
         ref.read(wifiClientProvider.notifier).loadDeviceInfo(),
         ref.read(accessPointProvider.notifier).refreshStatus(),
+        ref.read(networkModeProvider.notifier).loadNetworkMode(),
       ]);
       if (mounted) setState(() => _ready = true);
     });
@@ -98,6 +105,21 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
     final deviceInfo = state.deviceInfo!;
     final network = deviceInfo.connectedNetwork;
     final hotspot = apState.isStarted ? apState.config : null;
+    final ethernetMode =
+        ref.watch(networkModeProvider).mode == NetworkMode.lanOnly;
+
+    // Two sections: the one of the current tab (hotspot, Ethernet or Wi-Fi
+    // details) and the "Connection" card with the address and status that
+    // every tab shares.
+    final theme = ref.watch(colorThemeProvider);
+    final specific = hotspot != null
+        ? _buildHotspotCard(hotspot, apState.connectedClients,
+            theme.tileColor(TileColor.purple, 0))
+        : ethernetMode
+            ? _buildEthernetCard(deviceInfo, theme.tileColor(TileColor.brown, 0))
+            : network != null
+                ? _buildWifiCard(network, theme.tileColor(TileColor.teal, 0))
+                : null;
 
     // Column in a SingleChildScrollView (not a lazy ListView) so all cards are
     // built up front and none pops in or out while scrolling.
@@ -107,75 +129,122 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _InfoCard(
-            title: 'Addressing',
-            accent: const Color(0xFF4FC3F7),
-            children: [
-              _InfoRow(
-                icon: Icons.lan_rounded,
-                label: 'IP Address',
-                value: deviceInfo.ipAddress,
-              ),
-              _InfoRow(
-                icon: Icons.memory_rounded,
-                label: 'MAC Address',
-                value: deviceInfo.macAddress ?? 'Unavailable',
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _InfoCard(
-            title: 'Connection',
-            accent: network != null
-                ? const Color(0xFF81C784)
-                : const Color(0xFFFFB74D),
-            children: [
-              _InfoRow(
-                icon: network != null
-                    ? Icons.wifi_rounded
-                    : hotspot != null
-                        ? Icons.router_rounded
-                        : Icons.wifi_off_rounded,
-                label: 'Status',
-                value: network != null
-                    ? 'Connected'
-                    : hotspot != null
-                        ? 'Hotspot active'
-                        : 'Offline',
-              ),
-              if (network != null) ...[
-                _InfoRow(
-                  icon: Icons.router_rounded,
-                  label: 'SSID',
-                  value: network.ssid,
-                ),
-                _InfoRow(
-                  icon: Icons.lock_outline_rounded,
-                  label: 'Security',
-                  value: network.encryptionType.formatted,
-                ),
-              ] else if (hotspot == null)
-                const _InfoHint(
-                  text: 'No wireless network is currently connected.',
-                ),
-              if (deviceInfo.ethernetIpAddress != null)
-                _InfoRow(
-                  icon: Icons.cable_rounded,
-                  label: 'Ethernet IP',
-                  value: deviceInfo.ethernetIpAddress!,
-                ),
-            ],
-          ),
-          if (hotspot != null) ...[
+          if (specific != null) ...[
+            specific,
             const SizedBox(height: 14),
-            _buildHotspotCard(hotspot, apState.connectedClients),
           ],
+          _buildConnectionCard(
+            deviceInfo,
+            theme: theme,
+            position: specific != null ? 1 : 0,
+            ethernetMode: ethernetMode,
+            hotspotActive: hotspot != null,
+            wifiConnected: network != null,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHotspotCard(AccessPointConfig config, int connectedClients) {
+  /// The "Connection" card: address and status, the same in every mode. Always the
+  /// last card, below the one of the current tab.
+  Widget _buildConnectionCard(
+    DeviceInfo deviceInfo, {
+    required AppTheme theme,
+    required int position,
+    required bool ethernetMode,
+    required bool hotspotActive,
+    required bool wifiConnected,
+  }) {
+    final IconData statusIcon;
+    final String status;
+    final bool up;
+    if (ethernetMode) {
+      up = deviceInfo.ethernetCableConnected;
+      statusIcon = up ? Icons.lan_rounded : Icons.lan_outlined;
+      status = up ? 'Connected' : 'Not connected';
+    } else if (hotspotActive) {
+      up = true;
+      statusIcon = Icons.router_rounded;
+      status = 'Hotspot active';
+    } else {
+      up = wifiConnected;
+      statusIcon = up ? Icons.wifi_rounded : Icons.wifi_off_rounded;
+      status = up ? 'Connected' : 'Offline';
+    }
+
+    return _InfoCard(
+      title: 'Connection',
+      // The theme's blue while the connection is up, the neutral grey if not.
+      accent: theme.tileColor(up ? TileColor.blue : TileColor.grey, position),
+      children: [
+        _InfoRow(
+          icon: Icons.lan_rounded,
+          label: 'IP Address',
+          value: deviceInfo.ipAddress,
+        ),
+        _InfoRow(
+          icon: Icons.memory_rounded,
+          label: 'MAC Address',
+          value: deviceInfo.macAddress ?? 'Unavailable',
+        ),
+        _InfoRow(icon: statusIcon, label: 'Status', value: status),
+      ],
+    );
+  }
+
+  /// Ethernet tab. First row is the mode: "Client" when the network gave the
+  /// robot an address, "Host" when none answered and the robot serves DHCP.
+  /// Null (no card) until the robot reports the mode.
+  Widget? _buildEthernetCard(DeviceInfo deviceInfo, Color accent) {
+    final role = deviceInfo.ethernetRole;
+    if (role == null) return null;
+    final host = role == 'host';
+
+    return _InfoCard(
+      title: 'Ethernet',
+      accent: accent,
+      children: [
+        _InfoRow(
+          icon: host ? Icons.dns_rounded : Icons.lan_rounded,
+          label: 'Mode',
+          value: host ? 'Host' : 'Client',
+        ),
+        if (host) ...[
+          // Only the current number: the cable has no device limit.
+          if (deviceInfo.ethernetConnectedDevices != null)
+            _InfoRow(
+              icon: Icons.devices_rounded,
+              label: 'Connected devices',
+              value: '${deviceInfo.ethernetConnectedDevices}',
+            ),
+        ],
+      ],
+    );
+  }
+
+  /// Details of the Wi-Fi network the robot is connected to (Client tab).
+  Widget _buildWifiCard(WifiNetwork network, Color accent) {
+    return _InfoCard(
+      title: 'Wi-Fi',
+      accent: accent,
+      children: [
+        _InfoRow(
+          icon: Icons.router_rounded,
+          label: 'SSID',
+          value: network.ssid,
+        ),
+        _InfoRow(
+          icon: Icons.lock_outline_rounded,
+          label: 'Security',
+          value: network.encryptionType.formatted,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHotspotCard(
+      AccessPointConfig config, int connectedClients, Color accent) {
     final hasPassword = config.encryptionType != WifiEncryptionType.open &&
         config.password.isNotEmpty;
     final band = config.channel > 0
@@ -184,7 +253,7 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
 
     return _InfoCard(
       title: 'Hotspot',
-      accent: const Color(0xFFBA68C8),
+      accent: accent,
       children: [
         _InfoRow(
           icon: Icons.router_rounded,
@@ -227,21 +296,22 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
         _InfoRow(
           icon: Icons.devices_rounded,
           label: 'Connected devices',
-          value: '$connectedClients',
+          // current/max: the hotspot has a configured limit.
+          value: '$connectedClients/${config.maxClients}',
         ),
       ],
     );
   }
 }
 
-class _LoadingPanel extends StatelessWidget {
+class _LoadingPanel extends ConsumerWidget {
   const _LoadingPanel({required this.controller});
 
   final AnimationController controller;
 
   @override
-  Widget build(BuildContext context) {
-    const accent = Color(0xFF4FC3F7);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accent = ref.watch(colorThemeProvider).tileColor(TileColor.blue, 0);
 
     return Container(
       width: 320,
@@ -338,7 +408,9 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return _CardAccent(
+      accent: accent,
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFF11161C),
@@ -360,8 +432,23 @@ class _InfoCard extends StatelessWidget {
           ...children,
         ],
       ),
+      ),
     );
   }
+}
+
+/// Hands a card's accent color down to its rows.
+class _CardAccent extends InheritedWidget {
+  const _CardAccent({required this.accent, required super.child});
+
+  final Color accent;
+
+  static Color of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_CardAccent>()?.accent ??
+      Colors.white;
+
+  @override
+  bool updateShouldNotify(_CardAccent old) => accent != old.accent;
 }
 
 class _InfoRow extends StatelessWidget {
@@ -379,6 +466,7 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = _CardAccent.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -387,10 +475,10 @@ class _InfoRow extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: accent.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: Colors.white, size: 22),
+            child: Icon(icon, color: accent, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -419,31 +507,6 @@ class _InfoRow extends StatelessWidget {
           ),
           if (trailing != null) trailing!,
         ],
-      ),
-    );
-  }
-}
-
-class _InfoHint extends StatelessWidget {
-  const _InfoHint({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.grey[300],
-          fontSize: 13,
-          height: 1.35,
-        ),
       ),
     );
   }

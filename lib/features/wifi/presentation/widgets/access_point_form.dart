@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/utils/password_generator.dart';
+import 'package:stpvelox/core/widgets/themed_field.dart';
 import 'package:stpvelox/features/wifi/application/access_point_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 import 'package:stpvelox/features/wifi/domain/application/access_point_state.dart';
@@ -48,8 +51,8 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
       _encryptionType = config.encryptionType;
       _isHidden = config.hidden;
     } else {
-      _ssidController.text = 'RaccoonOS';
-      _passwordController.text = 'raccoonos';
+      _ssidController.text = PasswordGenerator.defaultHotspotSsid();
+      _passwordController.text = PasswordGenerator.defaultHotspotPassword();
     }
   }
 
@@ -65,46 +68,31 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
     final apState = ref.watch(accessPointProvider);
     final apNotifier = ref.read(accessPointProvider.notifier);
 
+    final theme = ref.watch(colorThemeProvider);
     return Theme(
       data: Theme.of(context).copyWith(
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white.withValues(alpha: 0.05),
-          labelStyle: TextStyle(color: Colors.grey[400]),
-          prefixIconColor: Colors.white70,
-          suffixIconColor: Colors.white70,
-          border: _fieldBorder(Colors.white.withValues(alpha: 0.12)),
-          enabledBorder: _fieldBorder(Colors.white.withValues(alpha: 0.12)),
-          focusedBorder: _fieldBorder(_accent),
-          errorBorder: _fieldBorder(Colors.redAccent),
-          focusedErrorBorder: _fieldBorder(Colors.redAccent),
-        ),
-        canvasColor: _cardColor,
+        canvasColor: kFormCardColor,
         textTheme: Theme.of(context).textTheme.apply(
               bodyColor: Colors.white,
               displayColor: Colors.white,
             ),
       ),
-      child: _buildForm(apState, apNotifier),
+      child: _buildForm(apState, apNotifier, theme),
     );
   }
 
-  static const _accent = Color(0xFFBA68C8);
-  static const _cardColor = Color(0xFF11161C);
-
-  static OutlineInputBorder _fieldBorder(Color color) => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: color, width: 1.5),
-      );
-
-  ButtonStyle _buttonStyle(Color color) => ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
+  ButtonStyle _buttonStyle(TileColor slot, int position) {
+    final theme = ref.watch(colorThemeProvider);
+    return ElevatedButton.styleFrom(
+        backgroundColor: theme.tileColor(slot, position),
+        foregroundColor: theme.textColor,
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       );
+  }
 
-  Widget _buildForm(AccessPointState apState, AccessPointNotifier apNotifier) {
+  Widget _buildForm(
+      AccessPointState apState, AccessPointNotifier apNotifier, AppTheme theme) {
     return Form(
       key: _formKey,
       child: Column(
@@ -112,10 +100,11 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: _cardColor,
+              color: kFormCardColor,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                  color: _accent.withValues(alpha: 0.32), width: 1.5),
+                  color: theme.tileColor(TileColor.purple, 0).withValues(alpha: 0.32),
+                  width: 1.5),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -133,9 +122,9 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _ssidController,
-                    decoration: const InputDecoration(
-                        labelText: 'Network Name (SSID)',
-                        prefixIcon: Icon(Icons.wifi)),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: themedFieldDecoration(theme, 0,
+                        label: 'Network Name (SSID)', icon: Icons.wifi),
                     validator: (value) {
                       if (value == null || value.isEmpty) return 'Enter network name';
                       if (value.length < 3) return 'Must be at least 3 chars';
@@ -146,10 +135,13 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: !_showPassword,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: Row(
+                    style: const TextStyle(color: Colors.white),
+                    decoration: themedFieldDecoration(
+                      theme,
+                      1,
+                      label: 'Password',
+                      icon: Icons.lock,
+                      suffix: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
@@ -178,11 +170,10 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<WifiBand>(
                     value: _selectedBand,
-                    dropdownColor: const Color(0xFF1A2027),
-                    decoration: const InputDecoration(
-                      labelText: 'WiFi Band',
-                      prefixIcon: Icon(Icons.signal_wifi_4_bar),
-                    ),
+                    dropdownColor: kFormMenuColor,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    decoration: themedFieldDecoration(theme, 2,
+                        label: 'WiFi Band', icon: Icons.signal_wifi_4_bar),
                     items: WifiBand.values
                         .map((b) => DropdownMenuItem(value: b, child: Text(b.displayName)))
                         .toList(),
@@ -193,11 +184,10 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                   const SizedBox(height: 16),
                   DropdownButtonFormField<WifiEncryptionType>(
                     value: _encryptionType,
-                    dropdownColor: const Color(0xFF1A2027),
-                    decoration: const InputDecoration(
-                      labelText: 'Security',
-                      prefixIcon: Icon(Icons.security),
-                    ),
+                    dropdownColor: kFormMenuColor,
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
+                    decoration: themedFieldDecoration(theme, 3,
+                        label: 'Security', icon: Icons.security),
                     items: [
                       WifiEncryptionType.wpa3Personal,
                       WifiEncryptionType.wpa2Personal,
@@ -218,7 +208,7 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                   const SizedBox(height: 16),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    activeColor: _accent,
+                    activeColor: theme.tileColor(TileColor.byIndex(4), 4),
                     title: const Text('Hidden Network',
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.w700)),
@@ -238,17 +228,18 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: widget.isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  ref.read(colorThemeProvider).textColor),
                             ),
                           )
                         : const Icon(Icons.stop),
                     label: const Text('Stop Hotspot'),
-                    style: _buttonStyle(Colors.red.shade600),
+                    style: _buttonStyle(TileColor.red, 0),
                     onPressed: widget.isLoading ? null : apNotifier.stopHotspot,
                   ),
                 ),
@@ -256,17 +247,18 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: widget.isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  ref.read(colorThemeProvider).textColor),
                             ),
                           )
                         : const Icon(Icons.refresh),
                     label: const Text('Restart'),
-                    style: _buttonStyle(Colors.blue.shade600),
+                    style: _buttonStyle(TileColor.blue, 1),
                     onPressed: widget.isLoading
                         ? null
                         : () {
@@ -286,17 +278,18 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: widget.isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  ref.read(colorThemeProvider).textColor),
                             ),
                           )
                         : const Icon(Icons.router),
                     label: Text(widget.isLoading ? 'Starting...' : 'Start Hotspot'),
-                    style: _buttonStyle(Colors.green.shade600),
+                    style: _buttonStyle(TileColor.green, 0),
                     onPressed: widget.isLoading
                         ? null
                         : () {

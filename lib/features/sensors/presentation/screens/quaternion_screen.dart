@@ -18,9 +18,10 @@ class QuaternionScreen extends HookConsumerWidget {
         context,
         sensor.name,
         actions: [
-          const ImuAccuracyDisplay(type: AccuracyType.quaternion),
-          const SizedBox(width: 16),
           const ImuTemperatureDisplay(),
+          const SizedBox(width: 14),
+          const ImuAccuracyDisplay(type: AccuracyType.quaternion),
+          const SizedBox(width: 14),
         ],
       ),
       body: const Padding(

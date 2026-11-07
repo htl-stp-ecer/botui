@@ -10,6 +10,16 @@ class DeviceInfo {
   final String? wifiMacAddress;
   final WifiNetwork? connectedNetwork;
 
+  /// Name of the active wired connection (e.g. "Wired connection 1").
+  final String? ethernetConnectionName;
+
+  /// Ethernet Mode only: "client" (address from the network) or "host" (the
+  /// robot serves DHCP itself).
+  final String? ethernetRole;
+
+  /// Host only: devices currently on the cable.
+  final int? ethernetConnectedDevices;
+
   DeviceInfo({
     required this.ipAddress,
     this.macAddress,
@@ -19,5 +29,8 @@ class DeviceInfo {
     this.wifiIpAddress,
     this.wifiMacAddress,
     this.connectedNetwork,
+    this.ethernetConnectionName,
+    this.ethernetRole,
+    this.ethernetConnectedDevices,
   });
 }

@@ -38,7 +38,7 @@ class LanOnlyStatus extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                isActive ? 'LAN Mode Active' : 'LAN Mode Inactive',
+                isActive ? 'Ethernet Mode Active' : 'Ethernet Mode Inactive',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -111,7 +111,7 @@ class LanOnlyStatus extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Connect an ethernet cable before switching to LAN only mode',
+                      'Connect an ethernet cable before switching to Ethernet Mode',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.orange[100],

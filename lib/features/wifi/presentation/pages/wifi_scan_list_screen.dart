@@ -1,8 +1,10 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/router/app_router.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/wifi_scan_list_item.dart';
@@ -27,6 +29,7 @@ class _WifiScanListScreenState extends ConsumerState<WifiScanListScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(wifiClientProvider);
+    final theme = ref.watch(colorThemeProvider);
 
     return Scaffold(
       appBar: createTopBar(context, 'Scanned WiFi Networks'),
@@ -49,8 +52,8 @@ class _WifiScanListScreenState extends ConsumerState<WifiScanListScreen> {
                     ),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.blue[600],
-                      foregroundColor: Colors.white,
+                      backgroundColor: theme.tileColor(TileColor.blue, 0),
+                      foregroundColor: theme.textColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -61,7 +64,7 @@ class _WifiScanListScreenState extends ConsumerState<WifiScanListScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => context.pushOnce(AppRoutes.wifiManualConnect),
+                    onPressed: () => context.push(AppRoutes.wifiManualConnect),
                     icon: const Icon(Icons.add, size: 28),
                     label: const Text(
                       'Manual',
@@ -70,8 +73,8 @@ class _WifiScanListScreenState extends ConsumerState<WifiScanListScreen> {
                     ),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.green[600],
-                      foregroundColor: Colors.white,
+                      backgroundColor: theme.tileColor(TileColor.green, 1),
+                      foregroundColor: theme.textColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -82,7 +85,13 @@ class _WifiScanListScreenState extends ConsumerState<WifiScanListScreen> {
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(
+            height: 1,
+            thickness: 1,
+            indent: 16,
+            endIndent: 16,
+            color: Colors.grey[800],
+          ),
           Expanded(
             child: () {
 
@@ -99,6 +108,9 @@ class _WifiScanListScreenState extends ConsumerState<WifiScanListScreen> {
                     ref.read(wifiClientProvider.notifier).loadNetworks();
                   },
                   child: ListView.builder(
+                    // Cards add 4 above/below themselves; 12 more makes the gap
+                    // at the top and bottom 16, like the sides.
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     itemCount: sortedNetworks.length,
                     itemBuilder: (context, index) {
                       final network = sortedNetworks[index];

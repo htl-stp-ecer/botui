@@ -1,14 +1,16 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:stpvelox/core/router/route_observer.dart';
+import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/core/router/app_router.dart';
-import 'package:stpvelox/core/widgets/responsive_grid.dart';
+import 'package:stpvelox/core/widgets/tile_position.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
 import 'package:stpvelox/features/wifi/domain/application/network_mode_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
 
 class WifiHomeScreen extends ConsumerStatefulWidget {
@@ -18,7 +20,33 @@ class WifiHomeScreen extends ConsumerStatefulWidget {
   ConsumerState<WifiHomeScreen> createState() => _WifiHomeScreenState();
 }
 
-class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
+class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen>
+    with RouteAware {
+  ModalRoute<void>? _route;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != _route) {
+      _route = route;
+      appRouteObserver.unsubscribe(this);
+      if (route != null) appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  /// Back from a page above (a settings screen, a dialog's action): the mode
+  /// may have changed meanwhile, initState does not run again.
+  @override
+  void didPopNext() =>
+      ref.read(networkModeProvider.notifier).syncNetworkMode();
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -40,7 +68,11 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
       }
 
       if (previous?.mode != next.mode) {
-        AppToast.success('Switched to ${_modeTitle(next.mode)}', duration: const Duration(seconds: 2));
+        // Ethernet Mode shows its own badge, as soon as the robot answers
+        // (see LanOnlyNotifier.enable).
+        if (next.mode != NetworkMode.lanOnly) {
+          AppToast.success('Switched to ${_modeTitle(next.mode)}', duration: const Duration(seconds: 2));
+        }
       }
     });
 
@@ -71,7 +103,7 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _modeTitle(currentMode),
+                            'Network Mode',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -93,23 +125,46 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
                   ),
                   const SizedBox(height: 12),
                   Expanded(
-                    child: ResponsiveGrid(
-                      isScrollable: false,
-                      crossAxisCount: 3,
-                      maxTileWidth: 220,
-                      childAspectRatio: 1.28,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      padding: EdgeInsets.zero,
-                      children: [
-                        for (final action in actions)
-                          ResponsiveGridTile(
-                            label: action.title,
-                            icon: action.icon,
-                            color: action.color,
-                            onPressed: () => context.pushOnce(action.route),
+                    // The tiles of every tab sit in the middle of the free
+                    // space, horizontally and vertically.
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        const gap = 12.0;
+                        const columns = 3;
+                        const aspectRatio = 1.28;
+                        // Size of a tile in a full row of three; fewer tiles
+                        // keep this size and are centered.
+                        var width = (constraints.maxWidth - (columns - 1) * gap) /
+                            columns;
+                        if (width / aspectRatio > constraints.maxHeight) {
+                          width = constraints.maxHeight * aspectRatio;
+                        }
+                        return Center(
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            runAlignment: WrapAlignment.center,
+                            spacing: gap,
+                            runSpacing: gap,
+                            children: [
+                              for (final (i, action) in actions.indexed)
+                                SizedBox(
+                                  width: width,
+                                  height: width / aspectRatio,
+                                  child: TilePosition(
+                                    index: i,
+                                    child: ResponsiveGridTile(
+                                      label: action.title,
+                                      icon: action.icon,
+                                      color: action.color,
+                                      onPressed: () =>
+                                          context.push(action.route),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -178,7 +233,7 @@ class _ModeStrip extends StatelessWidget {
   }
 }
 
-class _ModeButton extends StatelessWidget {
+class _ModeButton extends ConsumerWidget {
   const _ModeButton({
     required this.mode,
     required this.isSelected,
@@ -192,8 +247,11 @@ class _ModeButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final accent = _modeAccent(mode);
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Same slot and position logic as the tiles, so every theme applies.
+    final accent = ref
+        .watch(colorThemeProvider)
+        .tileColor(_modeSlot(mode), NetworkMode.values.indexOf(mode));
 
     return Opacity(
       opacity: isEnabled ? 1 : 0.65,
@@ -295,12 +353,6 @@ List<_WifiAction> _actionsForMode(NetworkMode mode) {
     case NetworkMode.lanOnly:
       return const [
         _WifiAction(
-          title: 'LAN Status',
-          icon: Icons.cable_rounded,
-          color: TileColor.brown,
-          route: AppRoutes.wifiLanStatus,
-        ),
-        _WifiAction(
           title: 'Device Info',
           icon: Icons.info_outline,
           color: TileColor.blueGrey,
@@ -313,22 +365,22 @@ List<_WifiAction> _actionsForMode(NetworkMode mode) {
 String _modeTitle(NetworkMode mode) {
   switch (mode) {
     case NetworkMode.client:
-      return 'Wi-Fi Client Mode';
+      return 'WiFi Mode';
     case NetworkMode.accessPoint:
       return 'Hotspot Mode';
     case NetworkMode.lanOnly:
-      return 'LAN Only Mode';
+      return 'Ethernet Mode';
   }
 }
 
 String _modeButtonLabel(NetworkMode mode) {
   switch (mode) {
     case NetworkMode.client:
-      return 'Client';
+      return 'WiFi';
     case NetworkMode.accessPoint:
       return 'Hotspot';
     case NetworkMode.lanOnly:
-      return 'LAN Only';
+      return 'Ethernet';
   }
 }
 
@@ -343,13 +395,13 @@ IconData _modeIcon(NetworkMode mode) {
   }
 }
 
-Color _modeAccent(NetworkMode mode) {
+TileColor _modeSlot(NetworkMode mode) {
   switch (mode) {
     case NetworkMode.client:
-      return const Color(0xFF26A69A);
+      return TileColor.teal;
     case NetworkMode.accessPoint:
-      return const Color(0xFFAB47BC);
+      return TileColor.purple;
     case NetworkMode.lanOnly:
-      return const Color(0xFF8D6E63);
+      return TileColor.brown;
   }
 }

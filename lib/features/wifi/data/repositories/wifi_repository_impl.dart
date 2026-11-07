@@ -126,6 +126,9 @@ class WifiRepositoryImpl implements IWifiRepository {
   }
 
   @override
+  Future<String?> getSavedPassword(String ssid) => api.getSavedPassword(ssid);
+
+  @override
   Future<SavedNetwork?> getSavedNetwork(String ssid) async {
     final json = await api.getSavedNetwork(ssid);
     if (json == null || json.isEmpty) {
@@ -135,8 +138,8 @@ class WifiRepositoryImpl implements IWifiRepository {
   }
 
   @override
-  Future<void> enableLanOnlyMode() async {
-    await api.enableLanOnlyMode();
+  Future<String?> enableLanOnlyMode() async {
+    return await api.enableLanOnlyMode();
   }
 
   @override
@@ -148,6 +151,16 @@ class WifiRepositoryImpl implements IWifiRepository {
   Future<bool> isLanOnlyModeActive() async {
     final mode = await api.getNetworkMode();
     return mode == 'lan_only';
+  }
+
+  @override
+  Future<LanEvent> waitLanEvent(int since) async {
+    final json = await api.waitLanEvent(since);
+    return LanEvent(
+      version: (json['version'] as num?)?.toInt() ?? 0,
+      cableConnected: json['isCableConnected'] as bool? ?? false,
+      ethernetModeActive: json['isActive'] as bool? ?? false,
+    );
   }
 
   @override
@@ -177,6 +190,10 @@ class WifiRepositoryImpl implements IWifiRepository {
       ethernetMacAddress: json['ethernetMacAddress'] as String?,
       wifiIpAddress: json['wifiIpAddress'] as String?,
       wifiMacAddress: json['wifiMacAddress'] as String?,
+      ethernetConnectionName: json['ethernetConnectionName'] as String?,
+      ethernetRole: json['ethernetRole'] as String?,
+      ethernetConnectedDevices:
+          (json['ethernetConnectedDevices'] as num?)?.toInt(),
       connectedNetwork: connectedNetworkJson == null
           ? null
           : _wifiNetworkFromJson(connectedNetworkJson),

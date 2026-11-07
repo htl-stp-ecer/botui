@@ -1,5 +1,5 @@
 // dart
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,9 +27,18 @@ class _WifiScanListItemState extends ConsumerState<WifiScanListItem>
   Widget build(BuildContext context) {
     final network = widget.network;
 
+    // Half the corner radius of the saved network cards (12).
+    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(6));
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      // Same color as the tile, no shadow or tint: nothing shows around it.
+      color: Colors.grey[900],
+      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      shape: shape,
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
+        shape: shape,
         tileColor: Colors.grey[900],
         title: Text(
           network.ssid,
@@ -131,7 +140,7 @@ class _WifiScanListItemState extends ConsumerState<WifiScanListItem>
           size: 16,
           color: Colors.grey.shade400,
         ),
-        onTap: () => context.pushOnce(AppRoutes.wifiDetail, extra: network),
+        onTap: () => context.push(AppRoutes.wifiDetail, extra: network),
       ),
     );
   }

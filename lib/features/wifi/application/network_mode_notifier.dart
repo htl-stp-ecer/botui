@@ -16,47 +16,21 @@ class NetworkModeNotifier extends Notifier<NetworkModeState> with HasLogger {
     _getNetworkMode = ref.read(getNetworkModeProvider);
     _setNetworkMode = ref.read(setNetworkModeProvider);
 
-    // Listen to LAN state changes for cable disconnection
-    _startListeningToLanState();
-
     return NetworkModeState();
   }
 
-  /// Start listening to LAN state changes to detect cable disconnection
-  void _startListeningToLanState() {
-    ref.listen(
-      lanOnlyProvider,
-      (previous, next) {
-        // Check if cable was disconnected while in LAN only mode
-        if (state.mode == NetworkMode.lanOnly &&
-            next.errorMessage == 'LAN_CABLE_DISCONNECTED') {
-          log.warning('LAN cable disconnected, automatically switching to client mode');
-          _handleCableDisconnection();
-        }
-      },
-    );
-  }
-
-  /// Handle cable disconnection by automatically switching to client mode
-  Future<void> _handleCableDisconnection() async {
+  /// Re-reads the mode without the loading state (so the screen does not
+  /// flash and no "Switched to" toast shows). For changes that happened
+  /// elsewhere: a dialog, the server, the screensaver being up.
+  Future<void> syncNetworkMode() async {
+    if (state.isLoading) return; // a switch the user started is running
     try {
-      // Disable LAN only mode
-      await ref.read(lanOnlyProvider.notifier).disable();
-
-      // Switch to client mode
-      await _setNetworkMode(NetworkMode.client);
-
-      state = state.copyWith(
-        mode: NetworkMode.client,
-        errorMessage: () => 'LAN cable disconnected. Automatically switched to client mode.',
-      );
-
-      log.info('Automatically switched to client mode due to cable disconnection');
-    } catch (e) {
-      log.severe('Failed to switch to client mode after cable disconnection: $e');
-      state = state.copyWith(
-        errorMessage: () => 'Failed to switch mode after cable disconnection: $e',
-      );
+      final mode = await _getNetworkMode();
+      if (mode != state.mode && !state.isLoading) {
+        state = state.copyWith(mode: mode);
+      }
+    } catch (_) {
+      // Keep what is shown; the next event or visit tries again.
     }
   }
 
@@ -92,20 +66,24 @@ class NetworkModeNotifier extends Notifier<NetworkModeState> with HasLogger {
           return;
         }
       } else if (state.mode == NetworkMode.lanOnly) {
-        // Disable LAN only mode when switching away from it
-        await ref.read(lanOnlyProvider.notifier).disable();
+        // Leaving Ethernet Mode: the mode call below does the whole switch on
+        // the robot. Disabling Ethernet Mode separately would first send the
+        // robot through WiFi mode (connecting to a saved network) on the way
+        // to the hotspot.
+        ref.read(lanOnlyProvider.notifier).reset();
       }
 
-      if (mode == NetworkMode.accessPoint) {
-        // The access point will be started in the config screen
-        // Just set the mode here
-        await _setNetworkMode(mode);
-      } else {
+      // Ethernet Mode was already set by the enable call above; asking again
+      // would only run the same steps a second time.
+      if (mode != NetworkMode.lanOnly) {
         await _setNetworkMode(mode);
       }
 
       state = state.copyWith(mode: mode, isLoading: false, errorMessage: () => null);
       log.info("Network mode updated to ${state.mode}");
+      // The hotspot may have been stopped (or started) by the switch; do not
+      // keep showing the old state.
+      unawaited(ref.read(accessPointProvider.notifier).refreshStatus());
     } catch (e) {
       state = state.copyWith(
         mode: previousMode,
