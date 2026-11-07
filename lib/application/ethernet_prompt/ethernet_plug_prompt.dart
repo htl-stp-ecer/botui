@@ -101,6 +101,7 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
       confirmColor: Colors.green[700]!,
     );
     if (!yes) return;
+    _showSwitching(NetworkMode.lanOnly);
     final notifier = ref.read(networkModeProvider.notifier);
     await notifier.updateNetworkMode(NetworkMode.lanOnly);
     final state = ref.read(networkModeProvider);
@@ -139,6 +140,7 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
       ),
     );
     if (choice == null) return;
+    _showSwitching(choice);
     await ref.read(networkModeProvider.notifier).updateNetworkMode(choice);
     final state = ref.read(networkModeProvider);
     if (state.mode == choice) {
@@ -148,6 +150,18 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
     } else {
       AppToast.error(state.errorMessage ?? 'Could not switch mode');
     }
+  }
+
+  /// Feedback while a switch runs (it can take 10+ s, e.g. waiting for DHCP).
+  /// The result badge (success or error) replaces it; only one badge shows at
+  /// a time.
+  void _showSwitching(NetworkMode mode) {
+    final name = switch (mode) {
+      NetworkMode.client => 'WiFi Mode',
+      NetworkMode.accessPoint => 'Hotspot Mode',
+      NetworkMode.lanOnly => 'Ethernet Mode',
+    };
+    AppToast.info('Switching to $name...', duration: const Duration(seconds: 60));
   }
 
   /// Anything that arrived while the screensaver covered the screen is shown
