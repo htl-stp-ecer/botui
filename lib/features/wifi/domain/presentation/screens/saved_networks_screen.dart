@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/overview/overview_info_provider.dart';
 import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/saved_networks_notifier.dart';
+import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/saved_network_list_item.dart';
 
 class SavedNetworksScreen extends ConsumerStatefulWidget {
@@ -20,6 +22,9 @@ class _SavedNetworksScreenState extends ConsumerState<SavedNetworksScreen> {
     super.initState();
     Future.microtask(() {
       ref.read(savedNetworksProvider.notifier).loadSavedNetworks();
+      // Which network is connected, and which are in range (shown in the list).
+      ref.read(overviewInfoProvider.notifier).refresh();
+      ref.read(wifiClientProvider.notifier).loadNetworks();
     });
   }
 
@@ -40,6 +45,7 @@ class _SavedNetworksScreenState extends ConsumerState<SavedNetworksScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       ref.read(savedNetworksProvider.notifier).loadSavedNetworks();
+                      ref.read(wifiClientProvider.notifier).loadNetworks();
                     },
                     icon: const Icon(Icons.refresh, size: 28),
                     label: const Text(

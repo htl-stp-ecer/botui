@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/overview/overview_info_provider.dart';
 import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
@@ -29,6 +32,18 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(colorThemeProvider);
+    // The overview keeps the connected network up to date from the robot's
+    // network events.
+    final connectedSsid = ref.watch(overviewInfoProvider.select((i) => i.ssid));
+    final isConnected = connectedSsid != null &&
+        connectedSsid.isNotEmpty &&
+        connectedSsid == widget.network.ssid;
+    // Is it in range? From the last scan of the network list. Until a scan
+    // has found anything we do not know, and the button stays usable.
+    final scanned = ref.watch(wifiClientProvider.select((s) => s.networks));
+    final inRange = scanned.isEmpty ||
+        isConnected ||
+        scanned.any((n) => n.ssid == widget.network.ssid);
     // Left to right; the color comes from the theme by position in this row.
     final buttons = [
       if (widget.network.credentials is PersonalCredentials)
@@ -36,16 +51,13 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
           slot: TileColor.blue,
           icon: _showPassword ? Icons.visibility_off : Icons.visibility,
           onPressed: _togglePassword,
+          enabled: true,
         ),
       (
         slot: TileColor.green,
         icon: Icons.wifi,
-        onPressed: () {
-          ref.read(wifiClientProvider.notifier).connectToNetwork(
-              widget.network.ssid,
-              widget.network.encryptionType,
-              widget.network.credentials);
-        },
+        onPressed: _connect,
+        enabled: inRange,
       ),
       (
         slot: TileColor.red,
@@ -53,6 +65,7 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
         onPressed: () {
           _showRemoveDialog(context, widget.network.ssid);
         },
+        enabled: true,
       ),
     ];
     return Container(
@@ -75,8 +88,17 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Last connected: ${_formatDateTime(widget.network.lastConnected)}',
-              style: const TextStyle(color: Colors.grey),
+              isConnected
+                  ? 'Connected'
+                  : inRange
+                      ? 'Last connected: ${_formatDateTime(widget.network.lastConnected)}'
+                      : 'Not in range',
+              style: TextStyle(
+                color: isConnected
+                    ? theme.tileColor(TileColor.blue, 0)
+                    : Colors.grey,
+                fontWeight: isConnected ? FontWeight.w700 : FontWeight.normal,
+              ),
             ),
             if (widget.network.credentials is PersonalCredentials) ...[
               const SizedBox(height: 4),
@@ -99,9 +121,13 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
             ],
           ],
         ),
+        // The network the robot is connected to right now: a blue Wi-Fi icon
+        // instead of the bookmark.
         leading: Icon(
-          Icons.bookmark,
-          color: widget.network.autoConnect ? Colors.green : Colors.grey,
+          isConnected ? Icons.wifi : Icons.bookmark,
+          color: isConnected
+              ? theme.tileColor(TileColor.blue, 0)
+              : (widget.network.autoConnect ? Colors.green : Colors.grey),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -109,10 +135,14 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
             for (final (i, button) in buttons.indexed) ...[
               if (i > 0) const SizedBox(width: 8),
               ElevatedButton(
-                onPressed: button.onPressed,
+                onPressed: button.enabled ? button.onPressed : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.tileColor(button.slot, i),
                   foregroundColor: theme.textColor,
+                  // Greyed out (the theme's neutral grey) when it cannot work.
+                  disabledBackgroundColor: theme.tileColor(TileColor.grey, i),
+                  disabledForegroundColor:
+                      theme.textColor.withValues(alpha: 0.45),
                   minimumSize: const Size(75, 60),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -125,6 +155,37 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
         ),
       ),
     );
+  }
+
+  /// Connects to this network and says so at the bottom: "Connecting ..." while
+  /// it runs (it can take several seconds), then the result in its place.
+  Future<void> _connect() async {
+    final ssid = widget.network.ssid;
+    AppToast.info('Connecting to $ssid...', duration: const Duration(seconds: 60));
+
+    // Everything needed afterwards is taken now: this row can be gone when the
+    // list reloads during the connection, and a widget must not use its `ref`
+    // after that. The badge has to be replaced in every case.
+    final client = ref.read(wifiClientProvider.notifier);
+    final savedNetworks = ref.read(savedNetworksProvider.notifier);
+    var connected = false;
+    String? failure;
+    try {
+      connected = await client.connectToNetwork(
+          ssid, widget.network.encryptionType, widget.network.credentials);
+      if (!connected) failure = client.lastError;
+    } catch (e) {
+      failure = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+    }
+
+    if (connected) {
+      AppToast.success('Connected to $ssid');
+      // The list is ordered by last connection.
+      unawaited(savedNetworks.loadSavedNetworks());
+    } else {
+      AppToast.error('Could not connect to $ssid: ${failure ?? 'unknown error'}',
+          duration: const Duration(seconds: 5));
+    }
   }
 
   String _getPasswordText() {
