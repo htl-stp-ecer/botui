@@ -6,6 +6,7 @@ import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/settings/data/system_config_service.dart';
+import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 
 /// Lets the user change the device hostname and its mDNS (`.local`) name in a
 /// single action.
@@ -55,9 +56,23 @@ class _HostnameScreenState extends ConsumerState<HostnameScreen> {
     }
     setState(() => _saving = true);
     final outcome = await widget.service.setHostnameAndMdns(name);
+    if (outcome.ok) await _restartHotspotIfOn();
     if (!mounted) return;
     setState(() => _saving = false);
     _showSnack(outcome.message, isError: !outcome.ok);
+  }
+
+  /// The hotspot's DNS answers with the robot's name, so it has to be started
+  /// again to pick up the new one.
+  Future<void> _restartHotspotIfOn() async {
+    try {
+      final ap = ref.read(manageAccessPointProvider);
+      if (!await ap.isAccessPointActive()) return;
+      final config = await ap.getAccessPointConfig();
+      if (config != null) await ap.startAccessPoint(config);
+    } catch (_) {
+      // The name is already changed; a failed hotspot restart is not fatal.
+    }
   }
 
   void _showSnack(String message, {required bool isError}) {
