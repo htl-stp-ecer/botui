@@ -50,8 +50,8 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
       _encryptionType = config.encryptionType;
       _isHidden = config.hidden;
     } else {
-      _ssidController.text = 'RaccoonOS';
-      _passwordController.text = 'raccoonos';
+      _ssidController.text = PasswordGenerator.defaultHotspotSsid();
+      _passwordController.text = PasswordGenerator.defaultHotspotPassword();
     }
   }
 

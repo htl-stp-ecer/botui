@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/core/utils/password_generator.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 import 'package:stpvelox/features/wifi/domain/application/access_point_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/access_point_config.dart';
@@ -111,8 +112,8 @@ class AccessPointNotifier extends Notifier<AccessPointState> {
       } else {
         final defaultBand = await manageAccessPoint.findBestWifiBand();
         final defaultConfig = AccessPointConfig(
-          ssid: 'RaccoonOS',
-          password: 'raccoonos',
+          ssid: PasswordGenerator.defaultHotspotSsid(),
+          password: PasswordGenerator.defaultHotspotPassword(),
           band: defaultBand,
         );
         await manageAccessPoint.startAccessPoint(defaultConfig);
