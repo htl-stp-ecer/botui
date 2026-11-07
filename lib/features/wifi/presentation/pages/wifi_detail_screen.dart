@@ -3,7 +3,9 @@ import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/saved_networks_notifier.dart';
@@ -75,7 +77,8 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
       return _styledButton(
         label: 'Forget Network',
         icon: Icons.delete,
-        backgroundColor: Colors.red[700]!,
+        color: TileColor.red,
+        position: 0,
         onPressed: () async {
           await ref.read(wifiClientProvider.notifier).forgetNetwork(network.ssid);
         },
@@ -90,7 +93,8 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
             child: _styledButton(
               label: 'Connect',
               icon: Icons.wifi,
-              backgroundColor: Colors.green[700]!,
+              color: TileColor.green,
+              position: 0,
               onPressed: () async {
                 setState(() {
                   _isConnecting = true;
@@ -128,7 +132,8 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
             child: _styledButton(
               label: 'Forget',
               icon: Icons.delete,
-              backgroundColor: Colors.red[700]!,
+              color: TileColor.red,
+              position: 1,
               onPressed: () async {
                 await ref.read(wifiClientProvider.notifier).forgetNetwork(network.ssid);
               },
@@ -145,7 +150,8 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
       return _styledButton(
         label: 'Enter Enterprise Credentials',
         icon: Icons.business,
-        backgroundColor: Colors.blue[700]!,
+        color: TileColor.blue,
+        position: 0,
         onPressed: () => _navigateToEnterpriseCredentials(network),
         busy: busy,
       );
@@ -155,7 +161,8 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
       return _styledButton(
         label: 'Connect (No Password)',
         icon: Icons.wifi_outlined,
-        backgroundColor: Colors.green[700]!,
+        color: TileColor.green,
+        position: 0,
         onPressed: () async {
           await ref
               .read(wifiClientProvider.notifier)
@@ -169,7 +176,8 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
     return _styledButton(
       label: 'Connect',
       icon: Icons.lock_open,
-      backgroundColor: Colors.blue[700]!,
+      color: TileColor.blue,
+      position: 0,
       onPressed: () async {
         final pwd = _passwordController.text.trim();
         if (pwd.isEmpty) {
@@ -188,20 +196,22 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
   Widget _styledButton({
     required String label,
     required IconData icon,
-    required Color backgroundColor,
+    required TileColor color,
+    required int position,
     required VoidCallback onPressed,
     required bool busy,
     String? busyLabel,
   }) {
+    final theme = ref.watch(colorThemeProvider);
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: busy ? null : onPressed,
-        icon: busy ? _spinner() : Icon(icon, size: 20),
+        icon: busy ? _spinner(theme.textColor) : Icon(icon, size: 20),
         label: Text(busy ? (busyLabel ?? 'Processing...') : label),
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: Colors.white,
+          backgroundColor: theme.tileColor(color, position),
+          foregroundColor: theme.textColor,
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -231,9 +241,9 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
     }
   }
 
-  Widget _spinner() => const SizedBox(
+  Widget _spinner(Color color) => SizedBox(
     width: 16,
     height: 16,
-    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+    child: CircularProgressIndicator(strokeWidth: 2, color: color),
   );
 }

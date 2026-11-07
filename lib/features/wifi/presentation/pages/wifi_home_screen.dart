@@ -9,6 +9,7 @@ import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
 import 'package:stpvelox/features/wifi/domain/application/network_mode_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
 
 class WifiHomeScreen extends ConsumerStatefulWidget {
@@ -178,7 +179,7 @@ class _ModeStrip extends StatelessWidget {
   }
 }
 
-class _ModeButton extends StatelessWidget {
+class _ModeButton extends ConsumerWidget {
   const _ModeButton({
     required this.mode,
     required this.isSelected,
@@ -192,8 +193,11 @@ class _ModeButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final accent = _modeAccent(mode);
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Same slot and position logic as the tiles, so every theme applies.
+    final accent = ref
+        .watch(colorThemeProvider)
+        .tileColor(_modeSlot(mode), NetworkMode.values.indexOf(mode));
 
     return Opacity(
       opacity: isEnabled ? 1 : 0.65,
@@ -343,13 +347,13 @@ IconData _modeIcon(NetworkMode mode) {
   }
 }
 
-Color _modeAccent(NetworkMode mode) {
+TileColor _modeSlot(NetworkMode mode) {
   switch (mode) {
     case NetworkMode.client:
-      return const Color(0xFF26A69A);
+      return TileColor.teal;
     case NetworkMode.accessPoint:
-      return const Color(0xFFAB47BC);
+      return TileColor.purple;
     case NetworkMode.lanOnly:
-      return const Color(0xFF8D6E63);
+      return TileColor.brown;
   }
 }

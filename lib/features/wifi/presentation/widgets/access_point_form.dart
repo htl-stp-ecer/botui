@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/utils/password_generator.dart';
 import 'package:stpvelox/features/wifi/application/access_point_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
@@ -97,12 +99,17 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
         borderSide: BorderSide(color: color, width: 1.5),
       );
 
-  ButtonStyle _buttonStyle(Color color) => ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
+  /// Bottom buttons take their color from the theme: [slot] at [position]
+  /// (0 = first button in the row).
+  ButtonStyle _buttonStyle(TileColor slot, int position) {
+    final theme = ref.watch(colorThemeProvider);
+    return ElevatedButton.styleFrom(
+        backgroundColor: theme.tileColor(slot, position),
+        foregroundColor: theme.textColor,
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       );
+  }
 
   Widget _buildForm(AccessPointState apState, AccessPointNotifier apNotifier) {
     return Form(
@@ -238,17 +245,18 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: widget.isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  ref.read(colorThemeProvider).textColor),
                             ),
                           )
                         : const Icon(Icons.stop),
                     label: const Text('Stop Hotspot'),
-                    style: _buttonStyle(Colors.red.shade600),
+                    style: _buttonStyle(TileColor.red, 0),
                     onPressed: widget.isLoading ? null : apNotifier.stopHotspot,
                   ),
                 ),
@@ -256,17 +264,18 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: widget.isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  ref.read(colorThemeProvider).textColor),
                             ),
                           )
                         : const Icon(Icons.refresh),
                     label: const Text('Restart'),
-                    style: _buttonStyle(Colors.blue.shade600),
+                    style: _buttonStyle(TileColor.blue, 1),
                     onPressed: widget.isLoading
                         ? null
                         : () {
@@ -286,17 +295,18 @@ class _AccessPointFormState extends ConsumerState<AccessPointForm> {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: widget.isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  ref.read(colorThemeProvider).textColor),
                             ),
                           )
                         : const Icon(Icons.router),
                     label: Text(widget.isLoading ? 'Starting...' : 'Start Hotspot'),
-                    style: _buttonStyle(Colors.green.shade600),
+                    style: _buttonStyle(TileColor.green, 0),
                     onPressed: widget.isLoading
                         ? null
                         : () {
