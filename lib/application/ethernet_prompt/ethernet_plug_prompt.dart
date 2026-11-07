@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/application/theme/color_theme_provider.dart';
@@ -30,78 +28,76 @@ class EthernetPlugPrompt extends ConsumerStatefulWidget {
 
 class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
     with HasLogger {
-  static const _interval = Duration(seconds: 3);
-
-  Timer? _timer;
+  bool _running = false;
+  int _since = -1; // version of the last answer from the robot
   bool? _cablePlugged; // null until the first reading
   bool _wasEthernetMode = false;
-  bool _asking = false;
-  bool _polling = false;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(_interval, (_) => _poll());
+    _running = true;
+    _listen();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _running = false;
     super.dispose();
   }
 
-  Future<void> _poll() async {
-    if (_polling || _asking) return;
-    _polling = true;
-    try {
-      final repository = ref.read(wifiRepositoryProvider);
-      final plugged = await repository.isEthernetCableConnected();
-      final inEthernetMode = await repository.isLanOnlyModeActive();
-      final justPlugged = _cablePlugged == false && plugged;
-      final justUnplugged = _cablePlugged == true && !plugged;
-      final wasEthernetMode = _wasEthernetMode;
-      _cablePlugged = plugged;
-      _wasEthernetMode = inEthernetMode;
-      if (justPlugged && !inEthernetMode) {
-        await _askSwitchToEthernet();
-      } else if (justUnplugged && (inEthernetMode || wasEthernetMode)) {
-        await _askWhereToGo();
+  /// Waits for the robot to report a change (long poll: the answer comes the
+  /// moment the cable or the mode changes), instead of asking every few
+  /// seconds.
+  Future<void> _listen() async {
+    while (_running) {
+      try {
+        final event = await ref.read(wifiRepositoryProvider).waitLanEvent(_since);
+        _since = event.version;
+        await _handle(event.cableConnected, event.ethernetModeActive);
+      } catch (e) {
+        // Robot not reachable (or an older server); try again shortly.
+        log.fine('Ethernet event wait failed: $e');
+        await Future<void>.delayed(const Duration(seconds: 3));
       }
-    } catch (e) {
-      // Robot not reachable right now; try again on the next tick.
-      log.fine('Ethernet cable check failed: $e');
-    } finally {
-      _polling = false;
+    }
+  }
+
+  Future<void> _handle(bool plugged, bool inEthernetMode) async {
+    final justPlugged = _cablePlugged == false && plugged;
+    final justUnplugged = _cablePlugged == true && !plugged;
+    final wasEthernetMode = _wasEthernetMode;
+    _cablePlugged = plugged;
+    _wasEthernetMode = inEthernetMode;
+    if (justPlugged && !inEthernetMode) {
+      await _askSwitchToEthernet();
+    } else if (justUnplugged && (inEthernetMode || wasEthernetMode)) {
+      await _askWhereToGo();
     }
   }
 
   Future<void> _askSwitchToEthernet() async {
     final context = rootNavigatorKey.currentContext;
     if (context == null || !context.mounted) return;
-    _asking = true;
-    try {
-      final yes = await showRaccoonConfirmDialog(
-        context,
-        title: 'Ethernet cable connected',
-        message: 'Do you want to switch to Ethernet Mode?\n'
-            'Wi-Fi and the hotspot will be turned off.',
-        confirmLabel: 'Switch',
-        cancelLabel: 'Not now',
-        icon: Icons.cable_rounded,
-        iconColor: Colors.lightBlueAccent,
-        confirmColor: Colors.green[700]!,
-      );
-      if (!yes) return;
-      final notifier = ref.read(networkModeProvider.notifier);
-      await notifier.updateNetworkMode(NetworkMode.lanOnly);
-      final state = ref.read(networkModeProvider);
-      if (state.mode == NetworkMode.lanOnly) {
-        AppToast.success('Switched to Ethernet Mode');
-      } else {
-        AppToast.error(state.errorMessage ?? 'Could not switch to Ethernet Mode');
-      }
-    } finally {
-      _asking = false;
+    final yes = await showRaccoonConfirmDialog(
+      context,
+      title: 'Ethernet cable connected',
+      message: 'Do you want to switch to Ethernet Mode?\n'
+          'Wi-Fi and the hotspot will be turned off.',
+      confirmLabel: 'Switch',
+      cancelLabel: 'Not now',
+      icon: Icons.cable_rounded,
+      iconColor: Colors.lightBlueAccent,
+      confirmColor: Colors.green[700]!,
+    );
+    if (!yes) return;
+    final notifier = ref.read(networkModeProvider.notifier);
+    await notifier.updateNetworkMode(NetworkMode.lanOnly);
+    final state = ref.read(networkModeProvider);
+    if (state.mode == NetworkMode.lanOnly) {
+      AppToast.success('Switched to Ethernet Mode');
+    } else {
+      AppToast.error(state.errorMessage ?? 'Could not switch to Ethernet Mode');
     }
   }
 
@@ -111,43 +107,38 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
   Future<void> _askWhereToGo() async {
     final context = rootNavigatorKey.currentContext;
     if (context == null || !context.mounted) return;
-    _asking = true;
-    try {
-      final theme = ref.read(colorThemeProvider);
-      final choice = await showRaccoonDialog<NetworkMode>(
-        context,
-        dismissible: false,
-        builder: (ctx) => RaccoonDialog(
-          icon: Icons.cable_rounded,
-          iconColor: Colors.orangeAccent,
-          title: 'Ethernet cable unplugged',
-          message: 'Which mode do you want to switch to?',
-          actions: [
-            RaccoonDialogAction(
-              label: 'Client',
-              color: theme.tileColor(TileColor.teal, 0),
-              onPressed: () => Navigator.of(ctx).pop(NetworkMode.client),
-            ),
-            RaccoonDialogAction(
-              label: 'Hotspot',
-              color: theme.tileColor(TileColor.purple, 1),
-              onPressed: () => Navigator.of(ctx).pop(NetworkMode.accessPoint),
-            ),
-          ],
-        ),
-      );
-      if (choice == null) return;
-      await ref.read(networkModeProvider.notifier).updateNetworkMode(choice);
-      final state = ref.read(networkModeProvider);
-      if (state.mode == choice) {
-        AppToast.success(choice == NetworkMode.client
-            ? 'Switched to Client Mode'
-            : 'Switched to Hotspot Mode');
-      } else {
-        AppToast.error(state.errorMessage ?? 'Could not switch mode');
-      }
-    } finally {
-      _asking = false;
+    final theme = ref.read(colorThemeProvider);
+    final choice = await showRaccoonDialog<NetworkMode>(
+      context,
+      dismissible: false,
+      builder: (ctx) => RaccoonDialog(
+        icon: Icons.cable_rounded,
+        iconColor: Colors.orangeAccent,
+        title: 'Ethernet cable unplugged',
+        message: 'Which mode do you want to switch to?',
+        actions: [
+          RaccoonDialogAction(
+            label: 'Client',
+            color: theme.tileColor(TileColor.teal, 0),
+            onPressed: () => Navigator.of(ctx).pop(NetworkMode.client),
+          ),
+          RaccoonDialogAction(
+            label: 'Hotspot',
+            color: theme.tileColor(TileColor.purple, 1),
+            onPressed: () => Navigator.of(ctx).pop(NetworkMode.accessPoint),
+          ),
+        ],
+      ),
+    );
+    if (choice == null) return;
+    await ref.read(networkModeProvider.notifier).updateNetworkMode(choice);
+    final state = ref.read(networkModeProvider);
+    if (state.mode == choice) {
+      AppToast.success(choice == NetworkMode.client
+          ? 'Switched to Client Mode'
+          : 'Switched to Hotspot Mode');
+    } else {
+      AppToast.error(state.errorMessage ?? 'Could not switch mode');
     }
   }
 

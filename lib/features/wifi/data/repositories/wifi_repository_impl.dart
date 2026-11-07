@@ -154,6 +154,16 @@ class WifiRepositoryImpl implements IWifiRepository {
   }
 
   @override
+  Future<LanEvent> waitLanEvent(int since) async {
+    final json = await api.waitLanEvent(since);
+    return LanEvent(
+      version: (json['version'] as num?)?.toInt() ?? 0,
+      cableConnected: json['isCableConnected'] as bool? ?? false,
+      ethernetModeActive: json['isActive'] as bool? ?? false,
+    );
+  }
+
+  @override
   Future<bool> isEthernetCableConnected() async {
     final status = await api.getLanStatus();
     return status['isCableConnected'] as bool? ?? false;

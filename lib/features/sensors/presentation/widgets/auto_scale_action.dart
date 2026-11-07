@@ -20,8 +20,10 @@ class AutoScaleAction extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(colorThemeProvider);
 
+    // 16 on the right (twice the usual 8): the battery voltage sits directly
+    // next to this button.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.only(left: 8, right: 16),
       child: ElevatedButton(
         onPressed: () => onChanged(!value),
         style: ElevatedButton.styleFrom(

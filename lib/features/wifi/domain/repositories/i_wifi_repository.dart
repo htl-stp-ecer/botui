@@ -46,4 +46,21 @@ abstract class IWifiRepository {
   Future<void> disableLanOnlyMode();
   Future<bool> isLanOnlyModeActive();
   Future<bool> isEthernetCableConnected();
+
+  /// Waits for a change of the ethernet cable or of Ethernet Mode (long poll).
+  /// Pass the `version` of the previous answer, or -1 for the current state.
+  Future<LanEvent> waitLanEvent(int since);
+}
+
+/// Ethernet cable and Ethernet Mode state with the version it was read at.
+class LanEvent {
+  final int version;
+  final bool cableConnected;
+  final bool ethernetModeActive;
+
+  const LanEvent({
+    required this.version,
+    required this.cableConnected,
+    required this.ethernetModeActive,
+  });
 }

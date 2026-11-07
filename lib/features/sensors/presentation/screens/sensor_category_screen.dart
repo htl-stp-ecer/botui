@@ -109,11 +109,14 @@ class SensorCategoryScreen extends ConsumerWidget {
         'Orientation' => AccuracyType.quaternion,
         _ => null,
       };
+      // Left to right: temperature, accuracy, then the battery (added by the
+      // top bar itself).
+      actions.add(const ImuTemperatureDisplay());
+      actions.add(const SizedBox(width: 14));
       if (accuracyType != null) {
         actions.add(ImuAccuracyDisplay(type: accuracyType));
-        actions.add(const SizedBox(width: 16));
+        actions.add(const SizedBox(width: 14));
       }
-      actions.add(const ImuTemperatureDisplay());
     }
 
     return Scaffold(

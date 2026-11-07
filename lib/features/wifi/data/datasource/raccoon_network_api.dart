@@ -111,6 +111,14 @@ class RaccoonNetworkApi {
     await _requestMap('POST', '/api/v1/network/lan/disable');
   }
 
+  /// Long poll: returns when the cable or the mode changed since [since]
+  /// (a version from an earlier answer; -1 answers at once), or after about
+  /// 20 s with the unchanged state.
+  Future<Map<String, dynamic>> waitLanEvent(int since) async {
+    return await _requestMap(
+        'GET', '/api/v1/network/lan/events?since=$since&timeout=20');
+  }
+
   Future<Map<String, dynamic>> getLanStatus() async {
     return await _requestMap('GET', '/api/v1/network/lan/status');
   }

@@ -24,9 +24,10 @@ class ImuSelectionScreen extends ConsumerWidget {
         context,
         'IMU',
         actions: [
-          const ImuAccuracyDisplay(),
-          const SizedBox(width: 16),
           const ImuTemperatureDisplay(),
+          const SizedBox(width: 14),
+          const ImuAccuracyDisplay(),
+          const SizedBox(width: 14),
         ],
       ),
       backgroundColor: Colors.black87,
