@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/features/settings/domain/usecases/manage_saved_networks.dart';
 import 'package:stpvelox/features/settings/usecases/get_device_info.dart';
@@ -28,20 +29,33 @@ class WifiClientNotifier extends Notifier<WifiClientState> {
   }
 
   Future<void> loadNetworks() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final networks = await _getAvailableNetworks();
       state = state.copyWith(isLoading: false, networks: networks);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: _plain(e));
     }
   }
 
-  Future<void> connectToNetwork(String ssid, WifiEncryptionType encryptionType,
+  /// The text of an error without Dart's "Exception: " prefix.
+  static String _plain(Object e) => e is TimeoutException
+      ? 'Connection timed out'
+      : e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+
+  /// The error of the last failed operation (null if none since it was
+  /// cleared). Readable from a widget that may be gone by the time it is asked.
+  String? get lastError => state.errorMessage;
+
+  /// Returns whether the connection succeeded (the state keeps the error
+  /// message of a failure; it does not tell a fresh failure from an old one).
+  Future<bool> connectToNetwork(String ssid, WifiEncryptionType encryptionType,
       WifiCredentials credentials) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearResult: true);
     try {
-      await _connectToWifi(ssid, encryptionType, credentials);
+      // The robot gives up after ~25 s; never wait forever for it.
+      await _connectToWifi(ssid, encryptionType, credentials)
+          .timeout(const Duration(seconds: 45));
 
       final savedNetwork = SavedNetwork(
         ssid: ssid,
@@ -59,13 +73,15 @@ class WifiClientNotifier extends Notifier<WifiClientState> {
       );
 
       await loadDeviceInfo();
+      return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: _plain(e));
+      return false;
     }
   }
 
   Future<void> forgetNetwork(String ssid) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearResult: true);
     try {
       await _forgetWifi(ssid);
 
@@ -78,21 +94,17 @@ class WifiClientNotifier extends Notifier<WifiClientState> {
 
       await loadDeviceInfo();
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: _plain(e));
     }
   }
 
   Future<void> loadDeviceInfo() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       final deviceInfo = await _getDeviceInfo();
-      state = state.copyWith(
-        isLoading: false,
-        deviceInfo: deviceInfo,
-        errorMessage: null,
-      );
+      state = state.copyWith(isLoading: false, deviceInfo: deviceInfo);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: _plain(e));
     }
   }
 }

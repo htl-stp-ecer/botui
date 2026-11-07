@@ -13,11 +13,14 @@ class WifiManualConnectScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen<WifiClientState>(wifiClientProvider, (previous, state) {
-      if (state.connectedSsid != null) {
-        AppToast.success('Connected to ${state.connectedSsid} successfully!');
+      // Only a new result counts (see WifiDetailScreen).
+      if (state.connectedSsid != null &&
+          state.connectedSsid != previous?.connectedSsid) {
+        AppToast.success('Connected to ${state.connectedSsid}');
         context.pop();
-      } else if (state.errorMessage != null) {
-        AppToast.error('Error: ${state.errorMessage}');
+      } else if (state.errorMessage != null &&
+          state.errorMessage != previous?.errorMessage) {
+        AppToast.error(state.errorMessage!);
       }
     });
 

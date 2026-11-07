@@ -37,13 +37,18 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
   @override
   Widget build(BuildContext context) {
     ref.listen<WifiClientState>(wifiClientProvider, (previous, state) {
-      if (state.errorMessage != null) {
-        _showSnack(context, 'Error: ${state.errorMessage}', Colors.red);
-      } else if (state.connectedSsid != null) {
+      // Only a new result counts: the state still carries the last one while a
+      // new operation starts.
+      if (state.errorMessage != null &&
+          state.errorMessage != previous?.errorMessage) {
+        _showSnack(context, state.errorMessage!, Colors.red);
+      } else if (state.connectedSsid != null &&
+          state.connectedSsid != previous?.connectedSsid) {
         _showSnack(
-            context, 'Connected to ${state.connectedSsid} successfully!', Colors.green);
+            context, 'Connected to ${state.connectedSsid}', Colors.green);
         context.pop();
-      } else if (state.forgottenSsid != null) {
+      } else if (state.forgottenSsid != null &&
+          state.forgottenSsid != previous?.forgottenSsid) {
         _showSnack(context, 'Forgotten network ${state.forgottenSsid}', Colors.green);
         context.pop();
       }
