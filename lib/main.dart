@@ -10,6 +10,7 @@ import 'package:stpvelox/application/inactivity/inactivity_notifier.dart';
 import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 import 'package:stpvelox/core/framerate/frame_stall_watchdog.dart';
 import 'package:stpvelox/core/contract/contract_check.dart';
+import 'package:stpvelox/core/input/tap_debounce.dart';
 import 'package:stpvelox/core/contract/contract_overlay.dart';
 import 'package:stpvelox/core/logging/logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
@@ -30,6 +31,9 @@ import 'core/utils/touch_calibrator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Swallow the contact bounce of the resistive touchscreen (one press that
+  // arrives as several) before any widget sees it.
+  installTapDebounce();
   _configureImageCache();
   setupLogging();
 
