@@ -66,8 +66,11 @@ class NetworkModeNotifier extends Notifier<NetworkModeState> with HasLogger {
           return;
         }
       } else if (state.mode == NetworkMode.lanOnly) {
-        // Disable LAN only mode when switching away from it
-        await ref.read(lanOnlyProvider.notifier).disable();
+        // Leaving Ethernet Mode: the mode call below does the whole switch on
+        // the robot. Disabling Ethernet Mode separately would first send the
+        // robot through WiFi mode (connecting to a saved network) on the way
+        // to the hotspot.
+        ref.read(lanOnlyProvider.notifier).reset();
       }
 
       // Ethernet Mode was already set by the enable call above; asking again

@@ -15,6 +15,18 @@ class LanOnlyNotifier extends Notifier<LanOnlyState> with HasLogger {
     return LanOnlyState();
   }
 
+  /// Forgets that Ethernet Mode was on, without calling the robot (the caller
+  /// switches the mode there in one step).
+  void reset() {
+    state = state.copyWith(
+      isActive: false,
+      ipAddress: null,
+      macAddress: null,
+      role: null,
+      errorMessage: null,
+    );
+  }
+
   Future<void> checkStatus() async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
