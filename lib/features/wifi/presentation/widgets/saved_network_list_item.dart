@@ -129,7 +129,7 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
 
   String _getPasswordText() {
     if (!_showPassword) return '••••••••';
-    if (_loadingPassword) return '...';
+    if (_loadingPassword) return 'Loading...';
     final password = _password ?? '';
     return password.isEmpty ? '(not stored)' : password;
   }
