@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/inactivity/inactivity_notifier.dart';
+import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 
 // Every popup in the app is one of these. There are two kinds, plus one for
 // the rare dialog that closes itself:
@@ -92,18 +97,48 @@ class RaccoonDialog extends StatelessWidget {
 /// Shows [builder]'s dialog with the app's backdrop. With [dismissible] false
 /// the dialog can only be closed by its buttons or from code (not by tapping
 /// outside or the back gesture).
+///
+/// Every popup of the app comes through here, so every popup also wakes the
+/// screen: a screensaver that is up is closed first (after a short pause, so
+/// closing it cannot take the new dialog with it), and while the dialog is open
+/// the inactivity timer is kept from bringing the screensaver back over it.
 Future<T?> showRaccoonDialog<T>(
   BuildContext context, {
   required WidgetBuilder builder,
   bool dismissible = true,
-}) {
-  return showDialog<T>(
-    context: context,
-    barrierDismissible: dismissible,
-    barrierColor: Colors.black87,
-    builder: (ctx) =>
-        dismissible ? builder(ctx) : PopScope(canPop: false, child: builder(ctx)),
-  );
+}) async {
+  InactivityNotifier? notifier;
+  try {
+    final container = ProviderScope.containerOf(context, listen: false);
+    final inactivity = container.read(inactivityProvider.notifier);
+    notifier = inactivity;
+    if (container.read(screensaverShowingProvider)) {
+      inactivity.userActivityDetected();
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      if (!context.mounted) return null;
+    }
+  } catch (_) {
+    notifier = null; // no ProviderScope (a plain widget test): just show it
+  }
+
+  // A final copy, so the timer's closure can rely on it being non-null.
+  final awake = notifier;
+  final keepAwake = awake == null
+      ? null
+      : Timer.periodic(
+          const Duration(seconds: 10), (_) => awake.userActivityDetected());
+  try {
+    return await showDialog<T>(
+      context: context,
+      barrierDismissible: dismissible,
+      barrierColor: Colors.black87,
+      builder: (ctx) => dismissible
+          ? builder(ctx)
+          : PopScope(canPop: false, child: builder(ctx)),
+    );
+  } finally {
+    keepAwake?.cancel();
+  }
 }
 
 /// Two-button question. Returns true when confirmed, false on cancel.
