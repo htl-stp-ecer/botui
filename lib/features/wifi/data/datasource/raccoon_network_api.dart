@@ -103,8 +103,11 @@ class RaccoonNetworkApi {
     return json?['password'] as String?;
   }
 
-  Future<void> enableLanOnlyMode() async {
-    await _requestMap('POST', '/api/v1/network/lan/enable');
+  /// Returns "client" (got an address from the network) or "host" (no DHCP
+  /// server answered, the robot hosts the network); null from an older server.
+  Future<String?> enableLanOnlyMode() async {
+    final json = await _requestMap('POST', '/api/v1/network/lan/enable');
+    return json['role'] as String?;
   }
 
   Future<void> disableLanOnlyMode() async {

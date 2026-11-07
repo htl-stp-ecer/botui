@@ -106,14 +106,16 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
     final ethernetMode =
         ref.watch(networkModeProvider).mode == NetworkMode.lanOnly;
 
-    // Two sections: the one of the current tab (hotspot or Wi-Fi details; the
-    // Ethernet tab has none for now) and a general one with the address and
-    // the connection status that every tab shares.
+    // Two sections: the one of the current tab (hotspot, Ethernet or Wi-Fi
+    // details) and the "Connection" card with the address and status that
+    // every tab shares.
     final specific = hotspot != null
         ? _buildHotspotCard(hotspot, apState.connectedClients)
-        : (!ethernetMode && network != null)
-            ? _buildWifiCard(network)
-            : null;
+        : ethernetMode
+            ? _buildEthernetCard(deviceInfo)
+            : network != null
+                ? _buildWifiCard(network)
+                : null;
 
     // Column in a SingleChildScrollView (not a lazy ListView) so all cards are
     // built up front and none pops in or out while scrolling.
@@ -178,6 +180,36 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
           value: deviceInfo.macAddress ?? 'Unavailable',
         ),
         _InfoRow(icon: statusIcon, label: 'Status', value: status),
+      ],
+    );
+  }
+
+  /// Ethernet tab. First row is the mode: "Client" when the network gave the
+  /// robot an address, "Host" when none answered and the robot serves DHCP.
+  /// Null (no card) until the robot reports the mode.
+  Widget? _buildEthernetCard(DeviceInfo deviceInfo) {
+    final role = deviceInfo.ethernetRole;
+    if (role == null) return null;
+    final host = role == 'host';
+
+    return _InfoCard(
+      title: 'Ethernet',
+      accent: const Color(0xFF81C784),
+      children: [
+        _InfoRow(
+          icon: host ? Icons.dns_rounded : Icons.lan_rounded,
+          label: 'Mode',
+          value: host ? 'Host' : 'Client',
+        ),
+        if (host) ...[
+          // Only the current number: the cable has no device limit.
+          if (deviceInfo.ethernetConnectedDevices != null)
+            _InfoRow(
+              icon: Icons.devices_rounded,
+              label: 'Connected devices',
+              value: '${deviceInfo.ethernetConnectedDevices}',
+            ),
+        ],
       ],
     );
   }
@@ -254,7 +286,8 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
         _InfoRow(
           icon: Icons.devices_rounded,
           label: 'Connected devices',
-          value: '$connectedClients',
+          // current/max: the hotspot has a configured limit.
+          value: '$connectedClients/${config.maxClients}',
         ),
       ],
     );

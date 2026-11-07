@@ -15,7 +15,8 @@ class OverviewInfo {
   /// Name of the robot's own hotspot while it is active, else null.
   final String? hotspotSsid;
 
-  /// Name of the wired network while LAN-only mode is on, else null.
+  /// "Ethernet" while Ethernet Mode is on, else null (a cable has no network
+  /// name like a Wi-Fi SSID).
   final String? lanName;
 
   const OverviewInfo({
@@ -91,7 +92,7 @@ class OverviewInfoNotifier extends Notifier<OverviewInfo> {
         hotspotSsid: hotspot.$1 ? hotspot.$2 : state.hotspotSsid,
         lanName: lanOnly == null
             ? state.lanName
-            : (lanOnly ? (device?.ethernetConnectionName ?? 'LAN') : null),
+            : (lanOnly ? 'Ethernet' : null),
       );
     } finally {
       _refreshing = false;

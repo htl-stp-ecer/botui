@@ -6,6 +6,8 @@ import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/tile_position.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
+import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
+import 'package:stpvelox/features/wifi/domain/application/ethernet_mode_message.dart';
 import 'package:stpvelox/features/wifi/domain/application/network_mode_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
@@ -41,7 +43,13 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
       }
 
       if (previous?.mode != next.mode) {
-        AppToast.success('Switched to ${_modeTitle(next.mode)}', duration: const Duration(seconds: 2));
+        if (next.mode == NetworkMode.lanOnly) {
+          // Says whether a network answered or the robot hosts one.
+          AppToast.success(ethernetModeMessage(ref.read(lanOnlyProvider).role),
+              duration: const Duration(seconds: 4));
+        } else {
+          AppToast.success('Switched to ${_modeTitle(next.mode)}', duration: const Duration(seconds: 2));
+        }
       }
     });
 

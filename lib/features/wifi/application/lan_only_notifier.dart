@@ -133,10 +133,10 @@ class LanOnlyNotifier extends Notifier<LanOnlyState> with HasLogger {
         return;
       }
 
-      await _repository.enableLanOnlyMode();
+      final role = await _repository.enableLanOnlyMode();
       await checkStatus();
       // Clear error message on success
-      state = state.copyWith(errorMessage: null);
+      state = state.copyWith(errorMessage: null, role: role);
       log.info('LAN only mode enabled');
 
       // Start monitoring cable connection

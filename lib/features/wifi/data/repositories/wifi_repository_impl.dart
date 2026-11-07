@@ -138,8 +138,8 @@ class WifiRepositoryImpl implements IWifiRepository {
   }
 
   @override
-  Future<void> enableLanOnlyMode() async {
-    await api.enableLanOnlyMode();
+  Future<String?> enableLanOnlyMode() async {
+    return await api.enableLanOnlyMode();
   }
 
   @override
@@ -191,6 +191,9 @@ class WifiRepositoryImpl implements IWifiRepository {
       wifiIpAddress: json['wifiIpAddress'] as String?,
       wifiMacAddress: json['wifiMacAddress'] as String?,
       ethernetConnectionName: json['ethernetConnectionName'] as String?,
+      ethernetRole: json['ethernetRole'] as String?,
+      ethernetConnectedDevices:
+          (json['ethernetConnectedDevices'] as num?)?.toInt(),
       connectedNetwork: connectedNetworkJson == null
           ? null
           : _wifiNetworkFromJson(connectedNetworkJson),

@@ -8,6 +8,7 @@ import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
+import 'package:stpvelox/features/wifi/domain/application/ethernet_mode_message.dart';
 import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 
 /// Asks about the ethernet cable as it is plugged in or pulled out:
@@ -95,7 +96,8 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
     await notifier.updateNetworkMode(NetworkMode.lanOnly);
     final state = ref.read(networkModeProvider);
     if (state.mode == NetworkMode.lanOnly) {
-      AppToast.success('Switched to Ethernet Mode');
+      AppToast.success(ethernetModeMessage(ref.read(lanOnlyProvider).role),
+          duration: const Duration(seconds: 4));
     } else {
       AppToast.error(state.errorMessage ?? 'Could not switch to Ethernet Mode');
     }
