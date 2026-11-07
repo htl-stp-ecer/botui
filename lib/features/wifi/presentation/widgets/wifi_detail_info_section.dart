@@ -26,38 +26,55 @@ class _WifiDetailInfoSectionState extends State<WifiDetailInfoSection> {
     final needsPwd =
         _needsPassword(enc) && !network.isKnown && !network.isConnected;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('SSID: ${network.ssid}', style: const TextStyle(fontSize: 24)),
-          const SizedBox(height: 8),
-          Text('Encryption: ${enc.formatted}',
-              style: const TextStyle(fontSize: 24)),
-          const SizedBox(height: 8),
-          _statusWidget(network),
-          if (needsPwd) ...[
-            const SizedBox(height: 24),
-            const Text('Password:'),
-            TextField(
-              controller: widget.passwordController,
-              obscureText: _obscurePassword,
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                hintText: 'Enter password',
-                suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword
-                      ? Icons.visibility_off
-                      : Icons.visibility),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                ),
-              ),
+    // Centered on both axes; scrolls only when the content is taller than
+    // the screen.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
+          child: Center(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('SSID: ${network.ssid}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 24)),
+                const SizedBox(height: 8),
+                Text('Encryption: ${enc.formatted}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 24)),
+                const SizedBox(height: 8),
+                _statusWidget(network),
+                if (needsPwd) ...[
+                  const SizedBox(height: 24),
+                  const Text('Password:'),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: 420,
+                    child: TextField(
+                      controller: widget.passwordController,
+                      obscureText: _obscurePassword,
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        border: const OutlineInputBorder(),
+                        hintText: 'Enter password',
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -65,13 +82,16 @@ class _WifiDetailInfoSectionState extends State<WifiDetailInfoSection> {
   Widget _statusWidget(WifiNetwork network) {
     if (network.isConnected) {
       return const Text('Status: Connected',
+          textAlign: TextAlign.center,
           style: TextStyle(color: Colors.green, fontSize: 24));
     }
     if (network.isKnown) {
       return const Text('Status: Known (not connected)',
+          textAlign: TextAlign.center,
           style: TextStyle(color: Colors.orange, fontSize: 24));
     }
     return const Text('Status: Unknown (not connected)',
+        textAlign: TextAlign.center,
         style: TextStyle(color: Colors.orange, fontSize: 24));
   }
 

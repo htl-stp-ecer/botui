@@ -71,6 +71,8 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
     final ssid = info.ssid;
     final ipv4 = info.ipv4;
     final connected = ssid != null && ssid.isNotEmpty;
+    // In hotspot mode there is no client network; show the hotspot's name.
+    final hotspotSsid = connected ? null : info.hotspotSsid;
     final voltage = useBatteryVoltage(ref);
     final hasBattery = voltage != null && voltage > 0;
 
@@ -113,7 +115,11 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    connected ? Icons.wifi : Icons.wifi_off,
+                    connected
+                        ? Icons.wifi
+                        : hotspotSsid != null
+                            ? Icons.wifi_tethering
+                            : Icons.wifi_off,
                     color: Colors.grey[400],
                     size: 22,
                   ),
@@ -121,7 +127,9 @@ class _OverviewSectionState extends ConsumerState<OverviewSection> with RouteAwa
                   Text(
                     !info.networkLoaded
                         ? 'N/A'
-                        : (connected ? ssid : 'Not connected'),
+                        : (connected
+                            ? ssid
+                            : (hotspotSsid ?? 'Not connected')),
                     style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ],

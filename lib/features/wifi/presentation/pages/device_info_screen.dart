@@ -107,6 +107,11 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // In hotspot mode the hotspot is what matters, so it comes first.
+          if (hotspot != null) ...[
+            _buildHotspotCard(hotspot, apState.connectedClients),
+            const SizedBox(height: 14),
+          ],
           _InfoCard(
             title: 'Addressing',
             accent: const Color(0xFF4FC3F7),
@@ -166,10 +171,6 @@ class _DeviceInfoScreenState extends ConsumerState<DeviceInfoScreen>
                 ),
             ],
           ),
-          if (hotspot != null) ...[
-            const SizedBox(height: 14),
-            _buildHotspotCard(hotspot, apState.connectedClients),
-          ],
         ],
       ),
     );

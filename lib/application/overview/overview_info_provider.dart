@@ -11,11 +11,15 @@ class OverviewInfo {
   final String? ssid;
   final String? ipv4;
 
+  /// Name of the robot's own hotspot while it is active, else null.
+  final String? hotspotSsid;
+
   const OverviewInfo({
     this.hostname,
     this.networkLoaded = false,
     this.ssid,
     this.ipv4,
+    this.hotspotSsid,
   });
 
   // Value equality: a refresh that returns the same data does not notify
@@ -26,10 +30,11 @@ class OverviewInfo {
       other.hostname == hostname &&
       other.networkLoaded == networkLoaded &&
       other.ssid == ssid &&
-      other.ipv4 == ipv4;
+      other.ipv4 == ipv4 &&
+      other.hotspotSsid == hotspotSsid;
 
   @override
-  int get hashCode => Object.hash(hostname, networkLoaded, ssid, ipv4);
+  int get hashCode => Object.hash(hostname, networkLoaded, ssid, ipv4, hotspotSsid);
 }
 
 /// Cache for the overview panel. The provider is not auto-disposed, so the
@@ -60,9 +65,12 @@ class OverviewInfoNotifier extends Notifier<OverviewInfo> {
             .read(getDeviceInfoProvider)()
             .then<DeviceInfo?>((v) => v)
             .catchError((_) => null as DeviceInfo?),
+        _hotspotSsid(),
       ]);
       final hostname = results[0] as String?;
       final device = results[1] as DeviceInfo?;
+      // (known, ssid): a failed lookup keeps the old value.
+      final hotspot = results[2] as (bool, String?);
 
       state = OverviewInfo(
         hostname: (hostname != null && hostname.isNotEmpty)
@@ -72,9 +80,26 @@ class OverviewInfoNotifier extends Notifier<OverviewInfo> {
         networkLoaded: state.networkLoaded || device != null,
         ssid: device != null ? device.connectedNetwork?.ssid : state.ssid,
         ipv4: device != null ? device.ipAddress : state.ipv4,
+        hotspotSsid: hotspot.$1 ? hotspot.$2 : state.hotspotSsid,
       );
     } finally {
       _refreshing = false;
+    }
+  }
+}
+
+extension on OverviewInfoNotifier {
+  /// The hotspot's SSID if it is running: (true, ssid) / (true, null) when it
+  /// is off, (false, null) if the robot could not be asked.
+  Future<(bool, String?)> _hotspotSsid() async {
+    try {
+      final manage = ref.read(manageAccessPointProvider);
+      if (!await manage.isAccessPointActive()) return (true, null);
+      final config = await manage.getAccessPointConfig();
+      final ssid = config?.ssid;
+      return (true, (ssid != null && ssid.isNotEmpty) ? ssid : null);
+    } catch (_) {
+      return (false, null);
     }
   }
 }
