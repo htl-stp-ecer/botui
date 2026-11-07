@@ -22,11 +22,10 @@ class WifiManualConnectScreen extends ConsumerWidget {
     });
 
     return Scaffold(
+      backgroundColor: Colors.black87,
       appBar: createTopBar(context, 'Manual WiFi Connect'),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: WifiManualConnectForm(),
-      ),
+      // The form scrolls; its Connect button is fixed at the bottom.
+      body: const WifiManualConnectForm(),
     );
   }
 }

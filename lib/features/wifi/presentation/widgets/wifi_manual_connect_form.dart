@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/core/widgets/themed_field.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_credentials.dart';
 import 'package:stpvelox/features/wifi/domain/enities/wifi_encryption_type.dart';
@@ -21,135 +24,149 @@ class _WifiManualConnectFormState extends ConsumerState<WifiManualConnectForm> {
   WifiEncryptionType _encryptionType = WifiEncryptionType.wpa2Personal;
   bool _obscurePassword = true;
 
+  Widget _passwordField(AppTheme theme, int index, String label) {
+    return TextField(
+      controller: _passwordController,
+      obscureText: _obscurePassword,
+      style: const TextStyle(color: Colors.white),
+      decoration: themedFieldDecoration(
+        theme,
+        index,
+        label: label,
+        icon: Icons.lock,
+        hint: 'Enter password',
+        suffix: IconButton(
+          icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility),
+          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final wifiClientState = ref.watch(wifiClientProvider);
+    final isLoading = ref.watch(wifiClientProvider).isLoading;
+    final theme = ref.watch(colorThemeProvider);
 
-    return ListView(
-      children: [
-        const Text('SSID:', style: TextStyle(fontSize: 16)),
-        TextField(
-          controller: _ssidController,
-          decoration: const InputDecoration(
-              border: OutlineInputBorder(), hintText: 'Enter SSID'),
-        ),
-        const SizedBox(height: 16),
-        const Text('Encryption Type:', style: TextStyle(fontSize: 16)),
-        DropdownButton<WifiEncryptionType>(
-          value: _encryptionType,
-          onChanged: (val) {
-            if (val != null) setState(() => _encryptionType = val);
-          },
-          items: const [
-            DropdownMenuItem(
-              value: WifiEncryptionType.open,
-              child: Text('Open (No Password)'),
-            ),
-            DropdownMenuItem(
+    final personal = _encryptionType == WifiEncryptionType.wpa2Personal ||
+        _encryptionType == WifiEncryptionType.wpa3Personal;
+    final enterprise = _encryptionType == WifiEncryptionType.wpa2Enterprise ||
+        _encryptionType == WifiEncryptionType.wpa3Enterprise;
+
+    // Fields in order; each takes the next color of the theme's pattern, and
+    // the button the one after the last field.
+    var position = 0;
+    final fields = <Widget>[
+      TextField(
+        controller: _ssidController,
+        style: const TextStyle(color: Colors.white),
+        decoration: themedFieldDecoration(theme, position++,
+            label: 'Network Name (SSID)', icon: Icons.wifi, hint: 'Enter SSID'),
+      ),
+      DropdownButtonFormField<WifiEncryptionType>(
+        value: _encryptionType,
+        dropdownColor: kFormMenuColor,
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+        decoration: themedFieldDecoration(theme, position++,
+            label: 'Encryption Type', icon: Icons.security),
+        onChanged: (val) {
+          if (val != null) setState(() => _encryptionType = val);
+        },
+        items: const [
+          DropdownMenuItem(
+              value: WifiEncryptionType.open, child: Text('Open (No Password)')),
+          DropdownMenuItem(
               value: WifiEncryptionType.wpa2Personal,
-              child: Text('WPA2 Personal'),
-            ),
-            DropdownMenuItem(
+              child: Text('WPA2 Personal')),
+          DropdownMenuItem(
               value: WifiEncryptionType.wpa3Personal,
-              child: Text('WPA3 Personal'),
-            ),
-            DropdownMenuItem(
+              child: Text('WPA3 Personal')),
+          DropdownMenuItem(
               value: WifiEncryptionType.wpa2Enterprise,
-              child: Text('WPA2 Enterprise (EAP)'),
-            ),
-            DropdownMenuItem(
+              child: Text('WPA2 Enterprise (EAP)')),
+          DropdownMenuItem(
               value: WifiEncryptionType.wpa3Enterprise,
-              child: Text('WPA3 Enterprise (EAP)'),
-            ),
-          ],
+              child: Text('WPA3 Enterprise (EAP)')),
+        ],
+      ),
+      if (personal) _passwordField(theme, position++, 'Password'),
+      if (enterprise) ...[
+        TextField(
+          controller: _usernameController,
+          style: const TextStyle(color: Colors.white),
+          decoration: themedFieldDecoration(theme, position++,
+              label: 'EAP Username', icon: Icons.person, hint: 'Enter username'),
         ),
-        const SizedBox(height: 16),
-        if (_encryptionType == WifiEncryptionType.wpa2Personal ||
-            _encryptionType == WifiEncryptionType.wpa3Personal)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Password:', style: TextStyle(fontSize: 16)),
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  hintText: 'Enter password',
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword
-                        ? Icons.visibility_off
-                        : Icons.visibility),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
-                  ),
-                ),
+        _passwordField(theme, position++, 'EAP Password'),
+        TextField(
+          controller: _caCertController,
+          style: const TextStyle(color: Colors.white),
+          decoration: themedFieldDecoration(theme, position++,
+              label: 'CA Certificate (optional)',
+              icon: Icons.description,
+              hint: '/path/to/ca.cert'),
+        ),
+      ],
+    ];
+    final buttonColor = theme.tileColor(TileColor.green, position);
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kFormCardColor,
+                borderRadius: BorderRadius.circular(24),
               ),
-            ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < fields.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 16),
+                    fields[i],
+                  ],
+                ],
+              ),
+            ),
           ),
-        if (_encryptionType == WifiEncryptionType.wpa2Enterprise ||
-            _encryptionType == WifiEncryptionType.wpa3Enterprise)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('EAP Username:', style: TextStyle(fontSize: 16)),
-              TextField(
-                controller: _usernameController,
-                decoration: const InputDecoration(
-                    border: OutlineInputBorder(), hintText: 'Enter username'),
-              ),
-              const SizedBox(height: 16),
-              const Text('EAP Password:', style: TextStyle(fontSize: 16)),
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  hintText: 'Enter password',
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword
-                        ? Icons.visibility_off
-                        : Icons.visibility),
-                    onPressed: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
-                  ),
+        ),
+        // Fixed at the bottom of the screen, outside the scrolling form.
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: isLoading ? null : () => _connect(context),
+                icon: isLoading
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: theme.textColor),
+                      )
+                    : const Icon(Icons.wifi),
+                label: Text(isLoading ? 'Connecting...' : 'Connect'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  foregroundColor: theme.textColor,
+                  disabledBackgroundColor: buttonColor.withValues(alpha: 0.6),
+                  disabledForegroundColor:
+                      theme.textColor.withValues(alpha: 0.8),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w700),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text('CA Certificate (optional):',
-                  style: TextStyle(fontSize: 16)),
-              TextField(
-                controller: _caCertController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: '/path/to/ca.cert',
-                ),
-              ),
-            ],
+            ),
           ),
-        const SizedBox(height: 16),
-        Builder(
-          builder: (context) {
-            final isLoading = wifiClientState.isLoading;
-            return ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isLoading
-                    ? Colors.grey
-                    : Theme.of(context).colorScheme.primary,
-                foregroundColor: isLoading
-                    ? Colors.white
-                    : Theme.of(context).colorScheme.onPrimary,
-              ),
-              onPressed: isLoading ? null : () => _connect(context),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
-                  : const Text('Connect'),
-            );
-          },
         ),
       ],
     );

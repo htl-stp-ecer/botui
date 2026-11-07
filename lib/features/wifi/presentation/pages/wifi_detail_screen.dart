@@ -54,6 +54,7 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
     final busy = state.isLoading;
 
     return Scaffold(
+      backgroundColor: Colors.black87,
       appBar: createTopBar(context, 'WiFi: ${widget.network.ssid}'),
       body: Column(
         children: [
@@ -64,7 +65,7 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
             child: _buildBottomButton(widget.network, busy),
           ),
         ],
@@ -207,14 +208,20 @@ class _WifiDetailScreenState extends ConsumerState<WifiDetailScreen> with HasLog
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: busy ? null : onPressed,
-        icon: busy ? _spinner(theme.textColor) : Icon(icon, size: 20),
+        icon: busy ? _spinner(theme.textColor) : Icon(icon, size: 22),
         label: Text(busy ? (busyLabel ?? 'Processing...') : label),
+        // Same button as on the manual connect screen.
         style: ElevatedButton.styleFrom(
           backgroundColor: theme.tileColor(color, position),
           foregroundColor: theme.textColor,
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          disabledBackgroundColor:
+              theme.tileColor(color, position).withValues(alpha: 0.6),
+          disabledForegroundColor: theme.textColor.withValues(alpha: 0.8),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          textStyle:
+              const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
       ),
