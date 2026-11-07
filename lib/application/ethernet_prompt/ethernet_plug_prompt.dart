@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/overview/overview_info_provider.dart';
+import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
@@ -8,7 +12,6 @@ import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
-import 'package:stpvelox/features/wifi/domain/application/ethernet_mode_message.dart';
 import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 
 /// Asks about the ethernet cable as it is plugged in or pulled out:
@@ -65,6 +68,12 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
   }
 
   Future<void> _handle(bool plugged, bool inEthernetMode) async {
+    // The robot reported a change (cable, mode, hotspot): keep the network
+    // screens in step even if the change did not come from them.
+    unawaited(ref.read(networkModeProvider.notifier).syncNetworkMode());
+    // The overview shows address, Wi-Fi/hotspot name and mode: refresh it on
+    // the same event instead of polling.
+    unawaited(ref.read(overviewInfoProvider.notifier).refresh());
     final justPlugged = _cablePlugged == false && plugged;
     final justUnplugged = _cablePlugged == true && !plugged;
     final wasEthernetMode = _wasEthernetMode;
@@ -95,10 +104,7 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
     final notifier = ref.read(networkModeProvider.notifier);
     await notifier.updateNetworkMode(NetworkMode.lanOnly);
     final state = ref.read(networkModeProvider);
-    if (state.mode == NetworkMode.lanOnly) {
-      AppToast.success(ethernetModeMessage(ref.read(lanOnlyProvider).role),
-          duration: const Duration(seconds: 4));
-    } else {
+    if (state.mode != NetworkMode.lanOnly) {
       AppToast.error(state.errorMessage ?? 'Could not switch to Ethernet Mode');
     }
   }
@@ -120,7 +126,7 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
         message: 'Which mode do you want to switch to?',
         actions: [
           RaccoonDialogAction(
-            label: 'Client',
+            label: 'WiFi',
             color: theme.tileColor(TileColor.teal, 0),
             onPressed: () => Navigator.of(ctx).pop(NetworkMode.client),
           ),
@@ -137,13 +143,28 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
     final state = ref.read(networkModeProvider);
     if (state.mode == choice) {
       AppToast.success(choice == NetworkMode.client
-          ? 'Switched to Client Mode'
+          ? 'Switched to WiFi Mode'
           : 'Switched to Hotspot Mode');
     } else {
       AppToast.error(state.errorMessage ?? 'Could not switch mode');
     }
   }
 
+  /// Anything that arrived while the screensaver covered the screen is shown
+  /// as soon as it is gone; a moment later, so the UI has drawn first.
+  void _refreshAfterScreensaver() {
+    Future<void>.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+      unawaited(ref.read(networkModeProvider.notifier).syncNetworkMode());
+      unawaited(ref.read(overviewInfoProvider.notifier).refresh());
+    });
+  }
+
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    ref.listen<bool>(screensaverShowingProvider, (previous, showing) {
+      if (previous == true && !showing) _refreshAfterScreensaver();
+    });
+    return widget.child;
+  }
 }

@@ -1,3 +1,4 @@
+import 'package:stpvelox/core/router/route_observer.dart';
 import 'package:stpvelox/core/router/safe_navigation.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +7,6 @@ import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/tile_position.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/wifi/application/network_mode_notifier.dart';
-import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
-import 'package:stpvelox/features/wifi/domain/application/ethernet_mode_message.dart';
 import 'package:stpvelox/features/wifi/domain/application/network_mode_state.dart';
 import 'package:stpvelox/features/wifi/domain/enities/network_mode.dart';
 import 'package:stpvelox/features/wifi/presentation/widgets/grid_tile.dart';
@@ -21,7 +20,33 @@ class WifiHomeScreen extends ConsumerStatefulWidget {
   ConsumerState<WifiHomeScreen> createState() => _WifiHomeScreenState();
 }
 
-class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
+class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen>
+    with RouteAware {
+  ModalRoute<void>? _route;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != _route) {
+      _route = route;
+      appRouteObserver.unsubscribe(this);
+      if (route != null) appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  /// Back from a page above (a settings screen, a dialog's action): the mode
+  /// may have changed meanwhile, initState does not run again.
+  @override
+  void didPopNext() =>
+      ref.read(networkModeProvider.notifier).syncNetworkMode();
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -43,11 +68,9 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
       }
 
       if (previous?.mode != next.mode) {
-        if (next.mode == NetworkMode.lanOnly) {
-          // Says whether a network answered or the robot hosts one.
-          AppToast.success(ethernetModeMessage(ref.read(lanOnlyProvider).role),
-              duration: const Duration(seconds: 4));
-        } else {
+        // Ethernet Mode shows its own badge, as soon as the robot answers
+        // (see LanOnlyNotifier.enable).
+        if (next.mode != NetworkMode.lanOnly) {
           AppToast.success('Switched to ${_modeTitle(next.mode)}', duration: const Duration(seconds: 2));
         }
       }
@@ -80,7 +103,7 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _modeTitle(currentMode),
+                            'Network Mode',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -342,7 +365,7 @@ List<_WifiAction> _actionsForMode(NetworkMode mode) {
 String _modeTitle(NetworkMode mode) {
   switch (mode) {
     case NetworkMode.client:
-      return 'Wi-Fi Client Mode';
+      return 'WiFi Mode';
     case NetworkMode.accessPoint:
       return 'Hotspot Mode';
     case NetworkMode.lanOnly:
@@ -353,7 +376,7 @@ String _modeTitle(NetworkMode mode) {
 String _modeButtonLabel(NetworkMode mode) {
   switch (mode) {
     case NetworkMode.client:
-      return 'Client';
+      return 'WiFi';
     case NetworkMode.accessPoint:
       return 'Hotspot';
     case NetworkMode.lanOnly:

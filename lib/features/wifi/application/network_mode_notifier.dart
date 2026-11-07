@@ -19,6 +19,21 @@ class NetworkModeNotifier extends Notifier<NetworkModeState> with HasLogger {
     return NetworkModeState();
   }
 
+  /// Re-reads the mode without the loading state (so the screen does not
+  /// flash and no "Switched to" toast shows). For changes that happened
+  /// elsewhere: a dialog, the server, the screensaver being up.
+  Future<void> syncNetworkMode() async {
+    if (state.isLoading) return; // a switch the user started is running
+    try {
+      final mode = await _getNetworkMode();
+      if (mode != state.mode && !state.isLoading) {
+        state = state.copyWith(mode: mode);
+      }
+    } catch (_) {
+      // Keep what is shown; the next event or visit tries again.
+    }
+  }
+
   Future<void> loadNetworkMode() async {
     state = state.copyWith(isLoading: true, errorMessage: () => null);
     try {
@@ -55,11 +70,9 @@ class NetworkModeNotifier extends Notifier<NetworkModeState> with HasLogger {
         await ref.read(lanOnlyProvider.notifier).disable();
       }
 
-      if (mode == NetworkMode.accessPoint) {
-        // The access point will be started in the config screen
-        // Just set the mode here
-        await _setNetworkMode(mode);
-      } else {
+      // Ethernet Mode was already set by the enable call above; asking again
+      // would only run the same steps a second time.
+      if (mode != NetworkMode.lanOnly) {
         await _setNetworkMode(mode);
       }
 
