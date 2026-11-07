@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,7 +64,7 @@ class _WifiScanListScreenState extends ConsumerState<WifiScanListScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => context.pushOnce(AppRoutes.wifiManualConnect),
+                    onPressed: () => context.push(AppRoutes.wifiManualConnect),
                     icon: const Icon(Icons.add, size: 28),
                     label: const Text(
                       'Manual',

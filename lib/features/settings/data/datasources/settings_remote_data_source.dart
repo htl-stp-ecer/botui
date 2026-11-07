@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
@@ -28,14 +28,14 @@ class SettingsRemoteDataSourceImpl implements SettingsRemoteDataSource {
         label: "Wi-Fi",
         color: Colors.green,
         type: SettingType.button,
-        onTap: (context) => context.pushOnce(AppRoutes.wifi),
+        onTap: (context) => context.push(AppRoutes.wifi),
       ),
       Setting(
         icon: Icons.videocam,
         label: "Camera",
         color: Colors.blue,
         type: SettingType.button,
-        onTap: (context) => context.pushOnce(AppRoutes.camera),
+        onTap: (context) => context.push(AppRoutes.camera),
       ),
       Setting(
         icon: Icons.power_settings_new,
@@ -60,14 +60,14 @@ class SettingsRemoteDataSourceImpl implements SettingsRemoteDataSource {
         label: "Calibrate",
         color: Colors.purple,
         type: SettingType.button,
-        onTap: (context) => context.pushOnce(AppRoutes.touchCalibration),
+        onTap: (context) => context.push(AppRoutes.touchCalibration),
       ),
       Setting(
         icon: Icons.screen_rotation,
         label: "Rotate",
         color: Colors.teal,
         type: SettingType.button,
-        onTap: (context) => context.pushOnce(AppRoutes.screenRotation),
+        onTap: (context) => context.push(AppRoutes.screenRotation),
       ),
       Setting(
         icon: Icons.remove_red_eye,
@@ -90,14 +90,14 @@ class SettingsRemoteDataSourceImpl implements SettingsRemoteDataSource {
         icon: Icons.analytics_outlined,
         label: "Status",
         color: Colors.greenAccent,
-        onTap: (context) => context.pushOnce(AppRoutes.serviceStatus),
+        onTap: (context) => context.push(AppRoutes.serviceStatus),
       ),
       Setting(
         icon: Icons.emoji_emotions,
         label: "Personality",
         color: Colors.pinkAccent,
         type: SettingType.button,
-        onTap: (context) => context.pushOnce(AppRoutes.personality),
+        onTap: (context) => context.push(AppRoutes.personality),
       ),
       Setting(
         icon: Icons.face,

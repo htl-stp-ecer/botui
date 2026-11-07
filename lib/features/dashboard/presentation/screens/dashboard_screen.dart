@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/application/overview/overview_settings_provider.dart';
@@ -125,7 +125,7 @@ class _DashboardTile extends ConsumerWidget {
       label: label,
       button: true,
       child: GestureDetector(
-        onTap: () => context.pushOnce(route),
+        onTap: () => context.push(route),
         child: Container(
           decoration: BoxDecoration(
             color: tileColor,

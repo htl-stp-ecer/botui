@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/responsive_grid.dart';
@@ -50,10 +50,10 @@ class ImuSelectionScreen extends ConsumerWidget {
       icon: sensorCategoryIcon(category),
       onPressed: () {
         if (sensors.length == 1) {
-          context.pushOnce(AppRoutes.sensorScreen, extra: sensors.first.screen);
+          context.push(AppRoutes.sensorScreen, extra: sensors.first.screen);
           return;
         }
-        context.pushOnce(
+        context.push(
           AppRoutes.sensorCategory,
           extra: {'category': category, 'sensors': sensors},
         );

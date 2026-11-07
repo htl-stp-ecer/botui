@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 
 /// Dashboard tile that navigates using go_router route paths.
@@ -27,7 +27,7 @@ class DashboardTile extends StatelessWidget {
       label: label,
       button: true,
       child: GestureDetector(
-        onTap: () => context.pushOnce(route, extra: extra),
+        onTap: () => context.push(route, extra: extra),
         child: Container(
           decoration: BoxDecoration(
             color: color,

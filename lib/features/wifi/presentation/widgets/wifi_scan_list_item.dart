@@ -1,5 +1,5 @@
 // dart
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -140,7 +140,7 @@ class _WifiScanListItemState extends ConsumerState<WifiScanListItem>
           size: 16,
           color: Colors.grey.shade400,
         ),
-        onTap: () => context.pushOnce(AppRoutes.wifiDetail, extra: network),
+        onTap: () => context.push(AppRoutes.wifiDetail, extra: network),
       ),
     );
   }

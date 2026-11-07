@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:stpvelox/core/router/app_router.dart';
@@ -113,7 +113,7 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
     final serviceName = _currentService['unit'] ?? '';
     final displayName = _currentService['displayName'] ?? serviceName;
 
-    context.pushOnce(AppRoutes.serviceLog, extra: {
+    context.push(AppRoutes.serviceLog, extra: {
       'serviceName': serviceName,
       'displayName': displayName,
     });

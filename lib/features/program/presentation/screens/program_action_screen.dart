@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/router/app_router.dart';
@@ -47,7 +47,7 @@ class ProgramActionScreen extends HookConsumerWidget {
                   icon: Icons.play_arrow,
                   color: TileColor.green,
                   onPressed: () =>
-                      context.pushOnce(AppRoutes.programRun, extra: current),
+                      context.push(AppRoutes.programRun, extra: current),
                 ),
               ],
             ),

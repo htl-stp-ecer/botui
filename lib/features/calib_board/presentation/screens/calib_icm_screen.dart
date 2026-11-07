@@ -1,4 +1,4 @@
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,35 +36,35 @@ class CalibIcmScreen extends ConsumerWidget {
               icon: Icons.speed,
               color: TileColor.byIndex(SensorCategory.accel.index),
               state: state,
-              onPressed: () => context.pushOnce(AppRoutes.calibIcmAccel),
+              onPressed: () => context.push(AppRoutes.calibIcmAccel),
             ),
             CalibStatusTile(
               label: 'Gyroscope',
               icon: Icons.rotate_right,
               color: TileColor.byIndex(SensorCategory.gyro.index),
               state: state,
-              onPressed: () => context.pushOnce(AppRoutes.calibIcmGyro),
+              onPressed: () => context.push(AppRoutes.calibIcmGyro),
             ),
             CalibStatusTile(
               label: 'Temperature',
               icon: Icons.thermostat,
               color: TileColor.byIndex(SensorCategory.system.index),
               state: state,
-              onPressed: () => context.pushOnce(AppRoutes.calibIcmTemp),
+              onPressed: () => context.push(AppRoutes.calibIcmTemp),
             ),
             CalibStatusTile(
               label: 'Orientation',
               icon: Icons.threed_rotation,
               color: TileColor.byIndex(SensorCategory.orientation.index),
               state: state,
-              onPressed: () => context.pushOnce(AppRoutes.calibIcmOrientation),
+              onPressed: () => context.push(AppRoutes.calibIcmOrientation),
             ),
             CalibStatusTile(
               label: 'Calibration',
               icon: Icons.tune,
               color: TileColor.byIndex(SensorCategory.heading.index),
               state: state,
-              onPressed: () => context.pushOnce(AppRoutes.calibIcmCalibration),
+              onPressed: () => context.push(AppRoutes.calibIcmCalibration),
             ),
           ],
         ),

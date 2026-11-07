@@ -1,5 +1,5 @@
 import 'package:stpvelox/core/router/route_observer.dart';
-import 'package:stpvelox/core/router/safe_navigation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -157,7 +157,7 @@ class _WifiHomeScreenState extends ConsumerState<WifiHomeScreen>
                                       icon: action.icon,
                                       color: action.color,
                                       onPressed: () =>
-                                          context.pushOnce(action.route),
+                                          context.push(action.route),
                                     ),
                                   ),
                                 ),
