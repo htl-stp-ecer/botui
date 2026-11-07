@@ -110,8 +110,8 @@ class _EthernetPlugPromptState extends ConsumerState<EthernetPlugPrompt>
   }
 
   /// The cable was pulled in Ethernet Mode: Wi-Fi is off, so the robot needs a
-  /// new way to be reached. The user picks client or hotspot mode. (If nobody
-  /// answers, the server turns Wi-Fi back on by itself after about 30 s.)
+  /// new way to be reached. The user picks WiFi or hotspot mode; nothing
+  /// switches by itself while the dialog is open.
   Future<void> _askWhereToGo() async {
     final context = rootNavigatorKey.currentContext;
     if (context == null || !context.mounted) return;
