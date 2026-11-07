@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
+import 'package:stpvelox/features/wifi/application/wifi_provider.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/features/wifi/application/saved_networks_notifier.dart';
 import 'package:stpvelox/features/wifi/application/wifi_client_notifier.dart';
@@ -17,15 +21,45 @@ class SavedNetworkListItem extends ConsumerStatefulWidget {
 
 class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
   bool _showPassword = false;
+  // Fetched from the robot the first time the eye is tapped; the list itself
+  // never carries passwords.
+  String? _password;
+  bool _loadingPassword = false;
 
   @override
   Widget build(BuildContext context) {
+    final theme = ref.watch(colorThemeProvider);
+    // Left to right; the color comes from the theme by position in this row.
+    final buttons = [
+      if (widget.network.credentials is PersonalCredentials)
+        (
+          slot: TileColor.blue,
+          icon: _showPassword ? Icons.visibility_off : Icons.visibility,
+          onPressed: _togglePassword,
+        ),
+      (
+        slot: TileColor.green,
+        icon: Icons.wifi,
+        onPressed: () {
+          ref.read(wifiClientProvider.notifier).connectToNetwork(
+              widget.network.ssid,
+              widget.network.encryptionType,
+              widget.network.credentials);
+        },
+      ),
+      (
+        slot: TileColor.red,
+        icon: Icons.delete,
+        onPressed: () {
+          _showRemoveDialog(context, widget.network.ssid);
+        },
+      ),
+    ];
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.grey[850],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[700]!, width: 1),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
@@ -46,29 +80,12 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
             ),
             if (widget.network.credentials is PersonalCredentials) ...[
               const SizedBox(height: 4),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Password: ${_getPasswordText()}',
-                      style: const TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      setState(() {
-                        _showPassword = !_showPassword;
-                      });
-                    },
-                    icon: Icon(
-                      _showPassword ? Icons.visibility_off : Icons.visibility,
-                      size: 20,
-                    ),
-                  ),
-                ],
+              Text(
+                'Password: ${_getPasswordText()}',
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                ),
               ),
             ] else if (widget.network.credentials is EnterpriseCredentials) ...[
               const SizedBox(height: 4),
@@ -89,39 +106,21 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              margin: const EdgeInsets.only(right: 8),
-              child: ElevatedButton(
-                onPressed: () {
-                  ref
-                      .read(wifiClientProvider.notifier)
-                      .connectToNetwork(widget.network.ssid, widget.network.encryptionType, widget.network.credentials);
-                },
+            for (final (i, button) in buttons.indexed) ...[
+              if (i > 0) const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: button.onPressed,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[600],
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(60, 48),
+                  backgroundColor: theme.tileColor(button.slot, i),
+                  foregroundColor: theme.textColor,
+                  minimumSize: const Size(75, 60),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Icon(Icons.wifi, size: 24),
+                child: Icon(button.icon, size: 30),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _showRemoveDialog(context, widget.network.ssid);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[600],
-                foregroundColor: Colors.white,
-                minimumSize: const Size(60, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Icon(Icons.delete, size: 24),
-            ),
+            ],
           ],
         ),
       ),
@@ -129,11 +128,33 @@ class _SavedNetworkListItemState extends ConsumerState<SavedNetworkListItem> {
   }
 
   String _getPasswordText() {
-    if (widget.network.credentials is PersonalCredentials) {
-      final creds = widget.network.credentials as PersonalCredentials;
-      return _showPassword ? creds.password : '••••••••';
+    if (!_showPassword) return '••••••••';
+    if (_loadingPassword) return '...';
+    final password = _password ?? '';
+    return password.isEmpty ? '(not stored)' : password;
+  }
+
+  Future<void> _togglePassword() async {
+    if (_showPassword) {
+      setState(() => _showPassword = false);
+      return;
     }
-    return '';
+    setState(() => _showPassword = true);
+    if (_password != null) return;
+    setState(() => _loadingPassword = true);
+    try {
+      final password = await ref
+          .read(manageSavedNetworksProvider)
+          .getSavedPassword(widget.network.ssid);
+      if (mounted) setState(() => _password = password ?? '');
+    } catch (e) {
+      if (mounted) {
+        setState(() => _showPassword = false);
+        AppToast.error('Could not read password: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _loadingPassword = false);
+    }
   }
 
   String _formatDateTime(DateTime dateTime) {

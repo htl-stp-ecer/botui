@@ -18,6 +18,10 @@ class ManageSavedNetworks {
     await repository.removeSavedNetwork(ssid);
   }
 
+  Future<String?> getSavedPassword(String ssid) async {
+    return await repository.getSavedPassword(ssid);
+  }
+
   Future<SavedNetwork?> getSavedNetwork(String ssid) async {
     return await repository.getSavedNetwork(ssid);
   }

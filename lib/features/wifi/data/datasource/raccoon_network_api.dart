@@ -93,6 +93,16 @@ class RaccoonNetworkApi {
     );
   }
 
+  /// The stored password of a saved network, or null if it is not saved.
+  Future<String?> getSavedPassword(String ssid) async {
+    final json = await _requestMap(
+      'GET',
+      '/api/v1/network/saved-password/${Uri.encodeComponent(ssid)}',
+      allowEmpty: true,
+    );
+    return json?['password'] as String?;
+  }
+
   Future<void> enableLanOnlyMode() async {
     await _requestMap('POST', '/api/v1/network/lan/enable');
   }

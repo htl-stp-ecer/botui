@@ -39,6 +39,9 @@ abstract class IWifiRepository {
   Future<void> removeSavedNetwork(String ssid);
   Future<SavedNetwork?> getSavedNetwork(String ssid);
 
+  /// The stored password of a saved network (fetched on demand).
+  Future<String?> getSavedPassword(String ssid);
+
   Future<void> enableLanOnlyMode();
   Future<void> disableLanOnlyMode();
   Future<bool> isLanOnlyModeActive();

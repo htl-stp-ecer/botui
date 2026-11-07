@@ -126,6 +126,9 @@ class WifiRepositoryImpl implements IWifiRepository {
   }
 
   @override
+  Future<String?> getSavedPassword(String ssid) => api.getSavedPassword(ssid);
+
+  @override
   Future<SavedNetwork?> getSavedNetwork(String ssid) async {
     final json = await api.getSavedNetwork(ssid);
     if (json == null || json.isEmpty) {
