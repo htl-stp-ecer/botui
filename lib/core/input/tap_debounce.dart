@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 /// A press that begins within this time of the last accepted press ...
-const Duration kTapDebounceWindow = Duration(milliseconds: 300);
+const Duration kTapDebounceWindow = Duration(milliseconds: 150);
 
 /// ... and within this distance of it (logical pixels) is dropped.
 const double kTapDebounceRadius = 30;
