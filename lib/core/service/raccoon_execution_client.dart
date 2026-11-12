@@ -19,6 +19,67 @@ class RunningCommand {
   });
 }
 
+/// One run of a project as listed by ``GET /api/v1/logs/<project>/runs``.
+/// [index] counts per project, newest = 1 (the number of ``raccoon logs show``).
+class LogRunSummary {
+  final int index;
+  final DateTime startTime;
+  final DateTime endTime;
+  final double durationSecs;
+  final int lineCount;
+  final Map<String, int> levelCounts;
+
+  const LogRunSummary({
+    required this.index,
+    required this.startTime,
+    required this.endTime,
+    required this.durationSecs,
+    required this.lineCount,
+    required this.levelCounts,
+  });
+
+  factory LogRunSummary.fromJson(Map<String, dynamic> json) => LogRunSummary(
+        index: json['index'] as int,
+        startTime: DateTime.parse(json['start_time'] as String),
+        endTime: DateTime.parse(json['end_time'] as String),
+        durationSecs: (json['duration_secs'] as num).toDouble(),
+        lineCount: (json['line_count'] as num?)?.toInt() ?? 0,
+        levelCounts: ((json['level_counts'] as Map?) ?? const {})
+            .map((k, v) => MapEntry(k as String, (v as num).toInt())),
+      );
+
+  int get errors => (levelCounts['ERROR'] ?? 0) + (levelCounts['CRITICAL'] ?? 0);
+  int get warnings => levelCounts['WARN'] ?? 0;
+}
+
+/// One log line of a run.
+class LogLine {
+  final double elapsed;
+  final String level;
+  final String source;
+  final int line;
+  final String func;
+  final String message;
+
+  const LogLine({
+    required this.elapsed,
+    required this.level,
+    required this.source,
+    required this.line,
+    required this.func,
+    required this.message,
+  });
+
+  factory LogLine.fromJson(Map<String, dynamic> json) => LogLine(
+        elapsed: (json['elapsed'] as num?)?.toDouble() ?? 0,
+        level: (json['level'] as String?) ?? '',
+        source: (json['source'] as String?) ?? '',
+        line: (json['line'] as num?)?.toInt() ?? 0,
+        func: (json['func'] as String?) ?? '',
+        message: (json['message'] as String?) ?? '',
+      );
+}
+
 /// Minimal client for the raccoon execution service (HTTP + WebSocket).
 /// The service runs on the Pi at localhost:8421.
 class RaccoonExecutionClient {
@@ -82,6 +143,27 @@ class RaccoonExecutionClient {
     }
   }
 
+  /// Runs of a project, newest first. Empty when the project has no logs yet.
+  Future<List<LogRunSummary>> listLogRuns(String projectId,
+      {int count = 20}) async {
+    final json = await _getJson('/api/v1/logs/$projectId/runs?n=$count');
+    if (json == null) return const [];
+    final runs = (json['runs'] as List)
+        .map((r) => LogRunSummary.fromJson(r as Map<String, dynamic>))
+        .toList();
+    runs.sort((a, b) => a.index.compareTo(b.index));
+    return runs;
+  }
+
+  /// All log lines of one run of a project (index 1 = newest).
+  Future<List<LogLine>> getLogRun(String projectId, int index) async {
+    final json = await _getJson('/api/v1/logs/$projectId/runs/$index');
+    if (json == null) return const [];
+    return (json['entries'] as List)
+        .map((e) => LogLine.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Cancel a running command.
   Future<void> cancel(String commandId) async {
     _log.info('[cancel] command_id=$commandId');
@@ -102,6 +184,25 @@ class RaccoonExecutionClient {
 
     await for (final message in ws) {
       yield message as String;
+    }
+  }
+
+  /// GET a JSON object. Returns null on 404 (e.g. a project without logs).
+  Future<Map<String, dynamic>?> _getJson(String path) async {
+    final client = HttpClient();
+    try {
+      final request = await client.getUrl(Uri.parse('$baseUrl$path'));
+      request.headers.set('X-API-Token', _token);
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      if (response.statusCode == 404) return null;
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw HttpException(
+            'GET $path failed: status=${response.statusCode} body=$body');
+      }
+      return jsonDecode(body) as Map<String, dynamic>;
+    } finally {
+      client.close();
     }
   }
 

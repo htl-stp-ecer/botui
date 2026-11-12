@@ -51,6 +51,8 @@ import 'package:stpvelox/features/settings/presentation/pages/system_settings_sc
 import 'package:stpvelox/features/settings/presentation/pages/hostname_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/keyboard_locale_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/app_status_screen.dart';
+import 'package:stpvelox/features/settings/presentation/pages/logs_screen.dart';
+import 'package:stpvelox/features/settings/presentation/pages/log_run_screen.dart';
 
 // WiFi
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_home_screen.dart';
@@ -137,6 +139,8 @@ abstract class AppRoutes {
   static const hostnameSettings = '/settings/hostname';
   static const keyboardLocale = '/settings/keyboard';
   static const appStatus = '/settings/app-status';
+  static const logs = '/settings/logs';
+  static const logRun = '/settings/logs/run';
 
   // WiFi
   static const wifi = '/wifi';
@@ -388,6 +392,23 @@ GoRouter appRouter(Ref ref) {
           return ServiceLogScreen(
             serviceName: extra['serviceName'] as String,
             displayName: extra['displayName'] as String,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.logs,
+        name: 'logs',
+        builder: (context, state) => const LogsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.logRun,
+        name: 'logRun',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return LogRunScreen(
+            projectId: extra['projectId'] as String,
+            runIndex: extra['runIndex'] as int,
+            title: extra['title'] as String,
           );
         },
       ),
