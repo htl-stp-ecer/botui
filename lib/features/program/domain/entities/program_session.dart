@@ -12,6 +12,7 @@ class ProgramSession {
   late Terminal terminal;
   late TerminalController terminalController;
   bool _isRunning = false;
+  bool _succeeded = false;
 
   // Raccoon execution client path
   String? _commandId;
@@ -67,6 +68,7 @@ class ProgramSession {
           session.terminal
               .write('\r\nProcess $status (exit code: $exitCode)\r\n');
           session._isRunning = false;
+          session._succeeded = status == 'completed' && exitCode == 0;
           _log.info('Program finished: status=$status exitCode=$exitCode');
         } catch (_) {
           // Plain output line
@@ -121,6 +123,10 @@ class ProgramSession {
   }
 
   bool get isRunning => _isRunning;
+
+  /// True once the program has ended on its own with exit code 0. Such a
+  /// session has nothing left to show or stop and can be replaced by a fresh run.
+  bool get finishedSuccessfully => !_isRunning && _succeeded;
 
   /// Tear down the session's streams and local bookkeeping WITHOUT issuing an
   /// HTTP cancel. Used when the actual program is stopped authoritatively via

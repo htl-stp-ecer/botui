@@ -40,6 +40,17 @@ class ProgramLifecycleService extends _$ProgramLifecycleService {
     return _session!;
   }
 
+  /// Drop a session whose program already finished successfully, so the
+  /// program can be started fresh. Running or failed sessions are kept: the
+  /// former is still in use, the latter keeps its output for inspection.
+  Future<void> clearFinishedSession() async {
+    final session = _session;
+    if (session == null || !session.finishedSuccessfully) return;
+    await session.detach();
+    _session = null;
+    state = null;
+  }
+
   /// Stop the running program.
   ///
   /// Cancels whatever the raccoon **server** reports as running — which is authoritative
