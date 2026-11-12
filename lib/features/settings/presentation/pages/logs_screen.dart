@@ -191,6 +191,7 @@ class _LogRow extends StatelessWidget {
                 style: const TextStyle(color: Colors.white, fontSize: 20),
               ),
             ),
+            _LevelDots(levelCounts: run.levelCounts),
             if (run.errors > 0) _Badge('${run.errors} E', Colors.redAccent),
             if (run.warnings > 0) _Badge('${run.warnings} W', Colors.amber),
             const SizedBox(width: 12),
@@ -211,6 +212,65 @@ class _LogRow extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// One dot per log level that occurs in the run, in the colours `raccoon logs`
+/// uses for the levels (TRACE dim, DEBUG cyan, INFO green, WARN yellow,
+/// ERROR red, CRITICAL white on red).
+class _LevelDots extends StatelessWidget {
+  final Map<String, int> levelCounts;
+
+  const _LevelDots({required this.levelCounts});
+
+  static const _order = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'];
+
+  @override
+  Widget build(BuildContext context) {
+    // The server may report spdlog's "warning" instead of "WARN".
+    final present = <String>{
+      for (final e in levelCounts.entries)
+        if (e.value > 0) e.key.toUpperCase() == 'WARNING' ? 'WARN' : e.key.toUpperCase(),
+    };
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final level in _order)
+          if (present.contains(level)) _dot(level),
+      ],
+    );
+  }
+
+  Widget _dot(String level) {
+    final critical = level == 'CRITICAL';
+    return Container(
+      width: 14,
+      height: 14,
+      margin: const EdgeInsets.only(left: 6),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: _levelColor(level),
+        border: critical ? Border.all(color: Colors.white, width: 2) : null,
+      ),
+    );
+  }
+}
+
+Color _levelColor(String level) {
+  switch (level) {
+    case 'TRACE':
+      return Colors.grey;
+    case 'DEBUG':
+      return Colors.cyan.shade300;
+    case 'INFO':
+      return Colors.green;
+    case 'WARN':
+      return Colors.amber;
+    case 'ERROR':
+    case 'CRITICAL':
+      return Colors.red;
+    default:
+      return Colors.grey;
   }
 }
 
