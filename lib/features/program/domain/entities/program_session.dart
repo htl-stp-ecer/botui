@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:stpvelox/core/service/raccoon_execution_client.dart';
@@ -13,16 +12,12 @@ class ProgramSession {
   late Terminal terminal;
   late TerminalController terminalController;
   bool _isRunning = false;
+  bool _succeeded = false;
 
   // Raccoon execution client path
   String? _commandId;
   RaccoonExecutionClient? _client;
   StreamSubscription<String>? _outputSubscription;
-
-  // Direct process path (run.sh)
-  Process? _process;
-  StreamSubscription<List<int>>? _stdoutSubscription;
-  StreamSubscription<List<int>>? _stderrSubscription;
 
   ProgramSession._internal();
 
@@ -34,81 +29,9 @@ class ProgramSession {
     session.terminal = Terminal();
     session.terminalController = TerminalController();
 
-    if (_allowDirectProgramRun()) {
-      await _startDirectProcess(session, program, args, extraFlags);
-    } else {
-      await _startViaRaccoon(session, program, args, extraFlags);
-    }
+    await _startViaRaccoon(session, program, args, extraFlags);
 
     return session;
-  }
-
-  static bool _allowDirectProgramRun() {
-    return Platform.environment['BOTUI_ALLOW_DIRECT_PROGRAM_RUN'] == '1';
-  }
-
-  static Future<void> _startDirectProcess(
-    ProgramSession session,
-    Program program,
-    Map<String, String> args,
-    List<String> extraFlags,
-  ) async {
-    // Resolve to absolute path so bash can find the script regardless of cwd
-    final parentDirAbsolute = Directory(program.parentDir).absolute.path;
-    final runShAbsolute = '$parentDirAbsolute/${program.runScript}';
-    _log.info('[startDirect] Running $runShAbsolute in $parentDirAbsolute');
-
-    // Build argument list: --key=value pairs then bare flags
-    final argsList = [
-      ...args.entries.map((e) => '--${e.key}=${e.value}'),
-      ...extraFlags,
-    ];
-
-    final process = await Process.start(
-      'bash',
-      [runShAbsolute, ...argsList],
-      workingDirectory: parentDirAbsolute,
-    );
-    session._process = process;
-    session._isRunning = true;
-
-    // Stream stdout into the terminal widget
-    session._stdoutSubscription = process.stdout.listen(
-      (data) {
-        final text = utf8.decode(data, allowMalformed: true);
-        session.terminal.write(text.replaceAll('\n', '\r\n'));
-        final clean =
-            text.replaceAll(RegExp(r'\x1B\[[0-9;]*[a-zA-Z]'), '').trim();
-        if (clean.isNotEmpty) _log.info(clean);
-      },
-      onError: (e) {
-        _log.warning('stdout error: $e');
-        session.terminal.write('\r\n[stdout error: $e]\r\n');
-      },
-    );
-
-    // Stream stderr into the terminal widget
-    session._stderrSubscription = process.stderr.listen(
-      (data) {
-        final text = utf8.decode(data, allowMalformed: true);
-        session.terminal.write(text.replaceAll('\n', '\r\n'));
-        final clean =
-            text.replaceAll(RegExp(r'\x1B\[[0-9;]*[a-zA-Z]'), '').trim();
-        if (clean.isNotEmpty) _log.warning(clean);
-      },
-      onError: (e) {
-        _log.warning('stderr error: $e');
-        session.terminal.write('\r\n[stderr error: $e]\r\n');
-      },
-    );
-
-    // Handle process exit
-    process.exitCode.then((exitCode) {
-      session.terminal
-          .write('\r\nProcess exited (exit code: $exitCode)\r\n');
-      session._isRunning = false;
-      _log.info('Program finished: exitCode=$exitCode');
-    });
   }
 
   static Future<void> _startViaRaccoon(
@@ -145,6 +68,7 @@ class ProgramSession {
           session.terminal
               .write('\r\nProcess $status (exit code: $exitCode)\r\n');
           session._isRunning = false;
+          session._succeeded = status == 'completed' && exitCode == 0;
           _log.info('Program finished: status=$status exitCode=$exitCode');
         } catch (_) {
           // Plain output line
@@ -170,30 +94,11 @@ class ProgramSession {
 
   Future<int> kill({bool force = false}) async {
     _log.warning(
-        '[kill] called — process=${_process != null}, commandId=$_commandId, isRunning=$_isRunning');
-
-    // Direct process path
-    if (_process != null) {
-      _log.info('[kill] taking direct-process path');
-      terminal.write('\r\nStopping program...\r\n');
-
-      await _stdoutSubscription?.cancel();
-      _stdoutSubscription = null;
-      await _stderrSubscription?.cancel();
-      _stderrSubscription = null;
-
-      _process!.kill(ProcessSignal.sigterm);
-      final exitCode = await _process!.exitCode;
-      terminal.write('\r\nProgram stopped (exit code: $exitCode).\r\n');
-
-      _isRunning = false;
-      _process = null;
-      return exitCode;
-    }
+        '[kill] called — commandId=$_commandId, isRunning=$_isRunning');
 
     // Raccoon execution client path
     if (_commandId == null) {
-      _log.warning('[kill] no commandId and no process — nothing to kill');
+      _log.warning('[kill] no commandId — nothing to kill');
       return -1;
     }
 
@@ -219,9 +124,9 @@ class ProgramSession {
 
   bool get isRunning => _isRunning;
 
-  /// True for direct-process sessions (BOTUI_ALLOW_DIRECT_PROGRAM_RUN), which
-  /// have no raccoon server command to cancel and must be killed locally.
-  bool get isDirectProcess => _process != null;
+  /// True once the program has ended on its own with exit code 0. Such a
+  /// session has nothing left to show or stop and can be replaced by a fresh run.
+  bool get finishedSuccessfully => !_isRunning && _succeeded;
 
   /// Tear down the session's streams and local bookkeeping WITHOUT issuing an
   /// HTTP cancel. Used when the actual program is stopped authoritatively via
@@ -231,12 +136,7 @@ class ProgramSession {
     _log.info('[detach] releasing session (commandId=$_commandId)');
     await _outputSubscription?.cancel();
     _outputSubscription = null;
-    await _stdoutSubscription?.cancel();
-    _stdoutSubscription = null;
-    await _stderrSubscription?.cancel();
-    _stderrSubscription = null;
     _isRunning = false;
     _commandId = null;
-    _process = null;
   }
 }

@@ -40,10 +40,20 @@ class ProgramLifecycleService extends _$ProgramLifecycleService {
     return _session!;
   }
 
+  /// Drop a session whose program already finished successfully, so the
+  /// program can be started fresh. Running or failed sessions are kept: the
+  /// former is still in use, the latter keeps its output for inspection.
+  Future<void> clearFinishedSession() async {
+    final session = _session;
+    if (session == null || !session.finishedSuccessfully) return;
+    await session.detach();
+    _session = null;
+    state = null;
+  }
+
   /// Stop the running program.
   ///
-  /// For direct-process sessions we kill the local process. Otherwise we cancel
-  /// whatever the raccoon **server** reports as running — which is authoritative
+  /// Cancels whatever the raccoon **server** reports as running — which is authoritative
   /// and independent of our local [_session], whose `command_id` may be stale
   /// (an older overlapping run) or absent (started outside botui, or lost to a
   /// UI restart). Idempotent via [_stopping] so a burst of taps issues one
@@ -56,15 +66,6 @@ class ProgramLifecycleService extends _$ProgramLifecycleService {
     _stopping = true;
     _log.warning('[stopProgram] stopProgram() called');
     try {
-      // Direct-process path: no server command exists, kill locally.
-      if (_session != null && _session!.isDirectProcess) {
-        final result = await _session!.kill();
-        _session = null;
-        state = null;
-        _log.info('[stopProgram] direct process stopped, exit code: $result');
-        return result;
-      }
-
       // Raccoon path: cancel the server's actual running command.
       final client = await RaccoonExecutionClient.create();
       final running = await client.getRunningCommand();

@@ -27,12 +27,21 @@ class ProgramScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final overlayEntry = useState<OverlayEntry?>(null);
-    final state = ref.watch(programLifecycleServiceProvider);
+    final rawState = ref.watch(programLifecycleServiceProvider);
+
+    // A program that already finished successfully before this screen was
+    // opened is treated as not there, so it can be started fresh. A run that
+    // finishes while the screen is open keeps its output until you leave.
+    final finishedOnEntry = useMemoized(() {
+      final s = ref.read(programLifecycleServiceProvider);
+      return (s != null && s.finishedSuccessfully) ? s : null;
+    });
+    final state = identical(rawState, finishedOnEntry) ? null : rawState;
 
     // Navigate to dashboard when a running program stops.
     ref.listen<ProgramSession?>(programLifecycleServiceProvider,
         (previous, next) {
-      if (previous != null && next == null) {
+      if (previous != null && next == null && !previous.finishedSuccessfully) {
         _log.info('[listen] Program stopped — navigating to dashboard');
         context.go(AppRoutes.dashboard);
       }
@@ -53,6 +62,11 @@ class ProgramScreen extends HookConsumerWidget {
 
     useEffect(() {
       _log.info('[useEffect] ProgramScreen mounted');
+      if (finishedOnEntry != null) {
+        Future(() => ref
+            .read(programLifecycleServiceProvider.notifier)
+            .clearFinishedSession());
+      }
       return () {
         _log.info('[useEffect cleanup] ProgramScreen unmounting');
         removeOverlay(overlayEntry);
