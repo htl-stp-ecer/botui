@@ -49,7 +49,6 @@ class ProgramRemoteDataSourceImpl implements ProgramRemoteDataSource {
       final projectJsonFile = File(path.join(dir.path, 'project.json'));
 
       String name = folderName;
-      String runScript = 'run.sh';
       List<Arg> args = [];
       bool parsedRaccoonProject = false;
 
@@ -64,9 +63,6 @@ class ProgramRemoteDataSourceImpl implements ProgramRemoteDataSource {
             if (yamlData.containsKey('name') && yamlData['name'] is String) {
               name = yamlData['name'];
             }
-
-            // raccoon.project.yml doesn't have run_script, it's always run.sh
-            runScript = 'run.sh';
 
             // raccoon.project.yml doesn't define args in the same format
             // args remain empty for now
@@ -90,14 +86,6 @@ class ProgramRemoteDataSourceImpl implements ProgramRemoteDataSource {
             name = jsonData['name'];
           }
 
-          if (jsonData.containsKey('run_script') &&
-              jsonData['run_script'] is String &&
-              (jsonData['run_script'] as String).trim().isNotEmpty) {
-            runScript = jsonData['run_script'];
-          } else {
-            runScript = 'run.sh';
-          }
-
           if (jsonData.containsKey('args') && jsonData['args'] is List) {
             args = (jsonData['args'] as List)
                 .map((argJson) => Arg.fromJson(argJson))
@@ -110,13 +98,6 @@ class ProgramRemoteDataSourceImpl implements ProgramRemoteDataSource {
         }
       }
 
-      final runShFile = File(path.join(dir.path, runScript));
-      if (!await runShFile.exists()) {
-        developer.log(
-            'Warning: run.sh does not exist in ${dir.path}. The run_script may fail.',
-            name: 'ProgramRemoteDataSourceImpl');
-      }
-
       // Load .raccoon/sync_state.json if present — it's just a local file,
       // no HTTP roundtrip. Absent means the project has never been synced.
       final syncState = await SyncState.loadFromProjectDir(dir.path);
@@ -124,7 +105,6 @@ class ProgramRemoteDataSourceImpl implements ProgramRemoteDataSource {
       final program = Program(
         name: name,
         parentDir: dir.path,
-        runScript: runScript,
         args: args,
         syncState: syncState,
       );

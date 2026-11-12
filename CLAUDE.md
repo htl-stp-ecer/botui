@@ -50,7 +50,7 @@ StpVelox follows **Clean Architecture** with three main layers:
 - Battery monitoring
 
 **Program Management**:
-- Programs stored in `programs/` directory with `project.json` and `run.sh`
+- Programs stored in `programs/` directory with `project.json`
 - `ProgramLifecycleManager` handles execution via pseudoterminal
 - Terminal UI for program output using xterm package
 
