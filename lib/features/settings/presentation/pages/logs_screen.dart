@@ -191,7 +191,6 @@ class _LogRow extends StatelessWidget {
                 style: const TextStyle(color: Colors.white, fontSize: 20),
               ),
             ),
-            _LevelDots(levelCounts: run.levelCounts),
             if (run.errors > 0) _Badge('${run.errors} E', Colors.redAccent),
             if (run.warnings > 0) _Badge('${run.warnings} W', Colors.amber),
             const SizedBox(width: 12),
@@ -211,44 +210,6 @@ class _LogRow extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// One dot per log level that occurs in the run, in the colours `raccoon logs`
-/// uses for the levels: INFO green, WARN yellow, ERROR red. TRACE, DEBUG and
-/// CRITICAL get no dot.
-class _LevelDots extends StatelessWidget {
-  final Map<String, int> levelCounts;
-
-  const _LevelDots({required this.levelCounts});
-
-  static const _levels = [
-    ('INFO', Colors.green),
-    ('WARN', Colors.amber),
-    ('ERROR', Colors.red),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    // The server may report spdlog's "warning" instead of "WARN".
-    final present = <String>{
-      for (final e in levelCounts.entries)
-        if (e.value > 0)
-          e.key.toUpperCase() == 'WARNING' ? 'WARN' : e.key.toUpperCase(),
-    };
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final (level, color) in _levels)
-          if (present.contains(level))
-            Container(
-              width: 14,
-              height: 14,
-              margin: const EdgeInsets.only(left: 6),
-              decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-            ),
-      ],
     );
   }
 }
