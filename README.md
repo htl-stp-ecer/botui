@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/htl-stp-ecer/.github/main/profile/raccoon-logo.svg" alt="StpVelox" width="100"/>
+<img src="https://raw.githubusercontent.com/htl-stp-ecer/.github/main/profile/raccoon-logo.svg" alt="botui" width="100"/>
 
-# StpVelox (BotUI)
+# botui
 
 **The Flutter desktop environment for the KIPR Wombat — dashboard, programs, sensors, and more.**
 
@@ -20,7 +20,7 @@
 
 ---
 
-StpVelox is the graphical environment that runs directly on the [KIPR Wombat](https://www.kipr.org/kipr/hardware-software) controller. It replaces the default Wombat UI with a fast, touch-friendly Flutter interface purpose-built for Botball competition — real-time sensor graphs, a program runner with live terminal output, WiFi management, and a camera feed, all on an 800×480 display.
+botui is the graphical environment that runs directly on the [KIPR Wombat](https://www.kipr.org/kipr/hardware-software) controller. It replaces the default Wombat UI with a fast, touch-friendly Flutter interface purpose-built for Botball competition — real-time sensor graphs, a program runner with live terminal output, WiFi management, and a camera feed, all on an 800×480 display.
 
 ---
 
@@ -86,7 +86,7 @@ bash debug.sh
 
 ## Architecture
 
-StpVelox follows **Clean Architecture** with three layers and [Riverpod](https://riverpod.dev/) for state management throughout.
+botui follows **Clean Architecture** with three layers and [Riverpod](https://riverpod.dev/) for state management throughout.
 
 ```
 lib/
@@ -114,17 +114,6 @@ lib/
 - Dart SDK ^3.5.4
 - `flutterpi_tool` for ARM64 builds
 - KIPR Wombat with Raspberry Pi (ARM64, 800×480 display)
-
----
-
-## Part of RaccoonOS
-
-| Repository | What it is |
-|:-----------|:-----------|
-| [raccoon-lib](https://github.com/htl-stp-ecer/raccoon-lib) | Core robotics library |
-| [raccoon-cli](https://github.com/htl-stp-ecer/raccoon-cli) | Dev toolchain — scaffolding, `raccoon run` |
-| [raccoon-transport](https://github.com/htl-stp-ecer/raccoon-transport) | LCM messaging layer |
-| [documentation](https://raccoon-docs.pages.dev/) | Full platform docs |
 
 ---
 
