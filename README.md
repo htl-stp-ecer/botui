@@ -33,7 +33,10 @@ botui is the graphical environment that runs directly on the [KIPR Wombat](https
 | **Sensors** | Real-time charts for gyro, accelerometer, magnetometer, and analog inputs |
 | **Camera** | Live camera feed from the robot's vision system |
 | **WiFi** | Scan, connect, and manage networks via Linux NetworkManager |
-| **Settings** | Device config, touch calibration for the embedded display |
+| **Settings** | Display, theme, hostname, keyboard layout, screen rotation, touch calibration, service status and logs, program run logs |
+| **Screen renderer / dynamic UI** | Screens that the robot program requests at runtime (`screen_render` messages) and the answers go back to it |
+| **Calibration board** | Guided calibration with the calibration board |
+| **Dev menu** | Developer tools, plus the small games Tilt Maze and Flappy Wombat |
 
 ---
 
@@ -90,8 +93,10 @@ botui follows **Clean Architecture** with three layers and [Riverpod](https://ri
 
 ```
 lib/
-├── core/           # DI (GetIt), routing (go_router), theme, shared utilities
-├── features/       # One folder per feature (dashboard, program, sensors, wifi, ...)
+├── core/           # DI (GetIt), routing (go_router), theme, transport, contract check, logging, shared utilities
+├── application/    # App-wide behaviour (overview, screensaver, inactivity, ethernet prompt, theme)
+├── presentation/   # Top-level screens
+├── features/       # One folder per feature (dashboard, program, sensors, camera, wifi, settings, ...)
 │   └── <feature>/
 │       ├── domain/       # Entities, repository interfaces, use cases
 │       ├── data/         # Repository implementations, data sources
@@ -100,7 +105,7 @@ lib/
 └── main.dart
 ```
 
-**Hardware data** flows in via [LCM](https://lcm-proj.github.io/) through [raccoon-transport](https://github.com/htl-stp-ecer/raccoon-transport) — sensor values, motor state, and IMU readings are published on the LCM bus and consumed by the UI in real time.
+**Hardware data** flows in via [raccoon-transport](https://github.com/htl-stp-ecer/raccoon-transport) (shared-memory ring under `/dev/shm`, reached through the `raccoon_ring` bridge) — sensor values, motor state, and IMU readings are published by stm32-data-reader and consumed by the UI in real time. At startup botui checks that its transport contract matches the installed bundle.
 
 **Program execution** uses a pseudoterminal so program stdout/stderr stream live into the terminal widget (`xterm`).
 
@@ -111,7 +116,7 @@ lib/
 ## Requirements
 
 - [FVM](https://fvm.app/) — Flutter version manager
-- Dart SDK ^3.5.4
+- Dart SDK ^3.5.4 (Flutter 3.38.7, pinned in `.fvmrc`)
 - `flutterpi_tool` for ARM64 builds
 - KIPR Wombat with Raspberry Pi (ARM64, 800×480 display)
 
