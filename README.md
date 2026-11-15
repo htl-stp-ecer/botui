@@ -6,13 +6,13 @@
 
 **The Flutter desktop environment for the KIPR Wombat — dashboard, programs, sensors, and more.**
 
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](COPYING)
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%20ARM64-A22846?logo=raspberrypi&logoColor=white)
 ![Display](https://img.shields.io/badge/Display-800x480-555)
 [![Build & Release](https://github.com/htl-stp-ecer/botui/actions/workflows/build-release.yml/badge.svg)](https://github.com/htl-stp-ecer/botui/actions/workflows/build-release.yml)
 [![Latest Release](https://img.shields.io/github/v/release/htl-stp-ecer/botui)](https://github.com/htl-stp-ecer/botui/releases/latest)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](COPYING)
 
 > 📖 **Full documentation at [raccoon-docs.pages.dev](https://raccoon-docs.pages.dev/)**
 
