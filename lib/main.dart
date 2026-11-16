@@ -257,7 +257,7 @@ class _AppServicesStarter extends ConsumerWidget {
     // flips, not every voltage frame (battery publishes at ~10 Hz; a
     // top-level rebuild per tick churns the whole subtree).
     final isLow = ref.watch(batteryVoltageSensorProvider
-        .select((v) => v != null && v > 0 && v < 5.5));
+        .select((v) => v != null && v > 0 && v < 6.0));
     final ignored = ref.watch(lowBatteryIgnoredProvider);
     final showWarning = isLow && !ignored;
 
