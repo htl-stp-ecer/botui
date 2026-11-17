@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -8,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/utils/local_test.dart';
+import 'package:stpvelox/core/widgets/app_toast.dart';
 
 final screenshotServiceProvider = Provider<ScreenshotService>((ref) {
   final service = ScreenshotService();
@@ -18,13 +18,11 @@ final screenshotServiceProvider = Provider<ScreenshotService>((ref) {
 /// Captures the Flutter-rendered UI to `~/screenshots/` as PNG.
 ///
 /// [boundaryKey] must be attached to the [RepaintBoundary] wrapping the app
-/// content (see `Button10MonitorWidget`). [badge] holds the text of the
-/// "Saved Screenshot as …" badge while it is visible, otherwise null.
+/// content (see `Button10MonitorWidget`). Result feedback is shown with
+/// [AppToast], the app's standard bottom badge.
 class ScreenshotService with HasLogger {
   final GlobalKey boundaryKey = GlobalKey(debugLabel: 'screenshotBoundary');
-  final ValueNotifier<String?> badge = ValueNotifier<String?>(null);
 
-  Timer? _badgeTimer;
   bool _busy = false;
 
   Future<void> capture() async {
@@ -54,19 +52,13 @@ class ScreenshotService with HasLogger {
       );
 
       log.info('Saved screenshot ${dir.path}/$name');
-      _showBadge('Saved Screenshot as $name');
+      AppToast.success('Saved Screenshot as $name');
     } catch (e, st) {
       log.severe('Screenshot failed', e, st);
-      _showBadge('Screenshot failed');
+      AppToast.error('Screenshot failed');
     } finally {
       _busy = false;
     }
-  }
-
-  void _showBadge(String text) {
-    _badgeTimer?.cancel();
-    badge.value = text;
-    _badgeTimer = Timer(const Duration(seconds: 3), () => badge.value = null);
   }
 
   static String _homeDir() {
@@ -81,8 +73,5 @@ class ScreenshotService with HasLogger {
         '${p(t.hour)}-${p(t.minute)}-${p(t.second)}';
   }
 
-  void dispose() {
-    _badgeTimer?.cancel();
-    badge.dispose();
-  }
+  void dispose() {}
 }

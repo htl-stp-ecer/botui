@@ -45,45 +45,6 @@ class _Button10MonitorWidgetState extends ConsumerState<Button10MonitorWidget> {
     // Initialize the monitor provider
     ref.watch(button10MonitorProvider);
     final screenshots = ref.watch(screenshotServiceProvider);
-    return Stack(
-      fit: StackFit.passthrough,
-      children: [
-        // The badge sits outside the boundary so it isn't in the screenshot.
-        RepaintBoundary(key: screenshots.boundaryKey, child: widget.child),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 12,
-          child: IgnorePointer(
-            child: ValueListenableBuilder<String?>(
-              valueListenable: screenshots.badge,
-              builder: (context, text, _) {
-                if (text == null) return const SizedBox.shrink();
-                return Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xE6212121),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0x66FFFFFF)),
-                    ),
-                    child: Text(
-                      text,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        decoration: TextDecoration.none,
-                        fontWeight: FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
-    );
+    return RepaintBoundary(key: screenshots.boundaryKey, child: widget.child);
   }
 }
