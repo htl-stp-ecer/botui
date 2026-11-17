@@ -5,7 +5,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/service/sensors/back_emf_sensor.dart';
-import 'package:stpvelox/core/service/sensors/motor_done_sensor.dart';
 import 'package:stpvelox/core/service/sensors/motor_position_sensor.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/sensors/domain/entities/sensor.dart';
@@ -33,7 +32,14 @@ class SensorMotorScreen extends HookConsumerWidget {
     final transport = ref.watch(transportServiceProvider);
     final backEmf = ref.watch(backEmfSensorProvider(port));
     final motorPosition = ref.watch(motorPositionSensorProvider(port));
-    final motorDone = useMotorDone(ref, port);
+    // Goal of the last position command. "Done" is derived from the position
+    // channel: within the firmware hold deadband (3 ticks) of the goal.
+    final positionGoal = useState<int?>(null);
+    const positionTolerance = 3;
+    final target = positionGoal.value;
+    final bool? motorDone = (target == null || motorPosition == null)
+        ? null
+        : (motorPosition - target).abs() <= positionTolerance;
 
     final mode = useState(MotorMode.power);
 
@@ -146,23 +152,17 @@ class SensorMotorScreen extends HookConsumerWidget {
               timestamp: now.microsecondsSinceEpoch, value: v));
     }
 
-    void sendPositionCmd(int velocity, int goal) => transport.publish(
-        Channels.motorPositionCommand(port),
-        Vector3fT(
-            timestamp: DateTime.now().microsecondsSinceEpoch,
-            x: velocity.toDouble(),
-            y: goal.toDouble(),
-            z: 0),
-        options: reliable);
-
-    void sendRelativeCmd(int velocity, int delta) => transport.publish(
-        Channels.motorRelativeCommand(port),
-        Vector3fT(
-            timestamp: DateTime.now().microsecondsSinceEpoch,
-            x: velocity.toDouble(),
-            y: delta.toDouble(),
-            z: 0),
-        options: reliable);
+    void sendPositionCmd(int velocity, int goal) {
+      positionGoal.value = goal;
+      transport.publish(
+          Channels.motorPositionCommand(port),
+          Vector3fT(
+              timestamp: DateTime.now().microsecondsSinceEpoch,
+              x: velocity.toDouble(),
+              y: goal.toDouble(),
+              z: 0),
+          options: reliable);
+    }
 
     void resetPosition() => transport.publish(
         Channels.motorPositionResetCommand(port),
@@ -226,7 +226,8 @@ class SensorMotorScreen extends HookConsumerWidget {
       final pos = calcPosInputValue();
       if (posInput.value.isEmpty) return;
       if (isRelative.value) {
-        sendRelativeCmd(posVelocity.value, pos);
+        // Relative moves are resolved here into an absolute goal.
+        sendPositionCmd(posVelocity.value, (motorPosition ?? 0) + pos);
       } else {
         sendPositionCmd(posVelocity.value, pos);
       }
