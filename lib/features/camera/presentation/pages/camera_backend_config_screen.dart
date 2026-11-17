@@ -85,7 +85,7 @@ class CameraBackendConfigScreen extends ConsumerWidget {
           ),
         const SizedBox(height: 10),
         Expanded(
-          child: form.busy && (selected == null || selected.options.isEmpty)
+          child: form.describing
               ? Center(
                   child: CircularProgressIndicator(color: AppColors.programs),
                 )

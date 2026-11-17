@@ -17,6 +17,7 @@ class CameraBackendFormState {
     this.values = const {},
     this.fieldErrors = const {},
     this.busy = false,
+    this.describing = false,
     this.saved,
   });
 
@@ -37,6 +38,9 @@ class CameraBackendFormState {
   /// A backend is being described, or the configuration is being saved.
   final bool busy;
 
+  /// The options and values of [selected] are being fetched: no form yet.
+  final bool describing;
+
   /// What is saved on the robot.
   final CamBackendChoice? saved;
 
@@ -49,6 +53,7 @@ class CameraBackendFormState {
     Map<String, Object?>? values,
     Map<String, String>? fieldErrors,
     bool? busy,
+    bool? describing,
     CamBackendChoice? saved,
     bool clearSaved = false,
   }) =>
@@ -60,6 +65,7 @@ class CameraBackendFormState {
         values: values ?? this.values,
         fieldErrors: fieldErrors ?? this.fieldErrors,
         busy: busy ?? this.busy,
+        describing: describing ?? this.describing,
         saved: clearSaved ? null : (saved ?? this.saved),
       );
 }
@@ -127,7 +133,15 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
   }
 
   Future<void> _describe(CamBackendInfo backend) async {
-    _emit(state.copyWith(busy: true, selected: backend, fieldErrors: {}));
+    // The list already carries options for built-in backends; do not show them
+    // before the values (defaults, saved choice) are in.
+    _emit(state.copyWith(
+      busy: true,
+      describing: true,
+      selected: backend.withOptions(const []),
+      values: const {},
+      fieldErrors: {},
+    ));
     try {
       final described = await (await _client()).describe(backend);
       final values = <String, Object?>{
@@ -142,13 +156,18 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
           }
         }
       }
-      _emit(state.copyWith(busy: false, selected: described, values: values));
+      _emit(state.copyWith(
+        busy: false,
+        describing: false,
+        selected: described,
+        values: values,
+      ));
     } on RaccoonApiException catch (error) {
-      _emit(state.copyWith(busy: false));
+      _emit(state.copyWith(busy: false, describing: false));
       AppToast.error(error.message);
     } catch (error, stack) {
       _log.severe('Could not describe ${backend.path}: $error', error, stack);
-      _emit(state.copyWith(busy: false));
+      _emit(state.copyWith(busy: false, describing: false));
       AppToast.error('The robot server is not reachable.');
     }
   }

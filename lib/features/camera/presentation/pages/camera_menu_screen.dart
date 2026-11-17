@@ -51,7 +51,6 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
             children: [
               TwoButtonStrip(
                 title: 'Camera',
-                height: 124,
                 buttons: [
                   StripButton(
                     label: 'Configure backend',
