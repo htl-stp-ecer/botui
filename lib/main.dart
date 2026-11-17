@@ -21,6 +21,7 @@ import 'package:stpvelox/features/settings/domain/usecases/reboot.dart';
 import 'package:stpvelox/core/service/button10_monitor_widget.dart';
 import 'package:stpvelox/core/service/sensors/imu_accuracy_sensor.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
+import 'package:stpvelox/core/utils/local_test.dart';
 import 'package:stpvelox/features/dev_menu/presentation/dev_menu_active_provider.dart';
 import 'package:stpvelox/features/dev_menu/presentation/screens/dev_menu_screen.dart';
 import 'package:stpvelox/features/dynamic_ui/presentation/dynamic_ui_screen.dart';
@@ -177,7 +178,7 @@ class StpVeloxApp extends HookConsumerWidget {
       child: InactivityListener(
         child: MaterialApp.router(
           title: 'BotUI',
-          // debugShowCheckedModeBanner: false,
+          debugShowCheckedModeBanner: !kHideDebugBanner,
           routerConfig: router,
           builder: (context, child) {
             return _AppServicesStarter(

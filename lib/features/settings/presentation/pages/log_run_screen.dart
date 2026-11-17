@@ -158,22 +158,10 @@ class _LogRunScreenState extends State<LogRunScreen> {
           for (final level in _filterLevels)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(level),
+              child: _LevelChip(
+                level: level,
                 selected: _enabled.contains(level),
-                onSelected: (_) => _toggle(level),
-                showCheckmark: false,
-                avatar: CircleAvatar(
-                  radius: 6,
-                  backgroundColor: _levelColor(level),
-                ),
-                labelStyle: TextStyle(
-                  color: _enabled.contains(level)
-                      ? Colors.white
-                      : Colors.white54,
-                ),
-                backgroundColor: Colors.black,
-                selectedColor: Colors.white24,
+                onTap: () => _toggle(level),
               ),
             ),
           const Spacer(),
@@ -238,6 +226,60 @@ class _LogRunScreenState extends State<LogRunScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// A level toggle drawn by hand, so the app's chip theme cannot recolour it.
+/// Off: a slightly lighter grey than the bar. On: the level's colour, darker.
+class _LevelChip extends StatelessWidget {
+  final String level;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LevelChip({
+    required this.level,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _levelColor(level);
+    return Material(
+      color: selected
+          ? Color.lerp(color, Colors.black, 0.6)
+          : const Color(0xFF2B2B2B),
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: selected ? color.withAlpha(120) : Colors.transparent,
+        ),
+      ),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                level,
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.white54,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

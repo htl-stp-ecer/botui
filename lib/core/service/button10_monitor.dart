@@ -1,12 +1,17 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
+import 'package:stpvelox/application/screenshot/screenshot_settings_provider.dart';
+import 'package:stpvelox/core/service/raccoon_execution_client.dart';
+import 'package:stpvelox/core/service/screenshot_service.dart';
 import 'package:stpvelox/core/service/sensors/digital_sensor.dart';
 import 'package:stpvelox/features/dev_menu/presentation/dev_menu_active_provider.dart';
+import 'package:stpvelox/features/program/domain/services/program_lifecycle_service.dart';
 
 part 'button10_monitor.g.dart';
 
-/// Monitors button 10 (the built-in controller button) for a long press.
+/// Monitors button 10 (the built-in controller button) for a long press
+/// (Dev Menu) and a triple-click (screenshot to `~/screenshots/`).
 ///
 /// A long press always opens the Dev Menu — including while a program is
 /// running. The Dev Menu exposes a "Stop Program" action, so stopping a
@@ -15,8 +20,12 @@ part 'button10_monitor.g.dart';
 class Button10Monitor extends _$Button10Monitor with HasLogger {
   static const _longPressDuration = Duration(seconds: 2);
 
+  static const _tripleClickWindow = Duration(milliseconds: 1200);
+
   DateTime? _holdStart;
   bool _triggered = false;
+  bool _wasPressed = false;
+  final List<DateTime> _clickTimes = [];
 
   @override
   void build() {
@@ -27,6 +36,9 @@ class Button10Monitor extends _$Button10Monitor with HasLogger {
   }
 
   void _onSensorChanged(bool? isPressed) {
+    if (isPressed == true && !_wasPressed) _registerClick();
+    _wasPressed = isPressed == true;
+
     if (isPressed == true) {
       // Button pressed - start tracking
       _holdStart ??= DateTime.now();
@@ -35,6 +47,53 @@ class Button10Monitor extends _$Button10Monitor with HasLogger {
       // Button released - reset
       _holdStart = null;
       _triggered = false;
+    }
+  }
+
+  /// Counts press edges; three within [_tripleClickWindow] take a screenshot.
+  void _registerClick() {
+    final now = DateTime.now();
+    _clickTimes.removeWhere((t) => now.difference(t) > _tripleClickWindow);
+    _clickTimes.add(now);
+    if (_clickTimes.length < 3) return;
+    _clickTimes.clear();
+
+    // Flappy Wombat / Tilt Maze use button 10 as game input.
+    final route = ref
+        .read(appRouterProvider)
+        .routerDelegate
+        .currentConfiguration
+        .fullPath;
+    if (route == AppRoutes.flappyWombat || route == AppRoutes.tiltMaze) return;
+
+    _takeScreenshotIfAllowed();
+  }
+
+  Future<void> _takeScreenshotIfAllowed() async {
+    final mode = ref.read(screenshotModeProvider);
+    if (mode == ScreenshotMode.never) {
+      log.info('Button 10 triple-click ignored: screenshots are off');
+      return;
+    }
+    if (mode == ScreenshotMode.whenIdle && await _isProgramRunning()) {
+      log.info('Button 10 triple-click ignored: a program is running');
+      return;
+    }
+    log.info('Button 10 triple-click - taking screenshot');
+    await ref.read(screenshotServiceProvider).capture();
+  }
+
+  /// Same notion of "running" as the Dev Menu's Stop button: BotUI's own
+  /// session, or whatever the raccoon server reports (e.g. `raccoon run`).
+  Future<bool> _isProgramRunning() async {
+    final session = ref.read(programLifecycleServiceProvider);
+    if (session != null && session.isRunning) return true;
+    try {
+      final client = await RaccoonExecutionClient.create();
+      return await client.getRunningCommand() != null;
+    } catch (e) {
+      // No token / server down: nothing we know of is running.
+      return false;
     }
   }
 

@@ -18,6 +18,7 @@ printed as `[local-test] not running: ...`), and the container has no sudo anywa
 
 Usage:
     python3 test-locally.py
+    python3 test-locally.py --no-debug           # hide the DEBUG banner in the corner
     python3 test-locally.py --codegen            # run build_runner first (after changing @riverpod, @freezed, ...)
     python3 test-locally.py --image my-image     # use a prebuilt image instead of Dockerfile.desktop
 
@@ -64,7 +65,7 @@ def build_bridge() -> Path:
     return bridge
 
 
-def run_in_container(codegen: bool, owner: str) -> None:
+def run_in_container(codegen: bool, owner: str, no_debug: bool) -> None:
     os.umask(0)  # whatever the container writes into the repository, you can change and delete
     os.chdir("/src")
     bridge = build_bridge()
@@ -77,10 +78,11 @@ def run_in_container(codegen: bool, owner: str) -> None:
     # rewrites it on every start. Put the committed one back afterwards so git stays clean.
     lock = Path("pubspec.lock")
     original_lock = lock.read_bytes() if lock.is_file() else None
+    flutter_run = ["flutter", "run", "-d", "linux", "--dart-define=LOCAL_TEST=true"]
+    if no_debug:
+        flutter_run += ["--dart-define=HIDE_DEBUG_BANNER=true"]
     try:
-        status = subprocess.run(
-            ["flutter", "run", "-d", "linux", "--dart-define=LOCAL_TEST=true"], env=env
-        ).returncode
+        status = subprocess.run(flutter_run, env=env).returncode
     finally:
         if original_lock is not None:
             lock.write_bytes(original_lock)
@@ -101,6 +103,7 @@ def main() -> None:
     parser.add_argument("--image", help="use this Docker image instead of building ./Dockerfile.desktop")
     parser.add_argument("--codegen", action="store_true",
                         help="run build_runner before starting (the generated *.g.dart files are in git)")
+    parser.add_argument("--no-debug", action="store_true", help="hide the DEBUG banner in the corner of the window")
     parser.add_argument(
         "--cache-dir",
         default=str(Path.home() / ".cache" / "raccoon-build" / "botui-desktop"),
@@ -111,7 +114,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.in_container:
-        run_in_container(args.codegen, args.owner)
+        run_in_container(args.codegen, args.owner, args.no_debug)
         return
 
     if not shutil.which("docker"):
@@ -149,6 +152,8 @@ def main() -> None:
     command += [image, "python3", "/src/test-locally.py", "--in-container", "--owner", f"{os.getuid()}:{os.getgid()}"]
     if args.codegen:
         command += ["--codegen"]
+    if args.no_debug:
+        command += ["--no-debug"]
 
     print("▶ Starting the UI (the first run builds the Linux app, later runs are quick)")
     sys.exit(subprocess.run(command).returncode)
