@@ -52,6 +52,8 @@ import 'package:stpvelox/features/settings/presentation/pages/hostname_screen.da
 import 'package:stpvelox/features/settings/presentation/pages/keyboard_locale_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/app_status_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/logs_screen.dart';
+import 'package:stpvelox/features/settings/presentation/pages/screenshots_screen.dart';
+import 'package:stpvelox/features/settings/presentation/pages/screenshot_detail_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/log_run_screen.dart';
 
 // WiFi
@@ -140,6 +142,8 @@ abstract class AppRoutes {
   static const keyboardLocale = '/settings/keyboard';
   static const appStatus = '/settings/app-status';
   static const logs = '/settings/logs';
+  static const screenshots = '/settings/screenshots';
+  static const screenshotDetail = '/settings/screenshots/detail';
   static const logRun = '/settings/logs/run';
 
   // WiFi
@@ -399,6 +403,17 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.logs,
         name: 'logs',
         builder: (context, state) => const LogsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.screenshots,
+        name: 'screenshots',
+        builder: (context, state) => const ScreenshotsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.screenshotDetail,
+        name: 'screenshotDetail',
+        builder: (context, state) =>
+            ScreenshotDetailScreen(path: state.extra as String),
       ),
       GoRoute(
         path: AppRoutes.logRun,

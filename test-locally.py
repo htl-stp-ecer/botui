@@ -132,6 +132,8 @@ def main() -> None:
 
     cache = Path(args.cache_dir)
     (cache / "pub").mkdir(parents=True, exist_ok=True)
+    screenshots = Path.home() / "screenshots"  # the app's ~/screenshots, so the Screenshots screen sees yours
+    screenshots.mkdir(exist_ok=True)
 
     command = ["docker", "run", "--rm", "-i"]
     if sys.stdin.isatty():
@@ -142,6 +144,8 @@ def main() -> None:
         "-v", "/tmp/.X11-unix:/tmp/.X11-unix",
         "-v", f"{ROOT}:/src",
         "-v", f"{cache}:/cache",
+        "-e", "HOME=/home/host",
+        "-v", f"{screenshots}:/home/host/screenshots",
         "-w", "/src",
     ]
     xauthority = Path(os.environ.get("XAUTHORITY") or Path.home() / ".Xauthority")

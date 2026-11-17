@@ -23,6 +23,9 @@ final screenshotServiceProvider = Provider<ScreenshotService>((ref) {
 class ScreenshotService with HasLogger {
   final GlobalKey boundaryKey = GlobalKey(debugLabel: 'screenshotBoundary');
 
+  /// Ticks after every saved screenshot, so open screens can refresh.
+  final ValueNotifier<int> saved = ValueNotifier(0);
+
   bool _busy = false;
 
   Future<void> capture() async {
@@ -52,6 +55,7 @@ class ScreenshotService with HasLogger {
       );
 
       log.info('Saved screenshot ${dir.path}/$name');
+      saved.value++;
       AppToast.success('Saved Screenshot as $name');
     } catch (e, st) {
       log.severe('Screenshot failed', e, st);
@@ -73,5 +77,5 @@ class ScreenshotService with HasLogger {
         '${p(t.hour)}-${p(t.minute)}-${p(t.second)}';
   }
 
-  void dispose() {}
+  void dispose() => saved.dispose();
 }
