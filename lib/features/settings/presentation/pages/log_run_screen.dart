@@ -10,14 +10,12 @@ const _lineHeight = 16.0;
 const _fontFamily = 'DejaVu Sans Mono';
 
 /// The levels that can be switched on and off, in the order of the chips.
-/// Lines of any other level (e.g. CRITICAL) are always shown.
-const _filterLevels = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
+/// TRACE lines are never shown; other unlisted levels (e.g. CRITICAL) always are.
+const _filterLevels = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
 const _defaultLevels = {'INFO', 'WARN', 'ERROR'};
 
 Color _levelColor(String level) {
   switch (level) {
-    case 'TRACE':
-      return Colors.grey;
     case 'DEBUG':
       return Colors.cyan.shade300;
     case 'INFO':
@@ -109,6 +107,7 @@ class _LogRunScreenState extends State<LogRunScreen> {
 
   bool _visible(LogLine l) {
     final level = _normalize(l.level);
+    if (level == 'TRACE') return false;
     return !_filterLevels.contains(level) || _enabled.contains(level);
   }
 
