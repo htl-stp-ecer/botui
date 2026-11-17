@@ -75,6 +75,8 @@ import 'package:stpvelox/features/wifi/domain/enities/wifi_network.dart';
 // Camera
 import 'package:stpvelox/features/camera/presentation/pages/camera_viewer_screen.dart'
     show CameraViewerScreen;
+import 'package:stpvelox/features/camera/presentation/pages/camera_backend_config_screen.dart'
+    show CameraBackendConfigScreen;
 
 // Other
 import 'package:stpvelox/presentation/screens/robot_face_screen.dart';
@@ -161,6 +163,7 @@ abstract class AppRoutes {
 
   // Camera
   static const camera = '/camera';
+  static const cameraBackendConfig = '/camera/backend';
 
   // Screensaver
   static const robotFace = '/robot-face';
@@ -531,6 +534,11 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.camera,
         name: 'camera',
         builder: (context, state) => const CameraViewerScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.cameraBackendConfig,
+        name: 'cameraBackendConfig',
+        builder: (context, state) => const CameraBackendConfigScreen(),
       ),
 
       // Screensaver

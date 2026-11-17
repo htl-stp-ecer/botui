@@ -6,7 +6,7 @@ import 'package:stpvelox/features/sensors/presentation/screens/system_health_scr
 import 'package:stpvelox/features/sensors/presentation/screens/sensor_graph_screen.dart';
 import 'package:stpvelox/features/sensors/presentation/screens/sensor_motor_screen.dart';
 import 'package:stpvelox/features/sensors/presentation/screens/sensor_servo_screen.dart';
-import 'package:stpvelox/features/camera/presentation/pages/camera_viewer_screen.dart';
+import 'package:stpvelox/features/camera/presentation/pages/camera_menu_screen.dart';
 
 abstract class SensorsRemoteDataSource {
   Future<List<Sensor>> fetchSensors();
@@ -180,7 +180,7 @@ class SensorsRemoteDataSourceImpl implements SensorsRemoteDataSource {
       Sensor(
         category: SensorCategory.camera,
         name: 'Camera',
-        getSensorScreen: (sensor) => const CameraViewerScreen(),
+        getSensorScreen: (sensor) => const CameraMenuScreen(),
       ),
       // System health (CPU, RAM, Disk, Temp, Battery, Uptime)
       Sensor(

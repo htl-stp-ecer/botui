@@ -5,6 +5,18 @@ import 'package:logging/logging.dart';
 
 final _log = Logger('RaccoonExecutionClient');
 
+/// The server refused a request. [message] is the server's own explanation
+/// (the `detail` of its error), ready to show to the user.
+class RaccoonApiException implements Exception {
+  const RaccoonApiException(this.message, {this.statusCode});
+
+  final String message;
+  final int? statusCode;
+
+  @override
+  String toString() => message;
+}
+
 class RunningCommand {
   final String commandId;
   final String projectId;
@@ -184,6 +196,45 @@ class RaccoonExecutionClient {
 
     await for (final message in ws) {
       yield message as String;
+    }
+  }
+
+  /// One request with a JSON answer, for endpoints that have no method of
+  /// their own here. [body] is sent as JSON. A failure throws a
+  /// [RaccoonApiException] carrying the server's `detail`.
+  Future<Map<String, dynamic>> requestJson(
+    String method,
+    String path, {
+    Object? body,
+  }) async {
+    final client = HttpClient();
+    try {
+      final request = await client.openUrl(method, Uri.parse('$baseUrl$path'));
+      request.headers.set('X-API-Token', _token);
+      if (body != null) {
+        request.headers.contentType = ContentType.json;
+        request.write(jsonEncode(body));
+      }
+      final response = await request.close();
+      final text = await response.transform(utf8.decoder).join();
+      Object? decoded;
+      if (text.isNotEmpty) {
+        try {
+          decoded = jsonDecode(text);
+        } on FormatException {
+          decoded = null;
+        }
+      }
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final detail = decoded is Map ? decoded['detail'] : null;
+        throw RaccoonApiException(
+          detail is String ? detail : '$method $path failed (${response.statusCode})',
+          statusCode: response.statusCode,
+        );
+      }
+      return decoded is Map<String, dynamic> ? decoded : <String, dynamic>{};
+    } finally {
+      client.close();
     }
   }
 
