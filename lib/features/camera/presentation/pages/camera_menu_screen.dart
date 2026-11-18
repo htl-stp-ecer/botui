@@ -31,6 +31,8 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
     super.initState();
     // Kept here: `ref` must not be used in dispose.
     _preview = ref.read(cameraPreviewControllerProvider);
+    // The last pictures of an earlier session are still in the transport.
+    CamMessageGate.openNow();
     unawaited(_preview.start());
   }
 
@@ -47,11 +49,16 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
     final before = form.changes;
     await context.push(AppRoutes.cameraBackendConfig);
     if (!mounted || form.changes == before) return;
-    unawaited(_preview.waitForRestart(clear: _dropPictures));
+    unawaited(_preview.waitForRestart(
+      clear: _dropPictures,
+      expectedPath: ref.read(cameraBackendFormProvider).saved?.path,
+    ));
   }
 
   void _dropPictures() {
     if (!mounted) return;
+    // What the transport still holds from the old backend is older than now.
+    CamMessageGate.openNow();
     ref.invalidate(camFrameStreamProvider);
     ref.invalidate(camDetectionStreamProvider);
   }

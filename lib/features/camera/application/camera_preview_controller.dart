@@ -57,7 +57,8 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
 
   Future<Map<String, dynamic>> _acquire(String lease) => _commands.call(
         'acquire',
-        {'lease': lease, 'ttl': leaseSeconds, 'retries': 5, 'delay': 1.0},
+        // No retries and delay: the service takes the ones of the backend.
+        {'lease': lease, 'ttl': leaseSeconds},
       );
 
   Future<void> start() async {
@@ -110,6 +111,7 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
         const Duration(seconds: 2),
         1,
       );
+      await _watchFailure(generation);
     } on CamCommandException catch (error) {
       // The service forgot the lease (it restarted, or it ran out): take it again.
       if (error.message.contains('unknown lease') && _current(generation)) {
@@ -124,11 +126,37 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
     }
   }
 
+  /// The service may give up on the camera after the start went through (it
+  /// could not open the device): show that, not a first frame that never comes.
+  Future<void> _watchFailure(int generation) async {
+    if (!_current(generation) || value.phase != CameraPreviewPhase.running) return;
+    final status = await _commands.call(
+      'status',
+      const {},
+      const Duration(seconds: 2),
+      1,
+    );
+    final failed = status['failed'];
+    if (failed is String && failed.isNotEmpty && _current(generation)) {
+      await _failed(generation, _friendly(failed));
+    }
+  }
+
+  /// Starts again after a failure.
+  Future<void> retry() async {
+    await stop();
+    await start();
+  }
+
   /// The backend was changed: the service restarts the camera. Shows "starting"
   /// until the new one delivers, so the last picture of the old backend is not
   /// shown meanwhile. [clear] drops the pictures that are held (called at the
   /// start and again just before the preview runs).
-  Future<void> waitForRestart({VoidCallback? clear}) async {
+  ///
+  /// [expectedPath] is the backend that was saved (`module:Class`), if known:
+  /// a `ready` of the old backend, before the service has noticed the change,
+  /// does not count.
+  Future<void> waitForRestart({VoidCallback? clear, String? expectedPath}) async {
     if (!_wanted) return;
     final generation = _generation;
     clear?.call();
@@ -149,7 +177,12 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
           await _failed(generation, _friendly(failed));
           return;
         }
-        if (status['ready'] == true) break;
+        final backend = status['backend'];
+        final path = backend is Map ? backend['path'] : null;
+        if (status['ready'] == true &&
+            (expectedPath == null || path == expectedPath)) {
+          break;
+        }
       } on CamCommandException {
         // Busy starting: ask again.
       }
