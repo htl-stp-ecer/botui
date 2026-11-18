@@ -124,6 +124,42 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
     }
   }
 
+  /// The backend was changed: the service restarts the camera. Shows "starting"
+  /// until the new one delivers, so the last picture of the old backend is not
+  /// shown meanwhile. [clear] drops the pictures that are held (called at the
+  /// start and again just before the preview runs).
+  Future<void> waitForRestart({VoidCallback? clear}) async {
+    if (!_wanted) return;
+    final generation = _generation;
+    clear?.call();
+    _set(const CameraPreviewStatus(CameraPreviewPhase.starting));
+    // The service looks at the saved choice twice a second, then restarts the camera.
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    final deadline = DateTime.now().add(const Duration(seconds: 60));
+    while (_current(generation) && DateTime.now().isBefore(deadline)) {
+      try {
+        final status = await _commands.call(
+          'status',
+          const {},
+          const Duration(seconds: 3),
+          1,
+        );
+        final failed = status['failed'];
+        if (failed is String && failed.isNotEmpty) {
+          await _failed(generation, _friendly(failed));
+          return;
+        }
+        if (status['ready'] == true) break;
+      } on CamCommandException {
+        // Busy starting: ask again.
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    if (!_current(generation)) return;
+    clear?.call();
+    _set(const CameraPreviewStatus(CameraPreviewPhase.running));
+  }
+
   /// Leaves the camera as it was found. Safe to call when it never started.
   Future<void> stop() async {
     if (!_wanted) return;

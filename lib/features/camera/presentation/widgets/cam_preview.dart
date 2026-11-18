@@ -28,8 +28,10 @@ class CamPreview extends ConsumerWidget {
             );
           }
           if (frame != null && status.phase == CameraPreviewPhase.running) {
-            return Center(
-              child: CamFrameView(frame: frame, detections: detections),
+            return CamFrameView(
+              frame: frame,
+              detections: detections,
+              alignment: Alignment.topCenter,
             );
           }
           return _Message(

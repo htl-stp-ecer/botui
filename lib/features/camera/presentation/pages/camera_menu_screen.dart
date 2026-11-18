@@ -10,6 +10,7 @@ import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/camera/application/cam_provider.dart';
+import 'package:stpvelox/features/camera/application/camera_backend_form.dart';
 import 'package:stpvelox/features/camera/application/camera_preview_controller.dart';
 import 'package:stpvelox/features/camera/presentation/widgets/cam_preview.dart';
 
@@ -39,6 +40,22 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
     super.dispose();
   }
 
+  /// Opens the backend settings. If the choice was changed there, the service
+  /// restarts the camera: show "starting" again, not the old backend's picture.
+  Future<void> _openBackendConfig() async {
+    final form = ref.read(cameraBackendFormProvider.notifier);
+    final before = form.changes;
+    await context.push(AppRoutes.cameraBackendConfig);
+    if (!mounted || form.changes == before) return;
+    unawaited(_preview.waitForRestart(clear: _dropPictures));
+  }
+
+  void _dropPictures() {
+    if (!mounted) return;
+    ref.invalidate(camFrameStreamProvider);
+    ref.invalidate(camDetectionStreamProvider);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = ref.watch(colorThemeProvider);
@@ -47,7 +64,7 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
       backgroundColor: AppColors.background,
       appBar: createTopBar(context, 'Camera'),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -62,8 +79,7 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
                       icon: Icons.tune_rounded,
                       color: theme.tileColor(TileColor.teal, 0),
                       foreground: theme.textColor,
-                      onPressed: () =>
-                          context.push(AppRoutes.cameraBackendConfig),
+                      onPressed: _openBackendConfig,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -81,7 +97,8 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              const Center(child: _PreviewBox()),
+              // Takes what is left of the screen; no scrolling.
+              const Expanded(child: _PreviewBox()),
             ],
           ),
         ),
@@ -126,14 +143,17 @@ class _MenuButton extends StatelessWidget {
   }
 }
 
-/// The preview, at most [maxWidth] wide and as high as the picture needs.
+/// The preview, as large as fits in the room that is left, in the shape of the
+/// picture. A picture that is too big for it is scaled down, a small one is
+/// scaled up: it always fills the room along its limiting side.
 class _PreviewBox extends ConsumerWidget {
   const _PreviewBox();
 
-  static const double maxWidth = 700;
-
   /// Until the first frame says otherwise (the default stream is 320x240).
   static const double defaultAspect = 4 / 3;
+
+  /// The corners, like the raccoon picture of the program list.
+  static const double radius = 10;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -142,15 +162,26 @@ class _PreviewBox extends ConsumerWidget {
     final height = frame?.data.frame_height ?? 0;
     final aspect = width > 0 && height > 0 ? width / height : defaultAspect;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: maxWidth),
-      child: AspectRatio(
-        aspectRatio: aspect,
-        child: const ClipRRect(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-          child: CamPreview(),
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        var boxWidth = constraints.maxWidth;
+        var boxHeight = boxWidth / aspect;
+        if (constraints.maxHeight.isFinite && boxHeight > constraints.maxHeight) {
+          boxHeight = constraints.maxHeight;
+          boxWidth = boxHeight * aspect;
+        }
+        return Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: boxWidth,
+            height: boxHeight,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(radius),
+              child: const CamPreview(),
+            ),
+          ),
+        );
+      },
     );
   }
 }

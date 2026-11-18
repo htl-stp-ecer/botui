@@ -11,7 +11,15 @@ class CamFrameView extends StatefulWidget {
   final CamFrameData frame;
   final CamDetectionData? detections;
 
-  const CamFrameView({super.key, required this.frame, this.detections});
+  /// Where the picture sits if its shape is not the box's.
+  final Alignment alignment;
+
+  const CamFrameView({
+    super.key,
+    required this.frame,
+    this.detections,
+    this.alignment = Alignment.center,
+  });
 
   @override
   State<CamFrameView> createState() => _CamFrameViewState();
@@ -53,9 +61,15 @@ class _CamFrameViewState extends State<CamFrameView> {
 
     return Stack(
       children: [
-        LayoutBuilder(
+        // Fill the box: given only its own size, a small picture (320x240) stays
+        // small and floats in the middle of the box.
+        Positioned.fill(
+          child: LayoutBuilder(
           builder: (context, constraints) => Image.memory(
             imageData,
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            alignment: widget.alignment,
             fit: BoxFit.contain,
             gaplessPlayback: true,
             filterQuality: FilterQuality.low,
@@ -80,6 +94,7 @@ class _CamFrameViewState extends State<CamFrameView> {
                 ),
               );
             },
+          ),
           ),
         ),
         Positioned.fill(
