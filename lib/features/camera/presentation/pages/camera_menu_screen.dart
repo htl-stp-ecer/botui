@@ -3,12 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
-import 'package:stpvelox/core/widgets/two_button_strip.dart';
+import 'package:stpvelox/features/camera/application/cam_provider.dart';
 import 'package:stpvelox/features/camera/application/camera_preview_controller.dart';
 import 'package:stpvelox/features/camera/presentation/widgets/cam_preview.dart';
 
@@ -40,42 +41,114 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = ref.watch(colorThemeProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: createTopBar(context, 'Camera'),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TwoButtonStrip(
-                title: 'Camera',
-                buttons: [
-                  StripButton(
-                    label: 'Configure backend',
-                    icon: Icons.tune_rounded,
-                    slot: TileColor.teal,
-                    onTap: () => context.push(AppRoutes.cameraBackendConfig),
+              // Buttons like the ones on the scanned networks screen: the colors
+              // come from the theme (in the colorful theme: teal and purple).
+              Row(
+                children: [
+                  Expanded(
+                    child: _MenuButton(
+                      label: 'Configure backend',
+                      icon: Icons.tune_rounded,
+                      color: theme.tileColor(TileColor.teal, 0),
+                      foreground: theme.textColor,
+                      onPressed: () =>
+                          context.push(AppRoutes.cameraBackendConfig),
+                    ),
                   ),
-                  StripButton(
-                    label: 'Configure processor',
-                    icon: Icons.filter_center_focus_rounded,
-                    slot: TileColor.purple,
-                    // Processors cannot be configured here yet.
-                    onTap: () => AppToast.info('Processors can be configured later.'),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _MenuButton(
+                      label: 'Configure processor',
+                      icon: Icons.filter_center_focus_rounded,
+                      color: theme.tileColor(TileColor.purple, 1),
+                      foreground: theme.textColor,
+                      // Processors cannot be configured here yet.
+                      onPressed: () =>
+                          AppToast.info('Processors can be configured later.'),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              const Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                  child: CamPreview(),
-                ),
-              ),
+              const SizedBox(height: 16),
+              const Center(child: _PreviewBox()),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MenuButton extends StatelessWidget {
+  const _MenuButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.foreground,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final Color foreground;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 28),
+      label: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+      ),
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        backgroundColor: color,
+        foregroundColor: foreground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
+      ),
+    );
+  }
+}
+
+/// The preview, at most [maxWidth] wide and as high as the picture needs.
+class _PreviewBox extends ConsumerWidget {
+  const _PreviewBox();
+
+  static const double maxWidth = 700;
+
+  /// Until the first frame says otherwise (the default stream is 320x240).
+  static const double defaultAspect = 4 / 3;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final frame = ref.watch(camFrameStreamProvider);
+    final width = frame?.data.frame_width ?? 0;
+    final height = frame?.data.frame_height ?? 0;
+    final aspect = width > 0 && height > 0 ? width / height : defaultAspect;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: maxWidth),
+      child: AspectRatio(
+        aspectRatio: aspect,
+        child: const ClipRRect(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+          child: CamPreview(),
         ),
       ),
     );
