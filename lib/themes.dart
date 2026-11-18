@@ -49,6 +49,7 @@ import 'package:stpvelox/core/theme/app_theme.dart';
 final List<AppTheme> appThemes = [
   colorful,
   raccoon,
+  nordic,
   monochrome,
 ];
 
@@ -84,6 +85,20 @@ const raccoon = PatternTheme(
   ],
   textColor: Color(0xFF2F2926),
   previewColor: Color(0xFFD99F40),
+);
+
+/// Cool arctic blues with a dusky violet touch
+const nordic = PatternTheme(
+  id: 'nordic',
+  label: 'Nordic',
+  pattern: [
+    Color(0xFF4C566A), // night
+    Color(0xFF5E81AC), // fjord
+    Color(0xFF8076A8), // dusk
+    Color(0xFF81A1C1), // frost
+    Color(0xFFB7BCD3), // mist
+  ],
+  previewColor: Color(0xFF8076A8),
 );
 
 /// Every slot the same grey.
