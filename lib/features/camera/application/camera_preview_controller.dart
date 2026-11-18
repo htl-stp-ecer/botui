@@ -75,12 +75,14 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
       _lease = lease;
       await _acquire(lease);
       if (!_current(generation)) return;
+      // Renew from here on: the commands below can take seconds while the
+      // service starts the camera, and the lease only lasts [leaseSeconds].
+      _renewTimer = Timer.periodic(renewEvery, (_) => _renew(generation));
       await _commands.call(
         'stream',
         {'fps': streamFps, 'quality': streamQuality},
       );
       if (!_current(generation)) return;
-      _renewTimer = Timer.periodic(renewEvery, (_) => _renew(generation));
       _set(const CameraPreviewStatus(CameraPreviewPhase.running));
     } on CamCommandException catch (error) {
       _log.warning('Preview could not start: ${error.message}');
