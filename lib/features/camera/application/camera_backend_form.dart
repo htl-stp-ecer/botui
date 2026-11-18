@@ -143,7 +143,11 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
       fieldErrors: {},
     ));
     try {
-      final described = await (await _client()).describe(backend);
+      // A built-in backend came with its options in the list: asking the robot
+      // again would start another process there, over a second on a Pi 3.
+      final described = backend.isBuiltIn && backend.options.isNotEmpty
+          ? backend
+          : await (await _client()).describe(backend);
       final values = <String, Object?>{
         for (final option in described.options)
           option.name: _normalise(option, option.defaultValue),
