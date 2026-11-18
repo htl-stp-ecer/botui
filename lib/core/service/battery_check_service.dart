@@ -12,15 +12,17 @@ part 'battery_check_service.g.dart';
 
 const _lowBatteryThreshold = 6.0;
 
-/// The warning only closes after the voltage stayed above the threshold this
+/// The warning only shows after the voltage stayed below the threshold this
 /// long, so it doesn't flicker when the voltage hovers around the threshold.
-const _recoveryHoldTime = Duration(seconds: 30);
+/// Once shown it stays until the voltage is above the threshold again.
+const _lowHoldTime = Duration(seconds: 30);
 
 @riverpod
 class BatteryCheckService extends _$BatteryCheckService {
   bool _warningVisible = false;
   BuildContext? _context;
-  Timer? _dismissTimer;
+  Timer? _showTimer;
+  double _lastVoltage = 0;
 
   @override
   double? build() {
@@ -50,16 +52,21 @@ class BatteryCheckService extends _$BatteryCheckService {
   }
 
   void _handleVoltageChange(BuildContext context, double voltage) {
+    _lastVoltage = voltage;
     if (voltage > 0 && voltage < _lowBatteryThreshold) {
-      _dismissTimer?.cancel();
-      _dismissTimer = null;
-      _maybeShowBatteryWarning(context, voltage);
-    } else if (_warningVisible) {
-      _dismissTimer ??= Timer(_recoveryHoldTime, () {
-        _dismissTimer = null;
+      if (_warningVisible) return;
+      // Started once; a dip that does not last never gets to show anything.
+      _showTimer ??= Timer(_lowHoldTime, () {
+        _showTimer = null;
         final ctx = _context;
-        if (ctx != null && ctx.mounted) _dismissWarningIfAny(ctx);
+        if (ctx != null && ctx.mounted) {
+          _maybeShowBatteryWarning(ctx, _lastVoltage);
+        }
       });
+    } else {
+      _showTimer?.cancel();
+      _showTimer = null;
+      if (_warningVisible) _dismissWarningIfAny(context);
     }
   }
 
@@ -94,8 +101,8 @@ class BatteryCheckService extends _$BatteryCheckService {
   }
 
   void _disposeAll() {
-    _dismissTimer?.cancel();
-    _dismissTimer = null;
+    _showTimer?.cancel();
+    _showTimer = null;
     _context = null;
   }
 }
