@@ -6,7 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
-import 'package:stpvelox/core/utils/local_test.dart';
+import 'package:stpvelox/core/utils/home_dir.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 
 final screenshotServiceProvider = Provider<ScreenshotService>((ref) {
@@ -47,7 +47,7 @@ class ScreenshotService with HasLogger {
         return;
       }
 
-      final dir = Directory('${_homeDir()}/screenshots');
+      final dir = Directory('${homeDir()}/screenshots');
       await dir.create(recursive: true);
       final name = '${_timestamp(DateTime.now())}.png';
       await File('${dir.path}/$name').writeAsBytes(
@@ -63,12 +63,6 @@ class ScreenshotService with HasLogger {
     } finally {
       _busy = false;
     }
-  }
-
-  static String _homeDir() {
-    final home = Platform.environment['HOME'];
-    if (home != null && home.isNotEmpty) return home;
-    return kLocalTest ? Directory.systemTemp.path : '/home/pi';
   }
 
   static String _timestamp(DateTime t) {

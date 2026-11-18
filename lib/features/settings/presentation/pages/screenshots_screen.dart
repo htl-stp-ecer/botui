@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/service/screenshot_service.dart';
-import 'package:stpvelox/core/utils/local_test.dart';
+import 'package:stpvelox/core/utils/home_dir.dart';
 import 'package:go_router/go_router.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/widgets/grey_badge.dart';
@@ -48,14 +48,8 @@ class _ScreenshotsScreenState extends ConsumerState<ScreenshotsScreen> {
     });
   }
 
-  static String _homeDir() {
-    final home = Platform.environment['HOME'];
-    if (home != null && home.isNotEmpty) return home;
-    return kLocalTest ? Directory.systemTemp.path : '/home/pi';
-  }
-
   Future<List<File>> _load() async {
-    final dir = Directory('${_homeDir()}/screenshots');
+    final dir = Directory('${homeDir()}/screenshots');
     if (!await dir.exists()) return [];
     final files = await dir
         .list()
@@ -221,7 +215,7 @@ class _CopyAllCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            GreyBadge('scp -r pi@$host.local:/home/pi/screenshots/ .'),
+            GreyBadge('scp -r ${loginUser()}@$host.local:${homeDir()}/screenshots/ .'),
           ],
         ),
       ),

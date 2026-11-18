@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stpvelox/core/utils/home_dir.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/grey_badge.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
@@ -118,7 +119,7 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: GreyBadge('scp pi@$host.local:/home/pi/screenshots/$_name .'),
+                      child: GreyBadge('scp ${loginUser()}@$host.local:${homeDir()}/screenshots/$_name .'),
                     ),
                   ),
                   IconButton(
