@@ -76,7 +76,7 @@ class _ScreenshotsScreenState extends ConsumerState<ScreenshotsScreen> {
         'Screenshots',
         trailing: Padding(
           padding: const EdgeInsets.only(right: 16),
-          child: GreyBadge('/home/pi/screenshots/'),
+          child: GreyBadge('Triple-Click to take a Screenshot'),
         ),
       ),
       body: SafeArea(
