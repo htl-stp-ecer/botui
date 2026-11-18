@@ -12,11 +12,26 @@ import 'package:stpvelox/features/camera/domain/camera_models.dart';
 
 /// Choose the camera backend (built-in or from a project) and set its options.
 /// A vertical stack: the backend on top, its options below, Save and Reset.
-class CameraBackendConfigScreen extends ConsumerWidget {
+class CameraBackendConfigScreen extends ConsumerStatefulWidget {
   const CameraBackendConfigScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CameraBackendConfigScreen> createState() =>
+      _CameraBackendConfigScreenState();
+}
+
+class _CameraBackendConfigScreenState
+    extends ConsumerState<CameraBackendConfigScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // What was loaded before stays in memory: it is shown at once and
+    // refreshed in the background.
+    Future.microtask(() => ref.read(cameraBackendFormProvider.notifier).open());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final form = ref.watch(cameraBackendFormProvider);
     final notifier = ref.read(cameraBackendFormProvider.notifier);
 
@@ -26,7 +41,7 @@ class CameraBackendConfigScreen extends ConsumerWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-          child: _body(context, ref, form, notifier),
+          child: _body(context, form, notifier),
         ),
       ),
     );
@@ -34,7 +49,6 @@ class CameraBackendConfigScreen extends ConsumerWidget {
 
   Widget _body(
     BuildContext context,
-    WidgetRef ref,
     CameraBackendFormState form,
     CameraBackendForm notifier,
   ) {
@@ -55,7 +69,8 @@ class CameraBackendConfigScreen extends ConsumerWidget {
 
     final selected = form.selected;
     final labels = [for (final b in form.backends) b.label];
-    return Column(
+    return SingleChildScrollView(
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         LargeDropdown(
@@ -84,14 +99,18 @@ class CameraBackendConfigScreen extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: 10),
-        Expanded(
-          child: form.describing
-              ? Center(
-                  child: CircularProgressIndicator(color: AppColors.programs),
-                )
-              : _OptionsForm(form: form, notifier: notifier),
-        ),
-        const SizedBox(height: 10),
+        // The options take the room they need; the page scrolls when they
+        // do not fit, and Save and Reset follow right below them.
+        if (form.describing)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 48),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.programs),
+            ),
+          )
+        else
+          _OptionsForm(form: form, notifier: notifier),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
@@ -119,6 +138,7 @@ class CameraBackendConfigScreen extends ConsumerWidget {
           ],
         ),
       ],
+      ),
     );
   }
 }
@@ -162,31 +182,44 @@ class _OptionsForm extends ConsumerWidget {
     final backend = form.selected;
     if (backend == null) return const SizedBox.shrink();
     if (backend.options.isEmpty) {
-      return const Center(
-        child: Text(
-          'This backend has no options.',
-          style: TextStyle(color: Colors.white54, fontSize: 15),
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        child: Center(
+          child: Text(
+            'This backend has no options.',
+            style: TextStyle(color: Colors.white54, fontSize: 15),
+          ),
         ),
       );
     }
     final theme = ref.watch(colorThemeProvider);
-    return ListView.separated(
-      itemCount: backend.options.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final option = backend.options[index];
-        return _OptionField(
-          // A new backend gets fresh fields, not the old ones' text.
-          key: ValueKey('${backend.key}/${option.name}/${form.saved?.path}'),
-          option: option,
-          index: index,
-          theme: theme,
-          value: form.values[option.name],
-          error: form.fieldErrors[option.name],
-          onChanged: (value) => notifier.setValue(option.name, value),
-          onInvalid: (message) => notifier.setFieldError(option.name, message),
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < backend.options.length; index++) ...[
+          if (index > 0) const SizedBox(height: 12),
+          _optionField(backend, backend.options[index], index, theme),
+        ],
+      ],
+    );
+  }
+
+  Widget _optionField(
+    CamBackendInfo backend,
+    CamOption option,
+    int index,
+    AppTheme theme,
+  ) {
+    return _OptionField(
+      // A new backend gets fresh fields, not the old ones' text.
+      key: ValueKey('${backend.key}/${option.name}/${form.saved?.path}'),
+      option: option,
+      index: index,
+      theme: theme,
+      value: form.values[option.name],
+      error: form.fieldErrors[option.name],
+      onChanged: (value) => notifier.setValue(option.name, value),
+      onInvalid: (message) => notifier.setFieldError(option.name, message),
     );
   }
 }

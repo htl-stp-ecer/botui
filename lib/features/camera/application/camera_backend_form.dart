@@ -74,11 +74,37 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
   CameraConfigApi? _api;
   bool _disposed = false;
 
+  /// How often the choice on the robot was changed (saved or reset) since the
+  /// app started. The camera screen compares it to know the camera restarts.
+  int changes = 0;
+
   @override
   CameraBackendFormState build() {
     ref.onDispose(() => _disposed = true);
-    Future.microtask(load);
     return const CameraBackendFormState();
+  }
+
+  /// Called whenever the screen is shown. The first time it loads, with a
+  /// spinner. Later the list from the last time is shown at once, with the
+  /// saved values and without unsaved edits, and refreshed in the background.
+  Future<void> open() async {
+    final cached = state.backends;
+    if (cached.isEmpty || state.error != null) return load();
+    final first = _pick(cached, state.saved);
+    if (first != null) await _describe(first);
+    return load(silent: true);
+  }
+
+  /// The backend to show first: the saved one if it is in the list.
+  CamBackendInfo? _pick(List<CamBackendInfo> backends, CamBackendChoice? saved) {
+    if (saved != null) {
+      for (final backend in backends) {
+        final sameClass = backend.path == saved.path;
+        final sameProject = backend.isBuiltIn || backend.projectDir == saved.projectDir;
+        if (sameClass && sameProject) return backend;
+      }
+    }
+    return backends.isEmpty ? null : backends.first;
   }
 
   void _emit(CameraBackendFormState next) {
@@ -88,37 +114,33 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
   Future<CameraConfigApi> _client() async =>
       _api ??= await CameraConfigApi.create();
 
-  Future<void> load() async {
-    _emit(state.copyWith(loading: true, clearError: true));
+  /// Fetches the list and the saved choice. [silent]: keep showing what is
+  /// there, no spinner, and a failure does not replace it with an error.
+  Future<void> load({bool silent = false}) async {
+    if (!silent) _emit(state.copyWith(loading: true, clearError: true));
     try {
       final api = await _client();
       final backends = await api.listBackends();
       final saved = await api.savedChoice();
-      CamBackendInfo? first;
-      if (saved != null) {
-        for (final backend in backends) {
-          final sameClass = backend.path == saved.path;
-          final sameProject = backend.isBuiltIn || backend.projectDir == saved.projectDir;
-          if (sameClass && sameProject) {
-            first = backend;
-            break;
-          }
-        }
-      }
-      first ??= backends.isEmpty ? null : backends.first;
+      final first = _pick(backends, saved);
       _emit(state.copyWith(
         loading: false,
         backends: backends,
         saved: saved,
         clearSaved: saved == null,
       ));
+      // Silent and nothing changed for the backend on show: leave the form alone.
+      final shown = state.selected;
+      if (silent && shown != null && first != null && shown.key == first.key) return;
       if (first != null) await _describe(first);
     } on RaccoonApiException catch (error) {
-      _emit(state.copyWith(loading: false, error: error.message));
+      if (!silent) _emit(state.copyWith(loading: false, error: error.message));
     } catch (error, stack) {
       _log.severe('Could not load the camera backends: $error', error, stack);
-      _emit(state.copyWith(
-          loading: false, error: 'The robot server is not reachable.'));
+      if (!silent) {
+        _emit(state.copyWith(
+            loading: false, error: 'The robot server is not reachable.'));
+      }
     }
   }
 
@@ -133,21 +155,21 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
   }
 
   Future<void> _describe(CamBackendInfo backend) async {
-    // The list already carries options for built-in backends; do not show them
-    // before the values (defaults, saved choice) are in.
-    _emit(state.copyWith(
-      busy: true,
-      describing: true,
-      selected: backend.withOptions(const []),
-      values: const {},
-      fieldErrors: {},
-    ));
+    // A built-in backend came with its options in the list: asking the robot
+    // again would start another process there, over a second on a Pi 3.
+    final known = backend.isBuiltIn && backend.options.isNotEmpty;
+    if (!known) {
+      // Do not show options before the values (defaults, saved choice) are in.
+      _emit(state.copyWith(
+        busy: true,
+        describing: true,
+        selected: backend.withOptions(const []),
+        values: const {},
+        fieldErrors: {},
+      ));
+    }
     try {
-      // A built-in backend came with its options in the list: asking the robot
-      // again would start another process there, over a second on a Pi 3.
-      final described = backend.isBuiltIn && backend.options.isNotEmpty
-          ? backend
-          : await (await _client()).describe(backend);
+      final described = known ? backend : await (await _client()).describe(backend);
       final values = <String, Object?>{
         for (final option in described.options)
           option.name: _normalise(option, option.defaultValue),
@@ -165,6 +187,7 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
         describing: false,
         selected: described,
         values: values,
+        fieldErrors: {},
       ));
     } on RaccoonApiException catch (error) {
       _emit(state.copyWith(busy: false, describing: false));
@@ -227,6 +250,7 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
     _emit(state.copyWith(busy: true));
     try {
       final saved = await (await _client()).save(backend, _config());
+      changes++;
       _emit(state.copyWith(busy: false, saved: saved));
       AppToast.success('Camera backend saved');
     } on RaccoonApiException catch (error) {
@@ -245,6 +269,7 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
     _emit(state.copyWith(busy: true));
     try {
       await (await _client()).clear();
+      changes++;
       _emit(state.copyWith(busy: false, clearSaved: true));
       final backend = state.selected;
       if (backend != null) await _describe(backend);
@@ -260,7 +285,10 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
   }
 }
 
+/// Not auto-disposed: the list and the options stay in memory until the app
+/// restarts (so, per boot), and the screen shows them at once when it is opened
+/// again. [CameraBackendForm.open] refreshes them in the background.
 final cameraBackendFormProvider =
-    NotifierProvider.autoDispose<CameraBackendForm, CameraBackendFormState>(
+    NotifierProvider<CameraBackendForm, CameraBackendFormState>(
   CameraBackendForm.new,
 );
