@@ -290,6 +290,12 @@ class _Row {
   const _Row(this.spans, this.chars);
 }
 
+/// A program's stderr (a traceback) carries colour codes (`ESC [ 31 m`); this
+/// view shows plain text, so they are removed.
+final _ansi = RegExp(r'\x1B\[[0-9;?]*[ -/]*[@-~]');
+
+String _withoutAnsi(String text) => text.replaceAll(_ansi, '');
+
 String _pad(String s, int width) =>
     s.length >= width ? s.substring(0, width) : s.padRight(width);
 
@@ -316,8 +322,10 @@ List<_Row> _rowsFor(LogLine l, bool withFunc) {
   final prefixChars =
       elapsed.length + levelText.length + locationText.length + funcText.length;
 
-  final messageLines =
-      l.message.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
+  final messageLines = _withoutAnsi(l.message)
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n')
+      .split('\n');
 
   final rows = <_Row>[];
   for (var i = 0; i < messageLines.length; i++) {
