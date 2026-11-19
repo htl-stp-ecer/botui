@@ -12,6 +12,26 @@ final _log = getLogger('CameraViewer');
 const Duration _kUiCameraFrameThrottle = Duration(milliseconds: 66);
 const Duration _kUiCameraDetectionThrottle = Duration(milliseconds: 100);
 
+/// Pictures and detections that were published before [notBefore] are not
+/// shown.
+///
+/// The transport keeps the last few messages of a channel in shared memory
+/// after the camera stopped, and a new subscriber is handed them first. So
+/// after a backend change (or when the screen is opened again) the last
+/// pictures of the old backend would flash up. The service stamps every
+/// message with the time it was published, on the same clock as the UI.
+class CamMessageGate {
+  CamMessageGate._();
+
+  /// Microseconds since the epoch.
+  static int notBefore = 0;
+
+  /// From now on only what is published from this moment is shown.
+  static void openNow() => notBefore = DateTime.now().microsecondsSinceEpoch;
+
+  static bool allows(int timestampMicros) => timestampMicros >= notBefore;
+}
+
 /// Wrapper class for camera detection data
 class CamDetectionData {
   final CamDetectionsT data;
@@ -49,6 +69,7 @@ class CamDetectionStream extends _$CamDetectionStream {
     )
         .listen(
       (decoded) {
+        if (!CamMessageGate.allows(decoded.value.timestamp)) return;
         _currentDetections = CamDetectionData(decoded.value);
         state = _currentDetections;
       },
@@ -87,6 +108,7 @@ class CamFrameStream extends _$CamFrameStream {
     )
         .listen(
       (decoded) {
+        if (!CamMessageGate.allows(decoded.value.timestamp)) return;
         _currentFrame = CamFrameData(decoded.value);
         state = _currentFrame;
       },

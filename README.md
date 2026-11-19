@@ -1,18 +1,18 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/htl-stp-ecer/.github/main/profile/raccoon-logo.svg" alt="StpVelox" width="100"/>
+<img src="https://raw.githubusercontent.com/htl-stp-ecer/.github/main/profile/raccoon-logo.svg" alt="botui" width="100"/>
 
-# StpVelox (BotUI)
+# botui
 
 **The Flutter desktop environment for the KIPR Wombat — dashboard, programs, sensors, and more.**
 
-[![Build & Release](https://github.com/htl-stp-ecer/botui/actions/workflows/build-release.yml/badge.svg)](https://github.com/htl-stp-ecer/botui/actions/workflows/build-release.yml)
-[![Latest Release](https://img.shields.io/github/v/release/htl-stp-ecer/botui)](https://github.com/htl-stp-ecer/botui/releases/latest)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](COPYING)
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%20ARM64-A22846?logo=raspberrypi&logoColor=white)
 ![Display](https://img.shields.io/badge/Display-800x480-555)
+[![Build & Release](https://github.com/htl-stp-ecer/botui/actions/workflows/build-release.yml/badge.svg)](https://github.com/htl-stp-ecer/botui/actions/workflows/build-release.yml)
+[![Latest Release](https://img.shields.io/github/v/release/htl-stp-ecer/botui)](https://github.com/htl-stp-ecer/botui/releases/latest)
 
 > 📖 **Full documentation at [raccoon-docs.pages.dev](https://raccoon-docs.pages.dev/)**
 
@@ -20,7 +20,7 @@
 
 ---
 
-StpVelox is the graphical environment that runs directly on the [KIPR Wombat](https://www.kipr.org/kipr/hardware-software) controller. It replaces the default Wombat UI with a fast, touch-friendly Flutter interface purpose-built for Botball competition — real-time sensor graphs, a program runner with live terminal output, WiFi management, and a camera feed, all on an 800×480 display.
+botui is the graphical environment that runs directly on the [KIPR Wombat](https://www.kipr.org/kipr/hardware-software) controller. It replaces the default Wombat UI with a fast, touch-friendly Flutter interface purpose-built for Botball competition — real-time sensor graphs, a program runner with live terminal output, WiFi management, and a camera feed, all on an 800×480 display.
 
 ---
 
@@ -33,7 +33,10 @@ StpVelox is the graphical environment that runs directly on the [KIPR Wombat](ht
 | **Sensors** | Real-time charts for gyro, accelerometer, magnetometer, and analog inputs |
 | **Camera** | Live camera feed from the robot's vision system |
 | **WiFi** | Scan, connect, and manage networks via Linux NetworkManager |
-| **Settings** | Device config, touch calibration for the embedded display |
+| **Settings** | Display, theme, hostname, keyboard layout, screen rotation, touch calibration, service status and logs, program run logs |
+| **Screen renderer / dynamic UI** | Screens that the robot program requests at runtime (`screen_render` messages) and the answers go back to it |
+| **Calibration board** | Guided calibration with the calibration board |
+| **Dev menu** | Developer tools, plus the small games Tilt Maze and Flappy Wombat |
 
 ---
 
@@ -86,12 +89,14 @@ bash debug.sh
 
 ## Architecture
 
-StpVelox follows **Clean Architecture** with three layers and [Riverpod](https://riverpod.dev/) for state management throughout.
+botui follows **Clean Architecture** with three layers and [Riverpod](https://riverpod.dev/) for state management throughout.
 
 ```
 lib/
-├── core/           # DI (GetIt), routing (go_router), theme, shared utilities
-├── features/       # One folder per feature (dashboard, program, sensors, wifi, ...)
+├── core/           # DI (GetIt), routing (go_router), theme, transport, contract check, logging, shared utilities
+├── application/    # App-wide behaviour (overview, screensaver, inactivity, ethernet prompt, theme)
+├── presentation/   # Top-level screens
+├── features/       # One folder per feature (dashboard, program, sensors, camera, wifi, settings, ...)
 │   └── <feature>/
 │       ├── domain/       # Entities, repository interfaces, use cases
 │       ├── data/         # Repository implementations, data sources
@@ -100,7 +105,7 @@ lib/
 └── main.dart
 ```
 
-**Hardware data** flows in via [LCM](https://lcm-proj.github.io/) through [raccoon-transport](https://github.com/htl-stp-ecer/raccoon-transport) — sensor values, motor state, and IMU readings are published on the LCM bus and consumed by the UI in real time.
+**Hardware data** flows in via [raccoon-transport](https://github.com/htl-stp-ecer/raccoon-transport) (shared-memory ring under `/dev/shm`, reached through the `raccoon_ring` bridge) — sensor values, motor state, and IMU readings are published by stm32-data-reader and consumed by the UI in real time. At startup botui checks that its transport contract matches the installed bundle.
 
 **Program execution** uses a pseudoterminal so program stdout/stderr stream live into the terminal widget (`xterm`).
 
@@ -111,20 +116,9 @@ lib/
 ## Requirements
 
 - [FVM](https://fvm.app/) — Flutter version manager
-- Dart SDK ^3.5.4
+- Dart SDK ^3.5.4 (Flutter 3.38.7, pinned in `.fvmrc`)
 - `flutterpi_tool` for ARM64 builds
 - KIPR Wombat with Raspberry Pi (ARM64, 800×480 display)
-
----
-
-## Part of RaccoonOS
-
-| Repository | What it is |
-|:-----------|:-----------|
-| [raccoon-lib](https://github.com/htl-stp-ecer/raccoon-lib) | Core robotics library |
-| [raccoon-cli](https://github.com/htl-stp-ecer/raccoon-cli) | Dev toolchain — scaffolding, `raccoon run` |
-| [raccoon-transport](https://github.com/htl-stp-ecer/raccoon-transport) | LCM messaging layer |
-| [documentation](https://raccoon-docs.pages.dev/) | Full platform docs |
 
 ---
 

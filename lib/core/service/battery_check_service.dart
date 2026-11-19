@@ -1,6 +1,8 @@
 ///
 /// Created by Tobias on 25,September,2025}
 ///
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stpvelox/core/service/sensors/battery_voltage_sensor.dart';
@@ -8,12 +10,19 @@ import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 
 part 'battery_check_service.g.dart';
 
-const _lowBatteryThreshold = 5.75;
+const _lowBatteryThreshold = 6.0;
+
+/// The warning only shows after the voltage stayed below the threshold this
+/// long, so it doesn't flicker when the voltage hovers around the threshold.
+/// Once shown it stays until the voltage is above the threshold again.
+const _lowHoldTime = Duration(seconds: 30);
 
 @riverpod
 class BatteryCheckService extends _$BatteryCheckService {
   bool _warningVisible = false;
   BuildContext? _context;
+  Timer? _showTimer;
+  double _lastVoltage = 0;
 
   @override
   double? build() {
@@ -43,10 +52,21 @@ class BatteryCheckService extends _$BatteryCheckService {
   }
 
   void _handleVoltageChange(BuildContext context, double voltage) {
+    _lastVoltage = voltage;
     if (voltage > 0 && voltage < _lowBatteryThreshold) {
-      _maybeShowBatteryWarning(context, voltage);
+      if (_warningVisible) return;
+      // Started once; a dip that does not last never gets to show anything.
+      _showTimer ??= Timer(_lowHoldTime, () {
+        _showTimer = null;
+        final ctx = _context;
+        if (ctx != null && ctx.mounted) {
+          _maybeShowBatteryWarning(ctx, _lastVoltage);
+        }
+      });
     } else {
-      _dismissWarningIfAny(context);
+      _showTimer?.cancel();
+      _showTimer = null;
+      if (_warningVisible) _dismissWarningIfAny(context);
     }
   }
 
@@ -81,6 +101,8 @@ class BatteryCheckService extends _$BatteryCheckService {
   }
 
   void _disposeAll() {
+    _showTimer?.cancel();
+    _showTimer = null;
     _context = null;
   }
 }

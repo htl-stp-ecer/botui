@@ -48,6 +48,12 @@ class SettingsScreen extends StatelessWidget {
               onPressed: () => context.push(AppRoutes.logs),
             ),
             ResponsiveGridTile(
+              icon: Icons.screenshot,
+              label: 'Screenshots',
+              color: TileColor.blue,
+              onPressed: () => context.push(AppRoutes.screenshots),
+            ),
+            ResponsiveGridTile(
               icon: Icons.info_outline,
               label: 'Versions',
               color: TileColor.teal,

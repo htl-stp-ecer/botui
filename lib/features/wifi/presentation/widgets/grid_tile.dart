@@ -39,9 +39,13 @@ class ResponsiveGridTile extends ConsumerWidget {
                 size: 100,
               ),
               const SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(color: fg, fontSize: 18),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: fg, fontSize: 18),
+                ),
               )
             ],
           ),

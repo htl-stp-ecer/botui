@@ -52,6 +52,8 @@ import 'package:stpvelox/features/settings/presentation/pages/hostname_screen.da
 import 'package:stpvelox/features/settings/presentation/pages/keyboard_locale_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/app_status_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/logs_screen.dart';
+import 'package:stpvelox/features/settings/presentation/pages/screenshots_screen.dart';
+import 'package:stpvelox/features/settings/presentation/pages/screenshot_detail_screen.dart';
 import 'package:stpvelox/features/settings/presentation/pages/log_run_screen.dart';
 
 // WiFi
@@ -73,6 +75,8 @@ import 'package:stpvelox/features/wifi/domain/enities/wifi_network.dart';
 // Camera
 import 'package:stpvelox/features/camera/presentation/pages/camera_viewer_screen.dart'
     show CameraViewerScreen;
+import 'package:stpvelox/features/camera/presentation/pages/camera_backend_config_screen.dart'
+    show CameraBackendConfigScreen;
 
 // Other
 import 'package:stpvelox/presentation/screens/robot_face_screen.dart';
@@ -140,6 +144,8 @@ abstract class AppRoutes {
   static const keyboardLocale = '/settings/keyboard';
   static const appStatus = '/settings/app-status';
   static const logs = '/settings/logs';
+  static const screenshots = '/settings/screenshots';
+  static const screenshotDetail = '/settings/screenshots/detail';
   static const logRun = '/settings/logs/run';
 
   // WiFi
@@ -157,6 +163,7 @@ abstract class AppRoutes {
 
   // Camera
   static const camera = '/camera';
+  static const cameraBackendConfig = '/camera/backend';
 
   // Screensaver
   static const robotFace = '/robot-face';
@@ -401,6 +408,17 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const LogsScreen(),
       ),
       GoRoute(
+        path: AppRoutes.screenshots,
+        name: 'screenshots',
+        builder: (context, state) => const ScreenshotsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.screenshotDetail,
+        name: 'screenshotDetail',
+        builder: (context, state) =>
+            ScreenshotDetailScreen(path: state.extra as String),
+      ),
+      GoRoute(
         path: AppRoutes.logRun,
         name: 'logRun',
         builder: (context, state) {
@@ -516,6 +534,11 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.camera,
         name: 'camera',
         builder: (context, state) => const CameraViewerScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.cameraBackendConfig,
+        name: 'cameraBackendConfig',
+        builder: (context, state) => const CameraBackendConfigScreen(),
       ),
 
       // Screensaver

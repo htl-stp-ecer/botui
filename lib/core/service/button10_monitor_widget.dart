@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/service/button10_monitor.dart';
+import 'package:stpvelox/core/service/screenshot_service.dart';
 
 /// Widget that monitors button 10 for long presses globally.
 /// Wrap your MaterialApp or main scaffold with this widget.
@@ -43,6 +44,7 @@ class _Button10MonitorWidgetState extends ConsumerState<Button10MonitorWidget> {
   Widget build(BuildContext context) {
     // Initialize the monitor provider
     ref.watch(button10MonitorProvider);
-    return widget.child;
+    final screenshots = ref.watch(screenshotServiceProvider);
+    return RepaintBoundary(key: screenshots.boundaryKey, child: widget.child);
   }
 }

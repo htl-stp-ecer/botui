@@ -55,7 +55,8 @@ class _WifiChannelScanScreenState extends ConsumerState<WifiChannelScanScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-          child: Column(
+          child: SingleChildScrollView(
+            child: Column(
             children: [
               _ControlBar(
                 selectedBand: state.selectedBand,
@@ -72,21 +73,20 @@ class _WifiChannelScanScreenState extends ConsumerState<WifiChannelScanScreen> {
               else
                 const _LoadingStrip(),
               const SizedBox(height: 10),
-              Expanded(
-                child: scan == null
-                    ? const _LoadingPanel()
-                    : _GraphLayout(
-                        scan: scan,
-                        selectedChannel:
-                            _selectedChannel ?? scan.recommendedChannel,
-                        onChannelSelected: (channel) {
-                          setState(() {
-                            _selectedChannel = channel;
-                          });
-                        },
-                      ),
-              ),
+              scan == null
+                  ? const SizedBox(height: 240, child: _LoadingPanel())
+                  : _GraphLayout(
+                      scan: scan,
+                      selectedChannel:
+                          _selectedChannel ?? scan.recommendedChannel,
+                      onChannelSelected: (channel) {
+                        setState(() {
+                          _selectedChannel = channel;
+                        });
+                      },
+                    ),
             ],
+          ),
           ),
         ),
       ),
@@ -320,11 +320,10 @@ class _GraphLayout extends StatelessWidget {
         return signalB.compareTo(signalA);
       });
 
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          flex: 4,
-          child: Container(
+        Container(
+            width: double.infinity,
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
             decoration: _cardDecoration(const Color(0xFF42A5F5)),
             child: Column(
@@ -347,7 +346,8 @@ class _GraphLayout extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Expanded(
+                SizedBox(
+                  height: 220,
                   child: _ChannelGraph(
                     scan: scan,
                     selectedChannel: selectedChannel,
@@ -357,25 +357,13 @@ class _GraphLayout extends StatelessWidget {
               ],
             ),
           ),
+        const SizedBox(height: 10),
+        _ChannelDetailCard(
+          channelInfo: selectedInfo,
+          affectedNetworks: affectedNetworks,
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 2,
-          child: Column(
-            children: [
-              Expanded(
-                child: _ChannelDetailCard(
-                  channelInfo: selectedInfo,
-                  affectedNetworks: affectedNetworks,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: _LegendCard(networks: scan.networks),
-              ),
-            ],
-          ),
-        ),
+        const SizedBox(height: 10),
+        _LegendCard(networks: scan.networks),
       ],
     );
   }
@@ -618,25 +606,27 @@ class _ChannelDetailCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Expanded(
-            child: affectedNetworks.isEmpty
-                ? Center(
-                    child: Text(
-                      'No overlapping networks.',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.60),
-                        fontSize: 13,
-                      ),
-                    ),
-                  )
-                : ListView.separated(
-                    padding: EdgeInsets.zero,
-                    itemCount: affectedNetworks.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final network = affectedNetworks[index];
+          if (affectedNetworks.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'No overlapping networks.',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.60),
+                  fontSize: 13,
+                ),
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final network in affectedNetworks)
+                  Builder(builder: (context) {
                       final color = _legendColor(network.ssid);
                       return Container(
+                        constraints: const BoxConstraints(minWidth: 230),
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.12),
@@ -674,9 +664,9 @@ class _ChannelDetailCard extends StatelessWidget {
                           ],
                         ),
                       );
-                    },
-                  ),
-          ),
+                  }),
+              ],
+            ),
         ],
       ),
     );
@@ -741,9 +731,7 @@ class _LegendCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Wrap(
+          Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
@@ -784,8 +772,6 @@ class _LegendCard extends StatelessWidget {
                       ),
                     ),
                 ],
-              ),
-            ),
           ),
         ],
       ),

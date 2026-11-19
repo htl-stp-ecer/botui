@@ -10,14 +10,12 @@ const _lineHeight = 16.0;
 const _fontFamily = 'DejaVu Sans Mono';
 
 /// The levels that can be switched on and off, in the order of the chips.
-/// Lines of any other level (e.g. CRITICAL) are always shown.
-const _filterLevels = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR'];
+/// TRACE lines are never shown; other unlisted levels (e.g. CRITICAL) always are.
+const _filterLevels = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
 const _defaultLevels = {'INFO', 'WARN', 'ERROR'};
 
 Color _levelColor(String level) {
   switch (level) {
-    case 'TRACE':
-      return Colors.grey;
     case 'DEBUG':
       return Colors.cyan.shade300;
     case 'INFO':
@@ -109,6 +107,7 @@ class _LogRunScreenState extends State<LogRunScreen> {
 
   bool _visible(LogLine l) {
     final level = _normalize(l.level);
+    if (level == 'TRACE') return false;
     return !_filterLevels.contains(level) || _enabled.contains(level);
   }
 
@@ -158,22 +157,10 @@ class _LogRunScreenState extends State<LogRunScreen> {
           for (final level in _filterLevels)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(level),
+              child: _LevelChip(
+                level: level,
                 selected: _enabled.contains(level),
-                onSelected: (_) => _toggle(level),
-                showCheckmark: false,
-                avatar: CircleAvatar(
-                  radius: 6,
-                  backgroundColor: _levelColor(level),
-                ),
-                labelStyle: TextStyle(
-                  color: _enabled.contains(level)
-                      ? Colors.white
-                      : Colors.white54,
-                ),
-                backgroundColor: Colors.black,
-                selectedColor: Colors.white24,
+                onTap: () => _toggle(level),
               ),
             ),
           const Spacer(),
@@ -242,12 +229,72 @@ class _LogRunScreenState extends State<LogRunScreen> {
   }
 }
 
+/// A level toggle drawn by hand, so the app's chip theme cannot recolour it.
+/// Off: a slightly lighter grey than the bar. On: the level's colour, darker.
+class _LevelChip extends StatelessWidget {
+  final String level;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LevelChip({
+    required this.level,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _levelColor(level);
+    return Material(
+      color: selected
+          ? Color.lerp(color, Colors.black, 0.6)
+          : const Color(0xFF2B2B2B),
+      shape: StadiumBorder(
+        side: BorderSide(
+          color: selected ? color.withAlpha(120) : Colors.transparent,
+        ),
+      ),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                level,
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.white54,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Row {
   final List<InlineSpan> spans;
   final int chars;
 
   const _Row(this.spans, this.chars);
 }
+
+/// A program's stderr (a traceback) carries colour codes (`ESC [ 31 m`); this
+/// view shows plain text, so they are removed.
+final _ansi = RegExp(r'\x1B\[[0-9;?]*[ -/]*[@-~]');
+
+String _withoutAnsi(String text) => text.replaceAll(_ansi, '');
 
 String _pad(String s, int width) =>
     s.length >= width ? s.substring(0, width) : s.padRight(width);
@@ -275,8 +322,10 @@ List<_Row> _rowsFor(LogLine l, bool withFunc) {
   final prefixChars =
       elapsed.length + levelText.length + locationText.length + funcText.length;
 
-  final messageLines =
-      l.message.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
+  final messageLines = _withoutAnsi(l.message)
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n')
+      .split('\n');
 
   final rows = <_Row>[];
   for (var i = 0; i < messageLines.length; i++) {

@@ -143,6 +143,7 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
       label: 'contract_hash',
       version: hash == null ? null : '$hash',
       missingText: bundleError ?? 'not in bundle',
+      tone: _isDev(hash) ? _Tone.warn : _Tone.ok,
     ));
 
     // More room than between the rows, so the two sections read as separate.
@@ -193,7 +194,7 @@ class _AppStatusScreenState extends State<AppStatusScreen> {
   }
 }
 
-enum _Tone { ok, mismatch, dev }
+enum _Tone { ok, mismatch, dev, warn }
 
 class _VersionRow extends StatelessWidget {
   final IconData icon;
@@ -206,7 +207,8 @@ class _VersionRow extends StatelessWidget {
   /// Show a spinner instead of the value while it is being fetched.
   final bool loading;
 
-  /// green normally, red for a mismatch with the bundle, blue for `dev`.
+  /// green normally, red for a mismatch with the bundle, blue for a `dev`
+  /// component, yellow for a `dev` contract_hash.
   final _Tone tone;
 
   const _VersionRow({
@@ -225,6 +227,7 @@ class _VersionRow extends StatelessWidget {
       _Tone.ok => (Colors.green, Colors.greenAccent),
       _Tone.mismatch => (Colors.red, Colors.redAccent),
       _Tone.dev => (Colors.blue, Colors.lightBlueAccent),
+      _Tone.warn => (Colors.amber, Colors.amberAccent),
     };
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),

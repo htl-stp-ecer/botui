@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 import 'package:stpvelox/application/overview/overview_settings_provider.dart';
+import 'package:stpvelox/application/screenshot/screenshot_settings_provider.dart';
 import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 import 'package:stpvelox/core/di/injection.dart';
 import 'package:stpvelox/core/router/app_router.dart';
@@ -29,17 +30,18 @@ class DisplaySettingsScreen extends ConsumerWidget {
             ResponsiveGridTile(
               icon: Icons.palette,
               label: 'Color Theme',
-              color: TileColor.pink,
+              color: TileColor.red,
               onPressed: () => context.push(AppRoutes.colorTheme),
             ),
+            const _OverviewSideTile(),
+            const _ScreenshotModeTile(),
+            _ScreensaverTile(prefs: prefs),
             ResponsiveGridTile(
               icon: Icons.screen_rotation,
               label: 'Rotate',
               color: TileColor.teal,
               onPressed: () => context.push(AppRoutes.screenRotation),
             ),
-            const _OverviewSideTile(),
-            _ScreensaverTile(prefs: prefs),
             ResponsiveGridTile(
               icon: Icons.display_settings,
               label: 'Calibrate',
@@ -101,7 +103,7 @@ class _ScreensaverTileState extends State<_ScreensaverTile> {
     return ResponsiveGridTile(
       icon: _enabled ? Icons.face : Icons.face_retouching_off,
       label: _enabled ? 'Screensaver On' : 'Screensaver Off',
-      color: _enabled ? TileColor.cyan : TileColor.grey,
+      color: _enabled ? TileColor.orange : TileColor.grey,
       onPressed: _toggle,
     );
   }
@@ -124,12 +126,12 @@ class _OverviewSideTile extends ConsumerWidget {
               ? Icons.align_vertical_bottom
               : Icons.align_horizontal_left,
           isPortrait ? 'Overview Bottom' : 'Overview Left',
-          TileColor.indigo
+          TileColor.blue
         ),
       OverviewSide.right => (
           isPortrait ? Icons.align_vertical_top : Icons.align_horizontal_right,
           isPortrait ? 'Overview Top' : 'Overview Right',
-          TileColor.indigo
+          TileColor.blue
         ),
       OverviewSide.off => (
           Icons.visibility_off,
@@ -142,6 +144,39 @@ class _OverviewSideTile extends ConsumerWidget {
       label: label,
       color: color,
       onPressed: () => ref.read(overviewSideProvider.notifier).toggle(),
+    );
+  }
+}
+
+/// Cycles when the triple-click on the built-in button may take a screenshot.
+class _ScreenshotModeTile extends ConsumerWidget {
+  const _ScreenshotModeTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(screenshotModeProvider);
+    final (icon, label, color) = switch (mode) {
+      ScreenshotMode.always => (
+          Icons.photo_camera,
+          'Screenshots: Always',
+          TileColor.green
+        ),
+      ScreenshotMode.whenIdle => (
+          Icons.motion_photos_pause,
+          'Screenshots:\nIdle Only',
+          TileColor.green
+        ),
+      ScreenshotMode.never => (
+          Icons.no_photography,
+          'Screenshots: Never',
+          TileColor.grey
+        ),
+    };
+    return ResponsiveGridTile(
+      icon: icon,
+      label: label,
+      color: color,
+      onPressed: () => ref.read(screenshotModeProvider.notifier).toggle(),
     );
   }
 }
