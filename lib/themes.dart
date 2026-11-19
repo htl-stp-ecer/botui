@@ -50,6 +50,7 @@ final List<AppTheme> appThemes = [
   colorful,
   raccoon,
   nordic,
+  catppuccin,
   monochrome,
 ];
 
@@ -99,6 +100,24 @@ const nordic = PatternTheme(
     Color(0xFFB7BCD3), // mist
   ],
   previewColor: Color(0xFF8076A8),
+);
+
+/// Catppuccin Mocha pastels with dark text, repeating by position.
+const catppuccin = PatternTheme(
+  id: 'catppuccin',
+  label: 'Catppuccin',
+  pattern: [
+    Color(0xFFCBA6F7), // mauve
+    Color(0xFF89B4FA), // blue
+    Color(0xFFA6E3A1), // green
+    Color(0xFFF9E2AF), // yellow
+    Color(0xFFFAB387), // peach
+    Color(0xFFF38BA8), // red
+    Color(0xFF94E2D5), // teal
+    Color(0xFFF5C2E7), // pink
+  ],
+  textColor: Color(0xFF1E1E2E), // base
+  previewColor: Color(0xFFCBA6F7),
 );
 
 /// Every slot the same grey.
