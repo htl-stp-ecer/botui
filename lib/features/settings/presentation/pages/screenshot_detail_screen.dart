@@ -3,7 +3,10 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/utils/home_dir.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/grey_badge.dart';
@@ -13,16 +16,18 @@ import 'package:stpvelox/features/settings/data/system_config_service.dart';
 
 /// One screenshot, uncropped, with its `scp` command and a delete button.
 /// Pops with `true` when the file was deleted.
-class ScreenshotDetailScreen extends StatefulWidget {
+class ScreenshotDetailScreen extends ConsumerStatefulWidget {
   final String path;
 
   const ScreenshotDetailScreen({super.key, required this.path});
 
   @override
-  State<ScreenshotDetailScreen> createState() => _ScreenshotDetailScreenState();
+  ConsumerState<ScreenshotDetailScreen> createState() =>
+      _ScreenshotDetailScreenState();
 }
 
-class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
+class _ScreenshotDetailScreenState
+    extends ConsumerState<ScreenshotDetailScreen> {
   // Same radius as the preview in the overview.
   static const _radius = 15.0;
 
@@ -73,6 +78,7 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = ref.watch(colorThemeProvider);
     final host = _hostname.isEmpty ? 'hostname' : _hostname;
     return Scaffold(
       backgroundColor: Colors.black,
@@ -113,7 +119,7 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
               child: Row(
                 children: [
                   Expanded(
@@ -122,11 +128,20 @@ class _ScreenshotDetailScreenState extends State<ScreenshotDetailScreen> {
                       child: GreyBadge('scp ${loginUser()}@$host.local:${homeDir()}/screenshots/$_name .'),
                     ),
                   ),
+                  const SizedBox(width: 12),
                   IconButton(
                     onPressed: _delete,
-                    icon: const Icon(Icons.delete_outline, color: Colors.white),
-                    iconSize: 40,
+                    icon: const Icon(Icons.delete),
+                    iconSize: 28,
                     tooltip: 'Delete',
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.tileColor(TileColor.red, 0),
+                      foregroundColor: theme.textColor,
+                      padding: const EdgeInsets.all(14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                   ),
                 ],
               ),
