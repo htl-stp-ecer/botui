@@ -216,6 +216,15 @@ class _CopyAllCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             GreyBadge('scp -r ${loginUser()}@$host.local:${homeDir()}/screenshots/ .'),
+            const Text(
+              "\n\nWindows Users must use the robot's IP address instead of <hostname>.local, as windows doesn't properly support mDNS.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ],
         ),
       ),
