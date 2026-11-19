@@ -74,6 +74,8 @@ class _CameraBackendConfigScreenState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         LargeDropdown(
+          // Follows what the form shows, not what was picked last.
+          key: ValueKey(selected?.key),
           options: labels,
           initialSelected: selected?.label,
           height: 56,

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:stpvelox/core/logging/logging.dart';
 import 'package:stpvelox/core/service/raccoon_execution_client.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
+import 'package:stpvelox/features/camera/data/camera_backend_settings_store.dart';
 import 'package:stpvelox/features/camera/data/camera_config_api.dart';
 import 'package:stpvelox/features/camera/domain/camera_models.dart';
 
@@ -72,7 +73,16 @@ class CameraBackendFormState {
 
 class CameraBackendForm extends Notifier<CameraBackendFormState> {
   CameraConfigApi? _api;
+  final CameraBackendSettingsStore _store = CameraBackendSettingsStore();
   bool _disposed = false;
+
+  /// Counts the describe calls. A describe that is not the newest when it
+  /// finishes is dropped, so a slow one cannot overwrite a later choice.
+  int _describeGeneration = 0;
+
+  /// The user picked a backend in the dropdown during this visit of the screen.
+  /// The background refresh must not switch away from it.
+  bool _userPicked = false;
 
   /// How often the choice on the robot was changed (saved or reset) since the
   /// app started. The camera screen compares it to know the camera restarts.
@@ -88,6 +98,7 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
   /// spinner. Later the list from the last time is shown at once, with the
   /// saved values and without unsaved edits, and refreshed in the background.
   Future<void> open() async {
+    _userPicked = false;
     final cached = state.backends;
     if (cached.isEmpty || state.error != null) return load();
     final first = _pick(cached, state.saved);
@@ -132,6 +143,8 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
       // Silent and nothing changed for the backend on show: leave the form alone.
       final shown = state.selected;
       if (silent && shown != null && first != null && shown.key == first.key) return;
+      // The user chose a backend while the list was loading: keep that one.
+      if (_userPicked && shown != null && backends.any((b) => b.key == shown.key)) return;
       if (first != null) await _describe(first);
     } on RaccoonApiException catch (error) {
       if (!silent) _emit(state.copyWith(loading: false, error: error.message));
@@ -146,6 +159,7 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
 
   /// The dropdown picked [key] (see [CamBackendInfo.key]).
   Future<void> select(String key) async {
+    _userPicked = true;
     for (final backend in state.backends) {
       if (backend.key == key) {
         await _describe(backend);
@@ -155,6 +169,7 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
   }
 
   Future<void> _describe(CamBackendInfo backend) async {
+    final generation = ++_describeGeneration;
     // A built-in backend came with its options in the list: asking the robot
     // again would start another process there, over a second on a Pi 3.
     final known = backend.isBuiltIn && backend.options.isNotEmpty;
@@ -170,15 +185,24 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
     }
     try {
       final described = known ? backend : await (await _client()).describe(backend);
+      if (generation != _describeGeneration) return;
       final values = <String, Object?>{
         for (final option in described.options)
           option.name: _normalise(option, option.defaultValue),
       };
       final saved = state.saved;
+      // The robot's saved choice wins; otherwise what was typed here last time
+      // for this built-in backend.
+      Map<String, dynamic>? remembered;
       if (saved != null && saved.path == described.path) {
+        remembered = saved.cfg;
+      } else if (described.isBuiltIn) {
+        remembered = await _store.load(described.path);
+      }
+      if (remembered != null) {
         for (final option in described.options) {
-          if (saved.cfg.containsKey(option.name)) {
-            values[option.name] = _normalise(option, saved.cfg[option.name]);
+          if (remembered.containsKey(option.name)) {
+            values[option.name] = _normalise(option, remembered[option.name]);
           }
         }
       }
@@ -249,7 +273,9 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
     }
     _emit(state.copyWith(busy: true));
     try {
-      final saved = await (await _client()).save(backend, _config());
+      final cfg = _config();
+      final saved = await (await _client()).save(backend, cfg);
+      if (backend.isBuiltIn) await _store.save(backend.path, cfg);
       changes++;
       _emit(state.copyWith(busy: false, saved: saved));
       AppToast.success('Camera backend saved');
@@ -269,6 +295,8 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
     _emit(state.copyWith(busy: true));
     try {
       await (await _client()).clear();
+      final shown = state.selected;
+      if (shown != null && shown.isBuiltIn) await _store.delete(shown.path);
       changes++;
       _emit(state.copyWith(busy: false, clearSaved: true));
       final backend = state.selected;
