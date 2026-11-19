@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/router/app_router.dart';
@@ -22,13 +24,18 @@ class Button10Monitor extends _$Button10Monitor with HasLogger {
 
   static const _tripleClickWindow = Duration(milliseconds: 1200);
 
+  /// Pause after the last click before a triple-click counts.
+  static const _settleDelay = Duration(milliseconds: 250);
+
   DateTime? _holdStart;
   bool _triggered = false;
   bool _wasPressed = false;
   final List<DateTime> _clickTimes = [];
+  Timer? _settleTimer;
 
   @override
   void build() {
+    ref.onDispose(() => _settleTimer?.cancel());
     // Watch digital sensor 10
     ref.listen(digitalSensorProvider(10), (previous, next) {
       _onSensorChanged(next);
@@ -50,13 +57,20 @@ class Button10Monitor extends _$Button10Monitor with HasLogger {
     }
   }
 
-  /// Counts press edges; three within [_tripleClickWindow] take a screenshot.
+  /// Counts press edges. Exactly three clicks, followed by [_settleDelay]
+  /// without another click, take a screenshot; more clicks do nothing.
   void _registerClick() {
     final now = DateTime.now();
     _clickTimes.removeWhere((t) => now.difference(t) > _tripleClickWindow);
     _clickTimes.add(now);
-    if (_clickTimes.length < 3) return;
+    _settleTimer?.cancel();
+    _settleTimer = Timer(_settleDelay, _onClicksSettled);
+  }
+
+  void _onClicksSettled() {
+    final count = _clickTimes.length;
     _clickTimes.clear();
+    if (count != 3) return;
 
     // Flappy Wombat / Tilt Maze use button 10 as game input.
     final route = ref
