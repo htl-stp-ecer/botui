@@ -6,6 +6,7 @@ import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/features/camera/application/cam_provider.dart';
 import 'package:stpvelox/features/camera/application/camera_preview_controller.dart';
 import 'package:stpvelox/features/camera/presentation/widgets/cam_frame_view.dart';
+import 'package:stpvelox/features/camera/presentation/widgets/retry_button.dart';
 
 /// The picture of the camera, or what is going on instead of it. The
 /// [CameraPreviewController] has to be started by whoever shows this.
@@ -117,7 +118,7 @@ class _Message extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 16),
-              FilledButton(onPressed: onRetry, child: const Text('Try again')),
+              RetryButton(onPressed: onRetry!),
             ],
           ],
         ),
