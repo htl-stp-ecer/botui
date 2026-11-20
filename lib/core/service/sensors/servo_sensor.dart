@@ -13,7 +13,8 @@ part 'servo_sensor.g.dart';
 enum ServoMode {
   fullyDisabled(0),
   disabled(1),
-  enabled(2);
+  enabled(2), // PWM servo
+  bus(3); // Feetech STS serial bus servo (e.g. STS3215)
 
   const ServoMode(this.value);
 
