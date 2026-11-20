@@ -2,10 +2,70 @@ import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
 enum MotorGraphMode { bemf, position }
 
-class MotorGraphView extends StatelessWidget {
+/// BEMF / POSITION switch of the graph, made for the top bar (see
+/// `createTopBar(center: ...)`): 280 px wide, no border, theme colored.
+class MotorGraphModeToggle extends ConsumerWidget {
+  final MotorGraphMode mode;
+  final ValueChanged<MotorGraphMode> onChanged;
+
+  const MotorGraphModeToggle({
+    super.key,
+    required this.mode,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    final accent = theme.tileColor(TileColor.blue, null);
+
+    Widget button(MotorGraphMode m, String label, BorderRadius radius) {
+      final active = mode == m;
+      return Expanded(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => onChanged(m),
+          child: Container(
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? accent : Colors.grey[850],
+              borderRadius: radius,
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: active ? theme.textColor : Colors.grey[500],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 280,
+      child: Row(
+        children: [
+          button(MotorGraphMode.bemf, 'BEMF',
+              const BorderRadius.horizontal(left: Radius.circular(8))),
+          button(MotorGraphMode.position, 'POSITION',
+              const BorderRadius.horizontal(right: Radius.circular(8))),
+        ],
+      ),
+    );
+  }
+}
+
+class MotorGraphView extends ConsumerWidget {
   /// Raw instantaneous BEMF readings (filtered, not accumulated).
   final List<double> bemfData;
 
@@ -25,7 +85,6 @@ class MotorGraphView extends StatelessWidget {
 
   /// Current graph mode, managed by parent so it persists across tab switches.
   final MotorGraphMode mode;
-  final ValueChanged<MotorGraphMode> onModeChanged;
 
   const MotorGraphView({
     super.key,
@@ -36,112 +95,55 @@ class MotorGraphView extends StatelessWidget {
     required this.maxPoints,
     required this.totalSamples,
     required this.mode,
-    required this.onModeChanged,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    // Raw = series 0, Avg = 1, Target = 2 (pattern themes: pattern[i]).
+    final c = _CurveColors(
+      raw: theme.tileColor(TileColor.blue, 0),
+      avg: theme.tileColor(TileColor.orange, 1),
+      target: theme.tileColor(TileColor.green, 2),
+    );
     return Column(
       children: [
-        // Mode toggle + legend
+        // Legend (the BEMF / POSITION toggle lives in the top bar)
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
+          padding: const EdgeInsets.fromLTRB(8, 4, 12, 2),
           child: Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => onModeChanged(MotorGraphMode.bemf),
-                  child: Container(
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: mode == MotorGraphMode.bemf
-                          ? Colors.blue[800]
-                          : Colors.grey[850],
-                      borderRadius: const BorderRadius.horizontal(
-                          left: Radius.circular(6)),
-                      border: Border.all(
-                          color: mode == MotorGraphMode.bemf
-                              ? Colors.blue
-                              : Colors.grey[700]!),
-                    ),
-                    child: Text(
-                      'BEMF',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: mode == MotorGraphMode.bemf
-                            ? Colors.white
-                            : Colors.grey[500],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => onModeChanged(MotorGraphMode.position),
-                  child: Container(
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: mode == MotorGraphMode.position
-                          ? Colors.blue[800]
-                          : Colors.grey[850],
-                      borderRadius: const BorderRadius.horizontal(
-                          right: Radius.circular(6)),
-                      border: Border.all(
-                          color: mode == MotorGraphMode.position
-                              ? Colors.blue
-                              : Colors.grey[700]!),
-                    ),
-                    child: Text(
-                      'POSITION',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: mode == MotorGraphMode.position
-                            ? Colors.white
-                            : Colors.grey[500],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Legend
-              ..._buildLegend(),
-            ],
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: _buildLegend(c),
           ),
         ),
         // Chart
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 12, 4),
-            child: _buildChart(),
+            child: _buildChart(c),
           ),
         ),
       ],
     );
   }
 
-  List<Widget> _buildLegend() {
+  List<Widget> _buildLegend(_CurveColors c) {
     if (mode == MotorGraphMode.bemf) {
       return [
-        _LegendDot(color: Colors.blue[400]!, label: 'Raw'),
+        _LegendDot(color: c.raw, label: 'Raw'),
         const SizedBox(width: 8),
-        _LegendDot(color: Colors.orangeAccent, label: 'Avg'),
+        _LegendDot(color: c.avg, label: 'Avg'),
         const SizedBox(width: 8),
-        _LegendDot(color: Colors.greenAccent, label: 'Target', dashed: true),
+        _LegendDot(color: c.target, label: 'Target', dashed: true),
       ];
     } else {
       return [
-        _LegendDot(color: Colors.blue[400]!, label: 'Position'),
+        _LegendDot(color: c.raw, label: 'Position'),
       ];
     }
   }
 
-  Widget _buildChart() {
+  Widget _buildChart(_CurveColors c) {
     final dataToCheck = mode == MotorGraphMode.bemf ? bemfData : positionData;
     if (dataToCheck.isEmpty) {
       return Center(
@@ -163,12 +165,12 @@ class MotorGraphView extends StatelessWidget {
       final (lo, hi) = _autoRange(allVals);
       minY = lo;
       maxY = hi;
-      lines = _bemfLines();
+      lines = _bemfLines(c);
     } else {
       final (lo, hi) = _autoRange(positionData);
       minY = lo;
       maxY = hi;
-      lines = _positionLines();
+      lines = _positionLines(c);
     }
 
     return RepaintBoundary(
@@ -242,7 +244,7 @@ class MotorGraphView extends StatelessWidget {
     );
   }
 
-  List<LineChartBarData> _bemfLines() {
+  List<LineChartBarData> _bemfLines(_CurveColors c) {
     final xStart = totalSamples - bemfData.length;
     final rawSpots = List<FlSpot>.generate(
         bemfData.length, (i) => FlSpot((xStart + i).toDouble(), bemfData[i]));
@@ -262,17 +264,17 @@ class MotorGraphView extends StatelessWidget {
       LineChartBarData(
         spots: rawSpots,
         isCurved: false,
-        color: Colors.blue[400],
+        color: c.raw,
         barWidth: 2,
         dotData: const FlDotData(show: false),
         belowBarData: BarAreaData(
-            show: true, color: Colors.blue.withValues(alpha: 0.1)),
+            show: true, color: c.raw.withValues(alpha: 0.1)),
       ),
       if (maSpots.isNotEmpty)
         LineChartBarData(
           spots: maSpots,
           isCurved: false,
-          color: Colors.orangeAccent,
+          color: c.avg,
           barWidth: 2,
           dotData: const FlDotData(show: false),
         ),
@@ -280,7 +282,7 @@ class MotorGraphView extends StatelessWidget {
         LineChartBarData(
           spots: targetSpots,
           isCurved: false,
-          color: Colors.greenAccent,
+          color: c.target,
           barWidth: 2,
           dashArray: [6, 4],
           dotData: const FlDotData(show: false),
@@ -288,7 +290,7 @@ class MotorGraphView extends StatelessWidget {
     ];
   }
 
-  List<LineChartBarData> _positionLines() {
+  List<LineChartBarData> _positionLines(_CurveColors c) {
     final xStart = totalSamples - positionData.length;
     final posSpots = List<FlSpot>.generate(positionData.length,
         (i) => FlSpot((xStart + i).toDouble(), positionData[i]));
@@ -296,11 +298,11 @@ class MotorGraphView extends StatelessWidget {
       LineChartBarData(
         spots: posSpots,
         isCurved: false,
-        color: Colors.blue[400],
+        color: c.raw,
         barWidth: 2,
         dotData: const FlDotData(show: false),
         belowBarData: BarAreaData(
-            show: true, color: Colors.blue.withValues(alpha: 0.1)),
+            show: true, color: c.raw.withValues(alpha: 0.1)),
       ),
     ];
   }
@@ -318,6 +320,15 @@ class MotorGraphView extends StatelessWidget {
 }
 
 // ─── Small helper widgets ────────────────────────────────────
+
+/// Theme colors of the three curves, resolved once per build.
+class _CurveColors {
+  final Color raw;
+  final Color avg;
+  final Color target;
+  const _CurveColors(
+      {required this.raw, required this.avg, required this.target});
+}
 
 class _LegendDot extends StatelessWidget {
   final Color color;

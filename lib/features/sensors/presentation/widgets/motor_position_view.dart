@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
-class MotorPositionView extends StatelessWidget {
+class MotorPositionView extends ConsumerWidget {
   final String posDisplay;
   final int velocity;
   final bool isRelative;
@@ -28,7 +31,8 @@ class MotorPositionView extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Column(
@@ -75,8 +79,8 @@ class MotorPositionView extends StatelessWidget {
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[700],
-                        foregroundColor: Colors.white,
+                        backgroundColor: theme.tileColor(TileColor.green, null),
+                        foregroundColor: theme.textColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -105,7 +109,7 @@ class MotorPositionView extends StatelessWidget {
 
 // ─── Position display bar ────────────────────────────────────
 
-class _PositionDisplay extends StatelessWidget {
+class _PositionDisplay extends ConsumerWidget {
   final String posDisplay;
   final bool isRelative;
   final VoidCallback onClear;
@@ -117,13 +121,13 @@ class _PositionDisplay extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     return Container(
       height: 52,
       decoration: BoxDecoration(
         color: Colors.grey[900],
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[700]!, width: 1.5),
       ),
       child: Row(
         children: [
@@ -144,7 +148,9 @@ class _PositionDisplay extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
-                color: isRelative ? Colors.orange[300] : Colors.blue[300],
+                color: isRelative
+                    ? theme.tileColor(TileColor.orange, null)
+                    : theme.tileColor(TileColor.blue, null),
               ),
             ),
           ),
@@ -172,15 +178,15 @@ class _PositionDisplay extends StatelessWidget {
               width: 52,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.15),
+                color: theme.tileColor(TileColor.orange, null).withValues(alpha: 0.2),
                 borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(9),
                   bottomRight: Radius.circular(9),
                 ),
               ),
               alignment: Alignment.center,
-              child: const Icon(Icons.clear_rounded,
-                  size: 22, color: Colors.orange),
+              child: Icon(Icons.clear_rounded,
+                  size: 22, color: theme.tileColor(TileColor.orange, null)),
             ),
           ),
         ],
@@ -191,19 +197,19 @@ class _PositionDisplay extends StatelessWidget {
 
 // ─── ABS / REL toggle ────────────────────────────────────────
 
-class _ModeToggle extends StatelessWidget {
+class _ModeToggle extends ConsumerWidget {
   final bool isRelative;
   final ValueChanged<bool> onToggle;
 
   const _ModeToggle({required this.isRelative, required this.onToggle});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[900],
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[700]!, width: 1),
       ),
       clipBehavior: Clip.antiAlias,
       child: Row(
@@ -212,14 +218,14 @@ class _ModeToggle extends StatelessWidget {
           _ModeBtn(
             label: 'ABS',
             active: !isRelative,
-            color: Colors.blue,
+            color: theme.tileColor(TileColor.blue, null),
             onTap: () => onToggle(false),
             isLeft: true,
           ),
           _ModeBtn(
             label: 'REL',
             active: isRelative,
-            color: Colors.orange,
+            color: theme.tileColor(TileColor.orange, null),
             onTap: () => onToggle(true),
             isLeft: false,
           ),
@@ -287,7 +293,6 @@ class _VelocityStepper extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.grey[900],
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[700]!, width: 1),
       ),
       clipBehavior: Clip.antiAlias,
       height: 52,
@@ -399,14 +404,15 @@ class _Numpad extends StatelessWidget {
   }
 }
 
-class _NumKey extends StatelessWidget {
+class _NumKey extends ConsumerWidget {
   final String label;
   final VoidCallback onTap;
 
   const _NumKey({required this.label, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     final isSpecial = label == '+/-' || label == 'back';
 
     return Material(
@@ -415,11 +421,11 @@ class _NumKey extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        splashColor: Colors.blue.withValues(alpha: 0.2),
+        splashColor: theme.tileColor(TileColor.blue, null).withValues(alpha: 0.2),
         child: Center(
           child: label == 'back'
               ? Icon(Icons.backspace_outlined,
-                  size: 24, color: Colors.orange[300])
+                  size: 24, color: theme.tileColor(TileColor.orange, null))
               : label == '+/-'
                   ? Text(
                       '+/\u2212',

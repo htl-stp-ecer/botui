@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/service/sensors/back_emf_sensor.dart';
 import 'package:stpvelox/core/service/sensors/motor_position_sensor.dart';
@@ -29,6 +31,7 @@ class SensorMotorScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     final transport = ref.watch(transportServiceProvider);
     final backEmf = ref.watch(backEmfSensorProvider(port));
     final motorPosition = ref.watch(motorPositionSensorProvider(port));
@@ -236,7 +239,16 @@ class SensorMotorScreen extends HookConsumerWidget {
     // --- Layout ---
 
     return Scaffold(
-      appBar: createTopBar(context, sensor.name),
+      appBar: createTopBar(
+        context,
+        sensor.name,
+        center: mode.value == MotorMode.graph
+            ? MotorGraphModeToggle(
+                mode: graphMode.value,
+                onChanged: (m) => graphMode.value = m,
+              )
+            : null,
+      ),
       body: Column(
         children: [
           // Main area: sidebar + content
@@ -247,7 +259,6 @@ class SensorMotorScreen extends HookConsumerWidget {
                   selected: mode.value,
                   onSelect: (m) => mode.value = m,
                 ),
-                Container(width: 1, color: Colors.grey[800]),
                 Expanded(
                   child: switch (mode.value) {
                     MotorMode.power => MotorRadialSlider(
@@ -305,7 +316,6 @@ class SensorMotorScreen extends HookConsumerWidget {
                         maxPoints: maxPoints,
                         totalSamples: sampleCount.value,
                         mode: graphMode.value,
-                        onModeChanged: (m) => graphMode.value = m,
                       ),
                   },
                 ),
@@ -319,9 +329,8 @@ class SensorMotorScreen extends HookConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Stats row (hidden in graph mode)
-                if (mode.value != MotorMode.graph)
-                  Padding(
+                // Stats row (always visible, also in graph mode)
+                Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -337,75 +346,34 @@ class SensorMotorScreen extends HookConsumerWidget {
                   children: [
                     // BRAKE: passive brake (shorts windings)
                     Expanded(
-                      flex: 3,
-                      child: SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: brakeMotor,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[700],
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
-                            elevation: 4,
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.stop_circle, size: 24),
-                              SizedBox(width: 6),
-                              Text('BRAKE',
-                                  style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 2)),
-                            ],
-                          ),
-                        ),
+                      child: _ActionButton(
+                        label: 'BRAKE',
+                        icon: Icons.stop_circle,
+                        background: theme.danger,
+                        foreground: Colors.white,
+                        onPressed: brakeMotor,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    // STOP: active brake (PID holds vel=0)
+                    // HOLD: active brake (PID holds vel=0)
                     Expanded(
-                      flex: 2,
-                      child: SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: stopMotor,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange[800],
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text('HOLD',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1)),
-                        ),
+                      child: _ActionButton(
+                        label: 'HOLD',
+                        icon: Icons.pause_circle,
+                        background: theme.tileColor(TileColor.orange, null),
+                        foreground: theme.textColor,
+                        onPressed: stopMotor,
                       ),
                     ),
                     const SizedBox(width: 6),
                     // OFF: coast (no current)
                     Expanded(
-                      flex: 2,
-                      child: SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: coastMotor,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey[800],
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text('OFF',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 1)),
-                        ),
+                      child: _ActionButton(
+                        label: 'OFF',
+                        icon: Icons.power_settings_new,
+                        background: Colors.grey[800]!,
+                        foreground: Colors.white,
+                        onPressed: coastMotor,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -446,6 +414,50 @@ class SensorMotorScreen extends HookConsumerWidget {
 
 // ─── Bottom bar helper widgets ───────────────────────────────
 
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color background, foreground;
+  final VoidCallback onPressed;
+
+  const _ActionButton({
+    required this.label,
+    required this.icon,
+    required this.background,
+    required this.foreground,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: background,
+          foregroundColor: foreground,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 24),
+            const SizedBox(width: 6),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _BottomStat extends StatelessWidget {
   final String label, value;
   const _BottomStat(this.label, this.value);
@@ -468,18 +480,21 @@ class _BottomStat extends StatelessWidget {
   }
 }
 
-class _DoneChip extends StatelessWidget {
+class _DoneChip extends ConsumerWidget {
   final bool? done;
   const _DoneChip(this.done);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     return Container(
       width: 24,
       height: 24,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: done == true ? Colors.green[700] : Colors.grey[800],
+        color: done == true
+            ? theme.tileColor(TileColor.green, null)
+            : Colors.grey[800],
         border: Border.all(color: Colors.grey[600]!, width: 1.5),
       ),
       child: Center(
@@ -487,7 +502,7 @@ class _DoneChip extends StatelessWidget {
             ? Text('?',
                 style: TextStyle(fontSize: 12, color: Colors.grey[500]))
             : done!
-                ? const Icon(Icons.check, size: 16, color: Colors.white)
+                ? Icon(Icons.check, size: 16, color: theme.textColor)
                 : const Icon(Icons.close, size: 16, color: Colors.grey),
       ),
     );
