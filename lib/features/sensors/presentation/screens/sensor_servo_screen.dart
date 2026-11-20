@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/core/service/sensors/servo_sensor.dart';
 import 'package:stpvelox/core/transport/domain/providers.dart';
@@ -9,7 +10,7 @@ import 'package:stpvelox/features/sensors/presentation/widgets/pwm_servo_panel.d
 import 'package:stpvelox/features/sensors/presentation/widgets/servo_type_sidebar.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
 
-class SensorServoScreen extends ConsumerWidget {
+class SensorServoScreen extends HookConsumerWidget {
   final int port;
   final Sensor sensor;
 
@@ -21,12 +22,15 @@ class SensorServoScreen extends ConsumerWidget {
     final transportService = ref.watch(transportServiceProvider);
     final servoMode = ref.watch(servoModeSensorProvider(port));
 
-    // The reader's reported mode decides which panel is shown, so the screen
-    // always matches what the port really is.
-    final type = servoMode == ServoMode.bus ? ServoType.bus : ServoType.pwm;
+    // The tab is the user's choice and always switchable. Until they pick one
+    // it follows the mode the reader reports. The bus panel itself shows a
+    // "waiting for the bus servo" state while no servo answers.
+    final picked = useState<ServoType?>(null);
+    final type = picked.value ??
+        (servoMode == ServoMode.bus ? ServoType.bus : ServoType.pwm);
 
     void selectType(ServoType selected) {
-      if (selected == type) return;
+      picked.value = selected;
       // Bus: the STM32 takes the pin off the PWM timer and starts talking STS
       // (servo starts relaxed). PWM: leave bus mode with PWM still off; the
       // first slider move enables it.

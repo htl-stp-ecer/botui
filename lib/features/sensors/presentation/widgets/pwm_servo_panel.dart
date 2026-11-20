@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sleek_circular_slider/sleek_circular_slider.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/service/sensors/servo_command_sensor.dart';
 import 'package:stpvelox/core/service/sensors/servo_position_sensor.dart';
@@ -30,6 +32,10 @@ class PwmServoPanel extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    final accent = theme.tileColor(TileColor.blue, null);
+    final danger = theme.danger;
+    final warning = theme.tileColor(TileColor.orange, null);
     final transportService = ref.watch(transportServiceProvider);
     final servoPosition = ref.watch(servoPositionSensorProvider(port));
     final servoMode = ref.watch(servoModeSensorProvider(port));
@@ -141,10 +147,10 @@ class PwmServoPanel extends HookConsumerWidget {
                           ),
                           customColors: CustomSliderColors(
                             trackColor: dangerMode.value
-                                ? Colors.red.shade100
+                                ? danger.withValues(alpha: 0.35)
                                 : Colors.grey.shade300,
                             progressBarColor:
-                                dangerMode.value ? Colors.red : Colors.blue,
+                                dangerMode.value ? danger : accent,
                             dotColor: Colors.white,
                             shadowColor: Colors.grey,
                             shadowMaxOpacity: 0.0,
@@ -153,7 +159,11 @@ class PwmServoPanel extends HookConsumerWidget {
                           animationEnabled: false,
                         ),
                         innerWidget: (value) {
-                          return Column(
+                          // In normal mode the dial centre sits below the
+                          // visible area, so lift the text clear of the buttons.
+                          return Transform.translate(
+                            offset: Offset(0, dangerMode.value ? 0 : -30),
+                            child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
@@ -163,7 +173,7 @@ class PwmServoPanel extends HookConsumerWidget {
                                   fontWeight: FontWeight.bold,
                                   color: dangerMode.value &&
                                           (value > 180 || value < 0)
-                                      ? Colors.red
+                                      ? danger
                                       : null,
                                 ),
                               ),
@@ -172,7 +182,7 @@ class PwmServoPanel extends HookConsumerWidget {
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: dangerMode.value ? Colors.red : null,
+                                  color: dangerMode.value ? danger : null,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -181,7 +191,7 @@ class PwmServoPanel extends HookConsumerWidget {
                                   'CMD ${externalCommand.toStringAsFixed(1)}°',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.blue[300],
+                                    color: accent,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -201,6 +211,7 @@ class PwmServoPanel extends HookConsumerWidget {
                                 ),
                               ),
                             ],
+                            ),
                           );
                         },
                       ),
@@ -218,7 +229,8 @@ class PwmServoPanel extends HookConsumerWidget {
                   child: ElevatedButton(
                     onPressed: disableServo,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
+                      backgroundColor: danger,
+                      foregroundColor: Colors.white,
                       shape: const RoundedRectangleBorder(
                         borderRadius: BorderRadius.only(
                           topLeft: Radius.circular(12),
@@ -251,8 +263,9 @@ class PwmServoPanel extends HookConsumerWidget {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: dangerMode.value
-                          ? Colors.orange
-                          : Colors.grey.shade700,
+                          ? warning
+                          : AppTheme.disabledColor,
+                      foregroundColor: Colors.white,
                       shape: const RoundedRectangleBorder(
                         borderRadius: BorderRadius.only(
                           topRight: Radius.circular(12),

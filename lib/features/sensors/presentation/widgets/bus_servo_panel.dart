@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sleek_circular_slider/sleek_circular_slider.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/service/sensors/bus_servo_sensor.dart';
 import 'package:stpvelox/core/service/sensors/servo_sensor.dart';
 import 'package:stpvelox/core/transport/domain/providers.dart';
@@ -23,6 +25,7 @@ class BusServoPanel extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     final transport = ref.watch(transportServiceProvider);
     final servo = ref.watch(busServoSensorProvider(port));
 
@@ -173,13 +176,14 @@ class BusServoPanel extends HookConsumerWidget {
                       child: ElevatedButton(
                         onPressed: connected ? stopAndHold : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueGrey.shade700,
+                          backgroundColor: theme.tileColor(TileColor.blueGrey, null),
+                          foregroundColor: theme.textColor,
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text('HOLD',
                             style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold)),
+                                fontSize: 19, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -194,7 +198,8 @@ class BusServoPanel extends HookConsumerWidget {
                         style: TextStyle(
                             fontSize: 24, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
+                      backgroundColor: theme.danger,
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
@@ -209,7 +214,7 @@ class BusServoPanel extends HookConsumerWidget {
   }
 }
 
-class _PositionRing extends StatelessWidget {
+class _PositionRing extends ConsumerWidget {
   final double target;
   final BusServoState servo;
   final bool enabled;
@@ -225,7 +230,8 @@ class _PositionRing extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     final turns = servo.turns;
     return LayoutBuilder(builder: (context, constraints) {
       final size = constraints.biggest.shortestSide.clamp(200.0, 360.0);
@@ -248,7 +254,7 @@ class _PositionRing extends StatelessWidget {
                   trackWidth: 46, progressBarWidth: 46, handlerSize: 24),
               customColors: CustomSliderColors(
                 trackColor: Colors.grey.shade800,
-                progressBarColor: Colors.blue,
+                progressBarColor: theme.tileColor(TileColor.blue, null),
                 dotColor: Colors.white,
                 shadowColor: Colors.grey,
                 shadowMaxOpacity: 0.0,
@@ -284,17 +290,18 @@ class _PositionRing extends StatelessWidget {
   }
 }
 
-class _DoneChip extends StatelessWidget {
+class _DoneChip extends ConsumerWidget {
   final BusServoDone? done;
 
   const _DoneChip({required this.done});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     final (icon, label, color) = switch (done) {
-      BusServoDone.reached => (Icons.check_circle, 'In position', Colors.green),
-      BusServoDone.stalled => (Icons.warning_amber, 'Blocked', Colors.orange),
-      BusServoDone.running => (Icons.sync, 'Moving', Colors.blue),
+      BusServoDone.reached => (Icons.check_circle, 'In position', theme.tileColor(TileColor.green, null)),
+      BusServoDone.stalled => (Icons.warning_amber, 'Blocked', theme.tileColor(TileColor.orange, null)),
+      BusServoDone.running => (Icons.sync, 'Moving', theme.tileColor(TileColor.blue, null)),
       null => (Icons.help_outline, '--', Colors.grey),
     };
     return Row(
@@ -310,14 +317,15 @@ class _DoneChip extends StatelessWidget {
   }
 }
 
-class _StatusCard extends StatelessWidget {
+class _StatusCard extends ConsumerWidget {
   final int port;
   final BusServoState servo;
 
   const _StatusCard({required this.port, required this.servo});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     if (!servo.connected) {
       return Container(
         padding: const EdgeInsets.all(14),
@@ -381,7 +389,9 @@ class _StatusCard extends StatelessWidget {
                     value: (load.abs() / 100).clamp(0.0, 1.0),
                     minHeight: 10,
                     backgroundColor: Colors.grey[800],
-                    color: load.abs() > 80 ? Colors.orange : Colors.green,
+                    color: load.abs() > 80
+                        ? theme.tileColor(TileColor.orange, null)
+                        : theme.tileColor(TileColor.green, null),
                   ),
                 ),
               ),
@@ -401,7 +411,7 @@ class _StatusCard extends StatelessWidget {
                 for (final e in errors)
                   Chip(
                     label: Text(e, style: const TextStyle(fontSize: 12)),
-                    backgroundColor: Colors.red.shade900,
+                    backgroundColor: theme.danger,
                     visualDensity: VisualDensity.compact,
                   ),
               ],
@@ -413,7 +423,7 @@ class _StatusCard extends StatelessWidget {
   }
 }
 
-class _Metric extends StatelessWidget {
+class _Metric extends ConsumerWidget {
   final String label;
   final String value;
   final bool warn;
@@ -421,7 +431,8 @@ class _Metric extends StatelessWidget {
   const _Metric({required this.label, required this.value, this.warn = false});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,7 +442,7 @@ class _Metric extends StatelessWidget {
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: warn ? Colors.orange : null)),
+                  color: warn ? theme.tileColor(TileColor.orange, null) : null)),
         ],
       ),
     );
@@ -456,7 +467,7 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _ToggleButton extends StatelessWidget {
+class _ToggleButton extends ConsumerWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
@@ -465,7 +476,8 @@ class _ToggleButton extends StatelessWidget {
       {required this.label, required this.active, required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -473,7 +485,9 @@ class _ToggleButton extends StatelessWidget {
         height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: active ? Colors.blue : Colors.grey[850],
+          color: active
+              ? theme.tileColor(TileColor.blue, null)
+              : Colors.grey[850],
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
@@ -481,7 +495,7 @@ class _ToggleButton extends StatelessWidget {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: active ? Colors.white : Colors.grey[400],
+            color: active ? theme.textColor : Colors.grey[400],
           ),
         ),
       ),
