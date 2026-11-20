@@ -41,6 +41,10 @@
 // `textColor` is the color of icons and text on the tiles (default white).
 // `previewColor` is the color of the theme's own tile in the theme picker
 // (optional; by default the blue slot, or the first pattern color).
+// `dangerColor` is a red-like color for things that must stand out as
+// dangerous (Fully Disable, the servo slider in danger mode). Optional; by
+// default the red slot of a StandardTheme, otherwise a plain red. Set it for
+// pattern themes and single-color themes, where "red" looks like the rest.
 
 import 'package:flutter/material.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
@@ -86,6 +90,7 @@ const raccoon = PatternTheme(
   ],
   textColor: Color(0xFF2F2926),
   previewColor: Color(0xFFD99F40),
+  dangerColor: Color(0xFFB5412A), // deep rust red
 );
 
 /// Cool arctic blues with a dusky violet touch
@@ -100,6 +105,7 @@ const nordic = PatternTheme(
     Color(0xFFB7BCD3), // mist
   ],
   previewColor: Color(0xFF8076A8),
+  dangerColor: Color(0xFFBF616A), // nord red
 );
 
 /// Catppuccin Mocha pastels with dark text, repeating by position.
@@ -118,6 +124,7 @@ const catppuccin = PatternTheme(
   ],
   textColor: Color(0xFF1E1E2E), // base
   previewColor: Color(0xFFCBA6F7),
+  dangerColor: Color(0xFFF38BA8), // red
 );
 
 /// Every slot the same grey.
@@ -125,4 +132,5 @@ final monochrome = StandardTheme.single(
   id: 'monochrome',
   label: 'Monochrome',
   color: const Color(0xFF5E5E5E),
+  dangerColor: const Color(0xFFC0392B),
 );

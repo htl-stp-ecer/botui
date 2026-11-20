@@ -59,12 +59,27 @@ sealed class AppTheme {
   /// derived from the theme (the blue slot, or the first pattern color).
   final Color? previewColor;
 
+  /// A red-like color for danger things that must stand out from the other
+  /// tiles (e.g. Fully Disable, the slider in danger mode). If null, a default
+  /// is derived from the theme: the red slot of a [StandardTheme], otherwise
+  /// [fallbackDanger]. Set it for themes where red looks like everything else.
+  final Color? dangerColor;
+
   const AppTheme({
     required this.id,
     required this.label,
     this.textColor = Colors.white,
     this.previewColor,
+    this.dangerColor,
   });
+
+  static const Color fallbackDanger = Color(0xFFD32F2F);
+
+  /// The danger color of this theme (see [dangerColor]).
+  Color get danger => dangerColor ?? defaultDanger;
+
+  /// Fallback for [danger] when [dangerColor] is not set.
+  Color get defaultDanger => fallbackDanger;
 
   /// Color shown on this theme's tile in the picker.
   Color get preview => previewColor ?? defaultPreview;
@@ -103,6 +118,7 @@ class StandardTheme extends AppTheme {
     this.fallback = const Color(0xFF616161),
     super.textColor,
     super.previewColor,
+    super.dangerColor,
   });
 
   /// A theme in which every slot is the same color.
@@ -112,11 +128,15 @@ class StandardTheme extends AppTheme {
     required Color color,
     super.textColor,
     super.previewColor,
+    super.dangerColor,
   })  : colors = {for (final slot in TileColor.values) slot: color},
         fallback = color;
 
   @override
   Color get defaultPreview => colors[TileColor.blue] ?? fallback;
+
+  @override
+  Color get defaultDanger => colors[TileColor.red] ?? fallback;
 
   @override
   Color themedColor(TileColor slot, int? position) => colors[slot] ?? fallback;
@@ -133,6 +153,7 @@ class PatternTheme extends AppTheme {
     required this.pattern,
     super.textColor,
     super.previewColor,
+    super.dangerColor,
   });
 
   @override
