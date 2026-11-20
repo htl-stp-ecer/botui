@@ -247,6 +247,34 @@ class _LowBatteryIgnored extends Notifier<bool> {
   void ignore() => state = true;
 }
 
+const _lowBatteryOnBelow = 6.0;
+const _lowBatteryOffAbove = 6.1;
+
+/// True while the battery is low. Schmitt trigger: switches on below
+/// [_lowBatteryOnBelow] and only off again above [_lowBatteryOffAbove], so a
+/// voltage hovering around the threshold doesn't make the warning flicker.
+final lowBatteryProvider =
+    NotifierProvider<_LowBattery, bool>(_LowBattery.new);
+
+class _LowBattery extends Notifier<bool> {
+  @override
+  bool build() {
+    ref.listen(batteryVoltageSensorProvider, (_, next) {
+      final updated = _next(next, state);
+      if (updated != state) state = updated;
+    });
+    return _next(ref.read(batteryVoltageSensorProvider), false);
+  }
+
+  static bool _next(double? voltage, bool isLow) {
+    // 0 / null means "no reading", keep the current state.
+    if (voltage == null || voltage <= 0) return isLow;
+    if (voltage < _lowBatteryOnBelow) return true;
+    if (voltage > _lowBatteryOffAbove) return false;
+    return isLow;
+  }
+}
+
 class _AppServicesStarter extends ConsumerWidget {
   final Widget child;
 
@@ -254,11 +282,9 @@ class _AppServicesStarter extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // .select so the app shell only rebuilds when the BOOLEAN condition
-    // flips, not every voltage frame (battery publishes at ~10 Hz; a
-    // top-level rebuild per tick churns the whole subtree).
-    final isLow = ref.watch(batteryVoltageSensorProvider
-        .select((v) => v != null && v > 0 && v < 6.0));
+    // Boolean provider, so the app shell only rebuilds when the condition
+    // flips, not every voltage frame (battery publishes at ~10 Hz).
+    final isLow = ref.watch(lowBatteryProvider);
     final ignored = ref.watch(lowBatteryIgnoredProvider);
     final showWarning = isLow && !ignored;
 
