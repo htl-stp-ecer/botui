@@ -73,7 +73,7 @@ Uses BLoC pattern throughout:
 - `ProgramSelectionBloc`: Available programs list
 
 ### Special Features
-- **Battery Monitoring**: `BatteryCheckService` with low battery warnings
+- **Battery Monitoring**: `lowBatteryProvider` in `lib/main.dart` (Schmitt trigger: on below 6.0V, off above 6.1V) drives the full-screen low battery overlay
 - **Easter Egg**: Flappy Bird game controlled by digital sensor input (port 10)
 - **Responsive UI**: Grid-based dashboard optimized for 800x480 display
 - **Dark Theme**: Consistent dark theme with custom colors

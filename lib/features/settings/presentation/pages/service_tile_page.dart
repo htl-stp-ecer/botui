@@ -1,4 +1,7 @@
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:stpvelox/core/router/app_router.dart';
@@ -119,30 +122,6 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
     });
   }
 
-  Future<void> _toggleEnabled() async {
-    final serviceName = _currentService['unit'] ?? '';
-    final isActive = _currentService['active'] == 'active';
-    final action = isActive ? 'disable' : 'enable';
-
-    setState(() => _actionLoading = true);
-
-    try {
-      final result = await SudoProcess.run('systemctl', [action, serviceName]);
-      if (result.exitCode == 0) {
-        _showSnackBar('Service ${action}d on boot', Colors.green);
-        await _refreshServiceStatus();
-      } else {
-        _showSnackBar('Failed to $action service: ${result.stderr}', Colors.red);
-      }
-    } catch (e) {
-      _showSnackBar('Error: $e', Colors.red);
-    } finally {
-      if (mounted) {
-        setState(() => _actionLoading = false);
-      }
-    }
-  }
-
   void _showSnackBar(String message, Color color) {
     if (!mounted) return;
     const duration = Duration(seconds: 2);
@@ -260,7 +239,9 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
                             child: _ActionButton(
                               icon: isRunning ? Icons.stop : Icons.play_arrow,
                               label: isRunning ? 'Stop' : 'Start',
-                              color: isRunning ? Colors.red : Colors.green,
+                              slot: TileColor.green,
+                              danger: isRunning,
+                              position: 0,
                               loading: _actionLoading,
                               onPressed: _toggleService,
                             ),
@@ -270,7 +251,8 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
                             child: _ActionButton(
                               icon: Icons.restart_alt,
                               label: 'Restart',
-                              color: Colors.blue,
+                              slot: TileColor.blue,
+                              position: 1,
                               loading: _actionLoading,
                               onPressed: _restartService,
                             ),
@@ -281,7 +263,7 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
 
                     const SizedBox(height: 12),
 
-                    // Bottom row: View Logs and Enable/Disable
+                    // Bottom row: View Logs
                     Expanded(
                       child: Row(
                         children: [
@@ -289,18 +271,9 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
                             child: _ActionButton(
                               icon: Icons.article,
                               label: 'Logs',
-                              color: Colors.purple,
+                              slot: TileColor.purple,
+                              position: 2,
                               onPressed: _viewLogs,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _ActionButton(
-                              icon: isActive ? Icons.toggle_on : Icons.toggle_off,
-                              label: isActive ? 'Disable' : 'Enable',
-                              color: isActive ? Colors.orange : Colors.teal,
-                              loading: _actionLoading,
-                              onPressed: _toggleEnabled,
                             ),
                           ),
                         ],
@@ -317,31 +290,41 @@ class _ServiceTilePageState extends State<ServiceTilePage> {
   }
 }
 
-class _ActionButton extends StatelessWidget {
+class _ActionButton extends ConsumerWidget {
   final IconData icon;
   final String label;
-  final Color color;
+
+  /// Theme slot of the button; replaced by the theme's danger color if [danger].
+  final TileColor slot;
+  final bool danger;
+
+  /// Position among the buttons, for pattern themes.
+  final int position;
   final bool loading;
   final VoidCallback onPressed;
 
   const _ActionButton({
     required this.icon,
     required this.label,
-    required this.color,
+    required this.slot,
+    required this.position,
+    this.danger = false,
     this.loading = false,
     required this.onPressed,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: loading ? null : onPressed,
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color, width: 2),
-        ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    final color = danger ? theme.danger : theme.tileColor(slot, position);
+    final fg = theme.textColor;
+
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: loading ? null : onPressed,
+        borderRadius: BorderRadius.circular(16),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -349,17 +332,17 @@ class _ActionButton extends StatelessWidget {
               SizedBox(
                 width: 36,
                 height: 36,
-                child: CircularProgressIndicator(strokeWidth: 3, color: color),
+                child: CircularProgressIndicator(strokeWidth: 3, color: fg),
               )
             else
-              Icon(icon, size: 36, color: color),
+              Icon(icon, size: 36, color: fg),
             const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
-                color: color,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+                color: fg,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],

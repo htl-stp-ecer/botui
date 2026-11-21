@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
-class DualSensorGraphWidget extends StatelessWidget {
+class DualSensorGraphWidget extends ConsumerWidget {
   final List<double> imuData;
   final List<double> imuMovingAvg;
   final List<double> cpuData;
@@ -24,7 +27,11 @@ class DualSensorGraphWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    // IMU is series 0, CPU is series 1 (pattern themes: pattern[0], pattern[1]).
+    final imuColor = theme.tileColor(TileColor.cyan, 0);
+    final cpuColor = theme.tileColor(TileColor.orange, 1);
     final effectiveMin = autoScale ? _computeMin() : graphMin;
     final effectiveMax = autoScale ? _computeMax() : graphMax;
 
@@ -92,25 +99,25 @@ class DualSensorGraphWidget extends StatelessWidget {
             // IMU raw data line
             _buildLineChartBarData(
               imuData,
-              Colors.cyan.withValues(alpha: 0.3),
+              imuColor.withValues(alpha: 0.3),
               1.5,
             ),
             // IMU moving average line
             _buildLineChartBarData(
               imuMovingAvg,
-              Colors.cyan,
+              imuColor,
               2.5,
             ),
             // CPU raw data line
             _buildLineChartBarData(
               cpuData,
-              Colors.orange.withValues(alpha: 0.3),
+              cpuColor.withValues(alpha: 0.3),
               1.5,
             ),
             // CPU moving average line
             _buildLineChartBarData(
               cpuMovingAvg,
-              Colors.orange,
+              cpuColor,
               2.5,
             ),
           ],
@@ -123,10 +130,10 @@ class DualSensorGraphWidget extends StatelessWidget {
                   Color color;
                   if (spot.barIndex == 0 || spot.barIndex == 1) {
                     label = 'IMU: ${spot.y.toStringAsFixed(2)}°C';
-                    color = Colors.cyan;
+                    color = imuColor;
                   } else {
                     label = 'CPU: ${spot.y.toStringAsFixed(2)}°C';
-                    color = Colors.orange;
+                    color = cpuColor;
                   }
                   return LineTooltipItem(
                     label,

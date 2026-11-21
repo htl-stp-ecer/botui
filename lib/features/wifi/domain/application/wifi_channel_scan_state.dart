@@ -4,7 +4,7 @@ import 'package:stpvelox/features/wifi/domain/enities/wifi_channel_scan.dart';
 class WifiChannelScanState {
   const WifiChannelScanState({
     this.isLoading = false,
-    this.selectedBand = WifiBand.bandAuto,
+    this.selectedBand = WifiBand.band2_4GHz,
     this.scan,
     this.errorMessage,
   });

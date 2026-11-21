@@ -2,8 +2,11 @@ import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 
-class SensorGraphWidget extends StatelessWidget {
+class SensorGraphWidget extends ConsumerWidget {
   final List<double> data;
   final List<double> movingAvg;
   final double graphMin;
@@ -22,7 +25,12 @@ class SensorGraphWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
+    // Series i gets position i: standard themes use the slot, pattern themes
+    // the i-th pattern color.
+    final rawColor = theme.tileColor(TileColor.blue, 0);
+    final avgColor = theme.tileColor(TileColor.orange, 1);
     if (data.isEmpty) {
       return const Center(
         child: Text("Fetching data...",
@@ -53,7 +61,7 @@ class SensorGraphWidget extends StatelessWidget {
           gridData: _buildGridData(minY, maxY),
           titlesData: _buildTitlesData(minY, maxY),
           borderData: _buildBorderData(),
-          lineBarsData: _buildLineBarsData(rawSpots, maSpots),
+          lineBarsData: _buildLineBarsData(rawSpots, maSpots, rawColor, avgColor),
           lineTouchData: _buildTouchData(),
         ),
       ),
@@ -146,27 +154,27 @@ class SensorGraphWidget extends StatelessWidget {
     );
   }
 
-  List<LineChartBarData> _buildLineBarsData(
-      List<FlSpot> rawSpots, List<FlSpot> maSpots) {
+  List<LineChartBarData> _buildLineBarsData(List<FlSpot> rawSpots,
+      List<FlSpot> maSpots, Color rawColor, Color avgColor) {
     return [
       LineChartBarData(
         spots: rawSpots,
         isCurved: true,
-        color: Colors.blueAccent,
+        color: rawColor,
         barWidth: 2,
         isStrokeCapRound: true,
         preventCurveOverShooting: true,
         dotData: const FlDotData(show: false),
         belowBarData: BarAreaData(
           show: true,
-          color: Colors.blueAccent.withOpacity(0.08),
+          color: rawColor.withValues(alpha: 0.08),
         ),
       ),
       if (movingAvg.isNotEmpty)
         LineChartBarData(
           spots: maSpots,
           isCurved: true,
-          color: Colors.orangeAccent,
+          color: avgColor,
           barWidth: 2,
           isStrokeCapRound: true,
           preventCurveOverShooting: true,

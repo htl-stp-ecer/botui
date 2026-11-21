@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/features/sensors/presentation/services/sensor_data_processor.dart';
 import 'package:stpvelox/features/sensors/presentation/widgets/density_chart_widget.dart';
 
-class SensorMetricsPanel extends StatelessWidget {
+class SensorMetricsPanel extends ConsumerWidget {
   final SensorStatistics statistics;
   final List<double> data;
   final double? currentValue;
@@ -23,7 +26,8 @@ class SensorMetricsPanel extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accent = ref.watch(colorThemeProvider).tileColor(TileColor.blue, 0);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
@@ -97,10 +101,10 @@ class SensorMetricsPanel extends StatelessWidget {
                   Expanded(
                     child: SliderTheme(
                       data: SliderThemeData(
-                        activeTrackColor: Colors.blueAccent,
+                        activeTrackColor: accent,
                         inactiveTrackColor: Colors.grey[800],
-                        thumbColor: Colors.blueAccent,
-                        overlayColor: Colors.blueAccent.withOpacity(0.2),
+                        thumbColor: accent,
+                        overlayColor: accent.withValues(alpha: 0.2),
                         trackHeight: 4,
                         thumbShape: const RoundSliderThumbShape(
                           enabledThumbRadius: 10,

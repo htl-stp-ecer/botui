@@ -128,7 +128,8 @@ class _ControlBar extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final band in WifiBand.values)
+                // No Auto: both bands side by side are too narrow for the chart.
+                for (final band in const [WifiBand.band2_4GHz, WifiBand.band5GHz])
                   ChoiceChip(
                     label: Text(band.displayName),
                     selected: selectedBand == band,

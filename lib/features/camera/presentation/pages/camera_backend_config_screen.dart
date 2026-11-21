@@ -9,6 +9,7 @@ import 'package:stpvelox/core/widgets/themed_field.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/camera/application/camera_backend_form.dart';
 import 'package:stpvelox/features/camera/domain/camera_models.dart';
+import 'package:stpvelox/features/camera/presentation/widgets/retry_button.dart';
 
 /// Choose the camera backend (built-in or from a project) and set its options.
 /// A vertical stack: the backend on top, its options below, Save and Reset.
@@ -165,7 +166,7 @@ class _Failure extends StatelessWidget {
             style: const TextStyle(color: Colors.white70, fontSize: 16),
           ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: onRetry, child: const Text('Try again')),
+          RetryButton(onPressed: onRetry),
         ],
       ),
     );
