@@ -20,9 +20,7 @@ class _ScreenRotationScreenState extends State<ScreenRotationScreen> {
 
   static const _rotationOptions = [
     (rotation: 0, label: '0°'),
-    (rotation: 90, label: '90°'),
     (rotation: 180, label: '180°'),
-    (rotation: 270, label: '270°'),
   ];
 
   @override
