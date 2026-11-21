@@ -106,17 +106,13 @@ class SystemHealthGraphScreen extends HookConsumerWidget {
         context,
         '${metric.title} Graph',
         actions: [
-          SizedBox(
-            width: 56,
-            height: 56,
-            child: IconButton(
-              icon: Icon(
-                frozen.value ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                color: Colors.white,
-                size: 32,
-              ),
-              onPressed: () => frozen.value = !frozen.value,
+          IconButton(
+            icon: Icon(
+              frozen.value ? Icons.play_arrow_rounded : Icons.pause_rounded,
+              color: Colors.white,
+              size: 32,
             ),
+            onPressed: () => frozen.value = !frozen.value,
           ),
           AutoScaleAction(
             value: autoScale.value,

@@ -114,7 +114,6 @@ class SensorCategoryScreen extends ConsumerWidget {
       actions.add(const SizedBox(width: 14));
       if (accuracyType != null) {
         actions.add(ImuAccuracyDisplay(type: accuracyType));
-        actions.add(const SizedBox(width: 14));
       }
     }
 

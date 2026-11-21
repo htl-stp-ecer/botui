@@ -8,17 +8,14 @@ class BatteryStatus extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final batteryVoltage = useBatteryVoltage(ref) ?? 0.0;
-
-    if (batteryVoltage <= 0) {
-      return const SizedBox.shrink();
-    }
+    final available = batteryVoltage > 0;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 8.0, 0),
+      padding: const EdgeInsets.fromLTRB(16.0, 0, 8.0, 0),
       child: Row(
         children: [
           Text(
-            '${batteryVoltage.toStringAsFixed(2)}V',
+            available ? '${batteryVoltage.toStringAsFixed(2)}V' : 'N/A',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 20,

@@ -83,7 +83,7 @@ class _PortBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final connected = status.boardConnected;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.only(left: 12),
       child: Row(
         children: [
           Icon(

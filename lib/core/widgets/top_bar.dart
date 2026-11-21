@@ -7,8 +7,21 @@ AppBar createTopBar(BuildContext context, String title,
     Widget? trailing,
     Widget? center,
     VoidCallback? onBack}) {
-  actions ??= [];
-  actions.add(const BatteryStatus());
+  // Larger touch/hover area for all icon buttons in the bar (the Wombat's
+  // touchscreen is hard to hit precisely). The distance to the battery
+  // voltage is provided by BatteryStatus itself.
+  final iconTheme = Theme.of(context).copyWith(
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        minimumSize: const Size(56, 56),
+        fixedSize: const Size(56, 56),
+      ),
+    ),
+  );
+  actions = [
+    for (final a in actions ?? const <Widget>[]) Theme(data: iconTheme, child: a),
+    const BatteryStatus(),
+  ];
   final handleBack = onBack ?? () => context.pop();
   return AppBar(
     backgroundColor: Colors.grey[900],
