@@ -160,14 +160,27 @@ class BusServoPanel extends HookConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Slider(
-                        min: -_maxSpinSpeed,
-                        max: _maxSpinSpeed,
-                        divisions: 24,
-                        value: spinSpeed.value,
-                        onChanged:
-                            connected ? (v) => spinSpeed.value = v : null,
-                        onChangeEnd: connected ? spin : null,
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor:
+                              theme.tileColor(TileColor.blue, null),
+                          inactiveTrackColor: Colors.grey.shade800,
+                          thumbColor: theme.tileColor(TileColor.blue, null),
+                          activeTickMarkColor: Colors.transparent,
+                          inactiveTickMarkColor: Colors.transparent,
+                          overlayColor: theme
+                              .tileColor(TileColor.blue, null)
+                              .withValues(alpha: 0.2),
+                        ),
+                        child: Slider(
+                          min: -_maxSpinSpeed,
+                          max: _maxSpinSpeed,
+                          divisions: 24,
+                          value: spinSpeed.value,
+                          onChanged:
+                              connected ? (v) => spinSpeed.value = v : null,
+                          onChangeEnd: connected ? spin : null,
+                        ),
                       ),
                     ),
                     SizedBox(
@@ -390,7 +403,7 @@ class _StatusCard extends ConsumerWidget {
                     minHeight: 10,
                     backgroundColor: Colors.grey[800],
                     color: load.abs() > 80
-                        ? theme.tileColor(TileColor.orange, null)
+                        ? theme.danger
                         : theme.tileColor(TileColor.green, null),
                   ),
                 ),

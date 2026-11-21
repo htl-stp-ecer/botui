@@ -299,14 +299,15 @@ class _DigitalSensorTile extends ConsumerWidget {
   }
 }
 
-class _CategoryActionButton extends StatelessWidget {
+class _CategoryActionButton extends ConsumerWidget {
   final String label;
   final VoidCallback onPressed;
 
   const _CategoryActionButton({required this.label, required this.onPressed});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: SizedBox(
@@ -315,7 +316,8 @@ class _CategoryActionButton extends StatelessWidget {
         child: ElevatedButton(
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.redAccent,
+            backgroundColor: theme.danger,
+            foregroundColor: Colors.white,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
