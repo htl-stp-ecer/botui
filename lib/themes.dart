@@ -102,7 +102,7 @@ const nordic = PatternTheme(
     Color(0xFF5E81AC), // fjord
     Color(0xFF8076A8), // dusk
     Color(0xFF81A1C1), // frost
-    Color(0xFFB7BCD3), // mist
+    Color(0xFF715B84), // violet
   ],
   previewColor: Color(0xFF8076A8),
   dangerColor: Color(0xFFBF616A), // nord red
