@@ -1,9 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/theme/color_theme_provider.dart';
+import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/features/sensors/presentation/services/sensor_data_processor.dart';
 
-class DensityChartWidget extends StatelessWidget {
+class DensityChartWidget extends ConsumerWidget {
   final List<double> data;
   final SensorStatistics statistics;
   final int binCount;
@@ -16,7 +19,8 @@ class DensityChartWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = ref.watch(colorThemeProvider);
     if (data.length < 3) {
       return SizedBox(
         height: 80,
@@ -37,6 +41,9 @@ class DensityChartWidget extends StatelessWidget {
           data: data,
           stats: statistics,
           binCount: binCount,
+          // Position 0/1 keep the bars and the curve apart in pattern themes.
+          barColor: theme.tileColor(TileColor.blue, 0),
+          curveColor: theme.tileColor(TileColor.orange, 1),
         ),
       ),
     );
@@ -47,11 +54,15 @@ class _DensityPainter extends CustomPainter {
   final List<double> data;
   final SensorStatistics stats;
   final int binCount;
+  final Color barColor;
+  final Color curveColor;
 
   _DensityPainter({
     required this.data,
     required this.stats,
     required this.binCount,
+    required this.barColor,
+    required this.curveColor,
   });
 
   @override
@@ -77,7 +88,7 @@ class _DensityPainter extends CustomPainter {
 
     // Draw histogram bars
     final barPaint = Paint()
-      ..color = Colors.blueAccent.withValues(alpha: 0.4)
+      ..color = barColor.withValues(alpha: 0.4)
       ..style = PaintingStyle.fill;
 
     for (int i = 0; i < binCount; i++) {
@@ -115,7 +126,7 @@ class _DensityPainter extends CustomPainter {
     }
 
     final gaussPaint = Paint()
-      ..color = Colors.orangeAccent
+      ..color = curveColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -125,5 +136,7 @@ class _DensityPainter extends CustomPainter {
   @override
   bool shouldRepaint(_DensityPainter oldDelegate) =>
       data.length != oldDelegate.data.length ||
-      stats.average != oldDelegate.stats.average;
+      stats.average != oldDelegate.stats.average ||
+      barColor != oldDelegate.barColor ||
+      curveColor != oldDelegate.curveColor;
 }
