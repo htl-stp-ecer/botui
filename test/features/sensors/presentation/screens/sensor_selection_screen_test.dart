@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stpvelox/features/sensors/presentation/screens/sensor_selection_screen.dart';
 
-import '../../../../helpers/fake_lcm.dart';
+import '../../../../helpers/fake_transport.dart';
 import '../../../../helpers/pump_app.dart';
 
 void main() {
@@ -11,7 +11,7 @@ void main() {
   testWidgets('renders one tile per non-IMU category plus a combined IMU tile',
       (tester) async {
     await pumpScreen(tester, const SensorSelectionScreen(),
-        overrides: fakeLcmOverrides());
+        overrides: fakeTransportOverrides());
 
     // Categories rendered as their own tiles (non-IMU):
     expect(find.text('Analog'), findsOneWidget);
@@ -32,7 +32,7 @@ void main() {
     await pumpScreen(
       tester,
       const SensorSelectionScreen(),
-      overrides: fakeLcmOverrides(),
+      overrides: fakeTransportOverrides(),
       settle: false,
     );
     // Before pumpAndSettle the FutureProvider is in loading state.

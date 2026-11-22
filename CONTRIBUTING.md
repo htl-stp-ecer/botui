@@ -47,7 +47,7 @@ lib/
 │       │   ├── repositories/ # Abstract interfaces
 │       │   └── usecases/    # Business logic
 │       ├── data/
-│       │   ├── datasource/  # LCM subscriptions, file system, NetworkManager
+│       │   ├── datasource/  # transport subscriptions, file system, NetworkManager
 │       │   └── repositories/ # Concrete repository implementations
 │       └── presentation/
 │           ├── screens/     # Full-page widgets
@@ -123,9 +123,9 @@ Register the screen in `lib/core/router/` and add a navigation entry to the dash
 
 ---
 
-## Hardware data (LCM)
+## Hardware data (transport)
 
-Sensor values, motor state, and IMU readings come in via LCM through `raccoon-transport`. Data sources in `data/datasource/` subscribe to LCM channels and expose streams. See `features/sensors/data/datasource/sensors_remote_data_source.dart` for an example.
+Sensor values, motor state, and IMU readings come in through `raccoon-transport`. Data sources in `data/datasource/` subscribe to the channels of its channel table (the generated Dart `channels`, for example `channels.hardware.imu.state.gyro`) and expose streams. See `features/sensors/data/datasource/sensors_remote_data_source.dart` for an example.
 
 ---
 

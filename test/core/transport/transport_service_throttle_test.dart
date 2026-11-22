@@ -4,27 +4,27 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
-import 'package:stpvelox/core/lcm/domain/services/lcm_service.dart';
-import 'package:stpvelox/core/lcm/models/lcm_decoded.dart';
+import 'package:stpvelox/core/transport/domain/services/transport_service.dart';
+import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 
-/// Subclasses [LcmService] and replaces [subscribe] with an in-memory
+/// Subclasses [TransportService] and replaces [subscribe] with an in-memory
 /// broadcast stream so tests run without a real RaccoonTransport.
 /// [subscribeAs] (which contains the throttle + decode under test) is
 /// inherited unchanged.
-class _FakeLcmService extends LcmService {
-  final Map<String, StreamController<LcmDecodedRaw>> controllers = {};
+class _FakeTransportService extends TransportService {
+  final Map<String, StreamController<TransportDecodedRaw>> controllers = {};
 
   @override
-  Stream<LcmDecodedRaw> subscribe(String channel,
+  Stream<TransportDecodedRaw> subscribe(String channel,
       ) {
     return controllers
         .putIfAbsent(channel,
-            () => StreamController<LcmDecodedRaw>.broadcast())
+            () => StreamController<TransportDecodedRaw>.broadcast())
         .stream;
   }
 
   void emit(String channel) {
-    controllers[channel]?.add(LcmDecodedRaw(
+    controllers[channel]?.add(TransportDecodedRaw(
       topic: channel,
       utime: 0,
       data: Uint8List(0),
@@ -37,7 +37,7 @@ int _decode(_) => 0;
 void main() {
   test('subscribeAs throttle caps emission rate to ~60Hz under 200Hz input',
       () async {
-    final fake = _FakeLcmService();
+    final fake = _FakeTransportService();
 
     var throttled = 0;
     var baseline = 0;
@@ -79,14 +79,14 @@ void main() {
   testWidgets(
       'StreamBuilder rebuild count tracks throttled emission rate',
       (tester) async {
-    final fake = _FakeLcmService();
+    final fake = _FakeTransportService();
     final stream = fake.subscribeAs<int>('gyro-ish', _decode,
         throttle: kUiSensorSampleRate);
 
     var rebuilds = 0;
     await tester.pumpWidget(
       MaterialApp(
-        home: StreamBuilder<LcmDecoded<int>>(
+        home: StreamBuilder<TransportDecoded<int>>(
           stream: stream,
           builder: (context, snapshot) {
             rebuilds++;
@@ -122,7 +122,7 @@ void main() {
 
   test('subscribe releases broadcast controller when last listener cancels',
       () async {
-    final fake = _FakeLcmService();
+    final fake = _FakeTransportService();
     final stream = fake.subscribe('release-me');
     final controller = fake.controllers['release-me']!;
 

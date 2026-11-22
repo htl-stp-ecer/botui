@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stpvelox/features/wifi/presentation/pages/wifi_menu_screen.dart';
 
-import '../../../../helpers/fake_lcm.dart';
+import '../../../../helpers/fake_transport.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -27,9 +27,9 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        // The top bar's BatteryStatus indirectly reads lcmServiceProvider;
-        // without an override it tries to dlopen the raccoon_ring bridge.
-        overrides: fakeLcmOverrides(),
+        // The top bar's BatteryStatus indirectly reads transportServiceProvider;
+        // without an override it tries to dlopen the transport bridge.
+        overrides: fakeTransportOverrides(),
         child: const MaterialApp(
           home: WifiMenuScreen(),
         ),
