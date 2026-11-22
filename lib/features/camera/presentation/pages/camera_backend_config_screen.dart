@@ -353,16 +353,26 @@ class _OptionField extends StatelessWidget {
         current is List &&
         current.every((entry) => entry is String)) {
       final picked = current.cast<String>();
+      // Compact chips: the default height of a chip and its tap target would make seven of them two rows.
       return InputDecorator(
-        decoration: _decoration(),
+        decoration: _decoration().copyWith(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
         child: Wrap(
-          spacing: 8,
+          spacing: 6,
           runSpacing: 4,
+          alignment: WrapAlignment.start,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             for (final name in offered)
               FilterChip(
-                label: Text(name),
+                label: Text(name, style: const TextStyle(fontSize: 13)),
                 selected: picked.contains(name),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+                padding: EdgeInsets.zero,
+                showCheckmark: false,
                 onSelected: (on) => onChanged([
                   for (final other in offered)
                     if (other == name ? on : picked.contains(other)) other,
