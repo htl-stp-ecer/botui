@@ -123,7 +123,7 @@ def main() -> None:
         fail("docker not found.")
     if not os.environ.get("DISPLAY"):
         fail("DISPLAY is not set. This needs an X11 display (Wayland sessions have XWayland).")
-    if not (ROOT / CPP_DIR / "bridge" / "build.sh").is_file():
+    if not (ROOT / TRANSPORT_DIR / "cpp" / "bridge" / "build.sh").is_file():
         fail("packages/raccoon-transport is empty. Run `git submodule update --init`.")
 
     image = args.image
