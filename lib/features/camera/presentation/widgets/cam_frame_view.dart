@@ -184,6 +184,9 @@ class CamBoundingBoxPainter extends CustomPainter {
     Colors.pink,
   ];
 
+  /// The colour of a detection from the wire (ARGB, 0: the processor set none), or null.
+  static Color? detectionColor(int argb) => argb == 0 ? null : Color(argb & 0xFFFFFFFF);
+
   @override
   void paint(Canvas canvas, Size size) {
     if (detections.isEmpty || frameWidth <= 0 || frameHeight <= 0) return;
@@ -198,7 +201,9 @@ class CamBoundingBoxPainter extends CustomPainter {
 
     for (int i = 0; i < detections.length; i++) {
       final det = detections[i];
-      final color = _colorMap[det.label.toLowerCase()] ??
+      // The processor's own colour first, then one by the name of the label, then one by position.
+      final color = detectionColor(det.color) ??
+          _colorMap[det.label.toLowerCase()] ??
           _fallbackColors[i % _fallbackColors.length];
 
       final rect = boxRect(det, picture);
@@ -210,7 +215,7 @@ class CamBoundingBoxPainter extends CustomPainter {
       canvas.drawRect(rect, boxPaint);
 
       final label =
-          '${det.label}: ${det.confidence.toStringAsFixed(2)} (${det.area})';
+          '${det.label}: ${det.confidence.toStringAsFixed(2)} (${det.area.round()})';
       final textPainter = TextPainter(
         text: TextSpan(
           text: label,

@@ -55,4 +55,12 @@ void main() {
       expect(rect, const Rect.fromLTWH(320, 60, 160, 120));
     });
   });
+
+  test('the colour of a detection is the one the processor set, or none', () {
+    expect(CamBoundingBoxPainter.detectionColor(0), isNull);
+    expect(CamBoundingBoxPainter.detectionColor(0xFFFF3B30 - (1 << 32)),
+        const Color(0xFFFF3B30)); // the wire carries ARGB as a signed 32-bit integer
+    expect(CamBoundingBoxPainter.detectionColor(0xFF00FF00 - (1 << 32)),
+        const Color(0xFF00FF00));
+  });
 }
