@@ -184,6 +184,9 @@ class WidgetDecoder {
           onTap: json['tappable'] as bool? ?? false
               ? (x, y) => onValueChanged(camId, {'x': x, 'y': y})
               : null,
+          width: (json['width'] as num?)?.toDouble(),
+          height: (json['height'] as num?)?.toDouble(),
+          fit: json['fit'] == 'cover' ? BoxFit.cover : BoxFit.contain,
         );
 
       // Layout widgets

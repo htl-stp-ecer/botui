@@ -15,11 +15,19 @@ class CamFrameView extends StatefulWidget {
   /// Where the picture sits if its shape is not the box's.
   final Alignment alignment;
 
+  /// How the picture fills the box: [BoxFit.contain] shows all of it, [BoxFit.cover] fills the box.
+  final BoxFit fit;
+
+  /// Draw the detections over the picture.
+  final bool showDetections;
+
   const CamFrameView({
     super.key,
     required this.frame,
     this.detections,
     this.alignment = Alignment.center,
+    this.fit = BoxFit.contain,
+    this.showDetections = true,
   });
 
   @override
@@ -71,7 +79,7 @@ class _CamFrameViewState extends State<CamFrameView> {
             width: constraints.maxWidth,
             height: constraints.maxHeight,
             alignment: widget.alignment,
-            fit: BoxFit.contain,
+            fit: widget.fit,
             filterQuality: FilterQuality.low,
             cacheWidth: (constraints.maxWidth * devicePixelRatio)
                 .round()
@@ -97,30 +105,60 @@ class _CamFrameViewState extends State<CamFrameView> {
           ),
           ),
         ),
-        Positioned.fill(
-          child: CustomPaint(
-            painter: CamBoundingBoxPainter(
-              detections: allDetections,
-              frameWidth: widget.frame.data.frame_width,
-              frameHeight: widget.frame.data.frame_height,
+        if (widget.showDetections)
+          Positioned.fill(
+            child: CustomPaint(
+              painter: CamBoundingBoxPainter(
+                detections: allDetections,
+                frameWidth: widget.frame.data.frame_width,
+                frameHeight: widget.frame.data.frame_height,
+                fit: widget.fit,
+                alignment: widget.alignment,
+              ),
             ),
           ),
-        ),
       ],
     );
   }
 }
 
+/// Draws the detections over a picture that is shown with [fit] and [alignment] in a box.
+///
+/// A detection (raccoon-cam) has its centre `x`, `y` and its size `width`, `height` as fractions of the
+/// frame, 0 to 1. They are placed on the picture as it is shown, not on the box: with
+/// [BoxFit.contain] there are bars beside it, with [BoxFit.cover] part of it is cut off.
 class CamBoundingBoxPainter extends CustomPainter {
   final List<CamBlobT> detections;
   final int frameWidth;
   final int frameHeight;
+  final BoxFit fit;
+  final Alignment alignment;
 
   CamBoundingBoxPainter({
     required this.detections,
     required this.frameWidth,
     required this.frameHeight,
+    this.fit = BoxFit.contain,
+    this.alignment = Alignment.center,
   });
+
+  /// Where the picture of [frame] size is, when it is shown in a box of [box] size.
+  static Rect pictureRect(Size frame, Size box, BoxFit fit, Alignment alignment) {
+    final fitted = applyBoxFit(fit, frame, box);
+    return alignment.inscribe(fitted.destination, Offset.zero & box);
+  }
+
+  /// The rectangle of [det] (fractions of the frame) on a picture that is at [picture].
+  static Rect boxRect(CamBlobT det, Rect picture) {
+    return Rect.fromCenter(
+      center: Offset(
+        picture.left + det.x * picture.width,
+        picture.top + det.y * picture.height,
+      ),
+      width: det.width * picture.width,
+      height: det.height * picture.height,
+    );
+  }
 
   static const Map<String, Color> _colorMap = {
     'red': Colors.red,
@@ -150,20 +188,20 @@ class CamBoundingBoxPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (detections.isEmpty || frameWidth <= 0 || frameHeight <= 0) return;
 
-    final sx = size.width / frameWidth;
-    final sy = size.height / frameHeight;
+    canvas.clipRect(Offset.zero & size);  // with BoxFit.cover the picture is larger than the box
+    final picture = pictureRect(
+      Size(frameWidth.toDouble(), frameHeight.toDouble()),
+      size,
+      fit,
+      alignment,
+    );
 
     for (int i = 0; i < detections.length; i++) {
       final det = detections[i];
       final color = _colorMap[det.label.toLowerCase()] ??
           _fallbackColors[i % _fallbackColors.length];
 
-      final rect = Rect.fromLTWH(
-        det.x * sx,
-        det.y * sy,
-        det.width * sx,
-        det.height * sy,
-      );
+      final rect = boxRect(det, picture);
 
       final boxPaint = Paint()
         ..color = color
@@ -206,6 +244,8 @@ class CamBoundingBoxPainter extends CustomPainter {
   bool shouldRepaint(covariant CamBoundingBoxPainter oldDelegate) {
     return oldDelegate.detections != detections ||
         oldDelegate.frameWidth != frameWidth ||
-        oldDelegate.frameHeight != frameHeight;
+        oldDelegate.frameHeight != frameHeight ||
+        oldDelegate.fit != fit ||
+        oldDelegate.alignment != alignment;
   }
 }
