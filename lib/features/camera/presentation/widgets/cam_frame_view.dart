@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
 import 'package:stpvelox/features/camera/application/cam_provider.dart';
+import 'package:stpvelox/features/camera/presentation/widgets/uncached_memory_image.dart';
 
 /// One camera frame (JPEG) with the detections drawn over it. Shared by the
 /// camera viewer and the preview in the camera menu.
@@ -65,13 +66,12 @@ class _CamFrameViewState extends State<CamFrameView> {
         // small and floats in the middle of the box.
         Positioned.fill(
           child: LayoutBuilder(
-          builder: (context, constraints) => Image.memory(
-            imageData,
+          builder: (context, constraints) => UncachedMemoryImage(
+            bytes: imageData,
             width: constraints.maxWidth,
             height: constraints.maxHeight,
             alignment: widget.alignment,
             fit: BoxFit.contain,
-            gaplessPlayback: true,
             filterQuality: FilterQuality.low,
             cacheWidth: (constraints.maxWidth * devicePixelRatio)
                 .round()

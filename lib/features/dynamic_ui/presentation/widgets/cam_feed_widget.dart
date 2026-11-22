@@ -2,15 +2,16 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/features/camera/application/cam_provider.dart';
+import 'package:stpvelox/features/camera/presentation/widgets/uncached_memory_image.dart';
 
 /// Inline camera feed widget for use in dynamic UI screens.
 ///
 /// The LCM-generated `CamFrameT.frame_data` is a `List<int>` of boxed
 /// Dart ints. Converting to `Uint8List` is the expensive part — we do
 /// it once per fresh frame here (keyed by timestamp), not on every
-/// widget rebuild like the original code did. `Image.memory` itself
-/// has internal caching by byte identity, so feeding the same
-/// `Uint8List` across rebuilds avoids re-decoding the JPEG.
+/// widget rebuild like the original code did. `UncachedMemoryImage` decodes
+/// a `Uint8List` once and keeps no copy in the image cache, so feeding the
+/// same `Uint8List` across rebuilds avoids re-decoding the JPEG.
 class CamFeedWidget extends ConsumerStatefulWidget {
   final String id;
   final bool showFps;
@@ -103,10 +104,9 @@ class _CamFeedWidgetState extends ConsumerState<CamFeedWidget> {
                 children: [
                   Container(
                     color: Colors.black,
-                    child: Image.memory(
-                      imageData,
+                    child: UncachedMemoryImage(
+                      bytes: imageData,
                       fit: BoxFit.contain,
-                      gaplessPlayback: true,
                       filterQuality: FilterQuality.low,
                       cacheWidth: (constraints.maxWidth * devicePixelRatio)
                           .round()
