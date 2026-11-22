@@ -268,13 +268,13 @@ class _OptionField extends StatelessWidget {
     return '${option.name}$unit${option.required ? ' *' : ''}';
   }
 
-  InputDecoration _decoration({String? label, IconData icon = Icons.tune_rounded}) {
+  InputDecoration _decoration({String? label, IconData icon = Icons.tune_rounded, bool hint = true}) {
     return themedFieldDecoration(
       theme,
       index,
       label: label ?? _label,
       icon: icon,
-      hint: option.description.isEmpty ? null : option.description,
+      hint: !hint || option.description.isEmpty ? null : option.description,
     ).copyWith(errorText: error);
   }
 
@@ -353,25 +353,18 @@ class _OptionField extends StatelessWidget {
         current is List &&
         current.every((entry) => entry is String)) {
       final picked = current.cast<String>();
-      // Chips of a normal size to tap, without the extra tap target around each (the field is 48 px high anyway).
+      // No hint: an InputDecorator lays its hint out even when it is not shown, and the description of
+      // the option is long, so it made the field three times as high as its chips.
       return InputDecorator(
-        decoration: _decoration().copyWith(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        ),
+        decoration: _decoration(hint: false),
         child: Wrap(
           spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.start,
-          crossAxisAlignment: WrapCrossAlignment.center,
+          runSpacing: 4,
           children: [
             for (final name in offered)
               FilterChip(
-                label: Text(name, style: const TextStyle(fontSize: 15)),
+                label: Text(name),
                 selected: picked.contains(name),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                showCheckmark: false,
                 onSelected: (on) => onChanged([
                   for (final other in offered)
                     if (other == name ? on : picked.contains(other)) other,
