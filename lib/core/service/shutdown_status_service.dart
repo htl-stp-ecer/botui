@@ -10,14 +10,10 @@ import 'package:raccoon_transport/raccoon_transport.dart';
 
 part 'shutdown_status_service.g.dart';
 
-/// Shutdown flags bitmask constants
+/// Flags of the motor latch (`hardware/latch/state/flags`). Bit 0 is reserved.
 class ShutdownFlags {
-  static const int servoShutdown = 0x01; // bit 0
   static const int motorShutdown = 0x02; // bit 1
   static const int watchdogTriggered = 0x04; // bit 2 — source = heartbeat watchdog
-
-  /// Check if servo shutdown is enabled
-  static bool isServoShutdown(int flags) => (flags & servoShutdown) != 0;
 
   /// Check if motor shutdown is enabled
   static bool isMotorShutdown(int flags) => (flags & motorShutdown) != 0;
@@ -32,25 +28,21 @@ class ShutdownFlags {
 
 /// Current shutdown status state
 class ShutdownStatus {
-  final bool servoShutdown;
   final bool motorShutdown;
   final bool triggeredByWatchdog;
 
   const ShutdownStatus({
-    this.servoShutdown = false,
     this.motorShutdown = false,
     this.triggeredByWatchdog = false,
   });
 
-  bool get isAnyShutdown => servoShutdown || motorShutdown;
+  bool get isAnyShutdown => motorShutdown;
 
   ShutdownStatus copyWith({
-    bool? servoShutdown,
     bool? motorShutdown,
     bool? triggeredByWatchdog,
   }) {
     return ShutdownStatus(
-      servoShutdown: servoShutdown ?? this.servoShutdown,
       motorShutdown: motorShutdown ?? this.motorShutdown,
       triggeredByWatchdog: triggeredByWatchdog ?? this.triggeredByWatchdog,
     );
@@ -58,7 +50,7 @@ class ShutdownStatus {
 
   @override
   String toString() =>
-      'ShutdownStatus(servo: $servoShutdown, motor: $motorShutdown, '
+      'ShutdownStatus(motor: $motorShutdown, '
       'watchdog: $triggeredByWatchdog)';
 
   @override
@@ -66,13 +58,11 @@ class ShutdownStatus {
       identical(this, other) ||
       other is ShutdownStatus &&
           runtimeType == other.runtimeType &&
-          servoShutdown == other.servoShutdown &&
           motorShutdown == other.motorShutdown &&
           triggeredByWatchdog == other.triggeredByWatchdog;
 
   @override
   int get hashCode =>
-      servoShutdown.hashCode ^
       motorShutdown.hashCode ^
       triggeredByWatchdog.hashCode;
 }
@@ -98,13 +88,11 @@ class ShutdownStatusService extends _$ShutdownStatusService with HasLogger {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
         .subscribeAs<ScalarI32T>(
-            Channels.shutdownStatus, ScalarI32T.decode,
-            options: const SubscribeOptions(requestRetained: true))
+            channels.hardware.latch.state.flags, ScalarI32T.decode)
         .listen(
       (decoded) {
         final flags = decoded.value.value;
         _currentStatus = ShutdownStatus(
-          servoShutdown: ShutdownFlags.isServoShutdown(flags),
           motorShutdown: ShutdownFlags.isMotorShutdown(flags),
           triggeredByWatchdog: ShutdownFlags.isWatchdogTriggered(flags),
         );
@@ -126,10 +114,8 @@ class ShutdownStatusService extends _$ShutdownStatusService with HasLogger {
   Future<void> setShutdown(bool enabled) async {
     final transport = ref.read(transportServiceProvider);
     await transport.publish(
-      Channels.shutdownCmd,
-      ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: enabled ? 1 : 0),
-      options: const PublishOptions(reliable: true),
-    );
+      channels.hardware.latch.cmd.engaged,
+      ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: enabled ? 1 : 0));
     log.info('Sent shutdown command: ${enabled ? "enable" : "disable"}');
   }
 }

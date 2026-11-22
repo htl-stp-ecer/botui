@@ -125,8 +125,6 @@ class SensorMotorScreen extends HookConsumerWidget {
 
     // --- Commands ---
 
-    const reliable = PublishOptions(reliable: true);
-
     // Throttle continuous commands to ~30Hz to avoid flooding the bus
     final lastPowerSend = useRef<DateTime>(DateTime(0));
     final lastVelSend = useRef<DateTime>(DateTime(0));
@@ -139,7 +137,7 @@ class SensorMotorScreen extends HookConsumerWidget {
       if (now.difference(lastPowerSend.value) < throttleInterval) return;
       lastPowerSend.value = now;
       transport.publish(
-          Channels.motorPowerCommand(port),
+          channels.hardware.motor.cmd.power(port),
           ScalarI32T(
               timestamp: now.microsecondsSinceEpoch, value: p));
     }
@@ -150,7 +148,7 @@ class SensorMotorScreen extends HookConsumerWidget {
       lastVelSend.value = now;
       targetVelocity.value = v;
       transport.publish(
-          Channels.motorVelocityCommand(port),
+          channels.hardware.motor.cmd.velocity(port),
           ScalarI32T(
               timestamp: now.microsecondsSinceEpoch, value: v));
     }
@@ -158,20 +156,18 @@ class SensorMotorScreen extends HookConsumerWidget {
     void sendPositionCmd(int velocity, int goal) {
       positionGoal.value = goal;
       transport.publish(
-          Channels.motorPositionCommand(port),
+          channels.hardware.motor.cmd.position(port),
           Vector3fT(
               timestamp: DateTime.now().microsecondsSinceEpoch,
               x: velocity.toDouble(),
               y: goal.toDouble(),
-              z: 0),
-          options: reliable);
+              z: 0));
     }
 
     void resetPosition() => transport.publish(
-        Channels.motorPositionResetCommand(port),
+        channels.hardware.motor.cmd.resetPosition(port),
         ScalarI32T(
-            timestamp: DateTime.now().microsecondsSinceEpoch, value: 1),
-        options: reliable);
+            timestamp: DateTime.now().microsecondsSinceEpoch, value: 1));
 
     void resetUiState() {
       powerValue.value = 0;
@@ -183,10 +179,9 @@ class SensorMotorScreen extends HookConsumerWidget {
     void brakeMotor() {
       resetUiState();
       transport.publish(
-          Channels.motorModeCommand(port),
+          channels.hardware.motor.cmd.mode(port),
           ScalarI32T(
-              timestamp: DateTime.now().microsecondsSinceEpoch, value: 1),
-          options: reliable);
+              timestamp: DateTime.now().microsecondsSinceEpoch, value: 1));
     }
 
     // Active brake: PID holds velocity at 0 (uses current)
@@ -199,10 +194,9 @@ class SensorMotorScreen extends HookConsumerWidget {
     void coastMotor() {
       resetUiState();
       transport.publish(
-          Channels.motorModeCommand(port),
+          channels.hardware.motor.cmd.mode(port),
           ScalarI32T(
-              timestamp: DateTime.now().microsecondsSinceEpoch, value: 0),
-          options: reliable);
+              timestamp: DateTime.now().microsecondsSinceEpoch, value: 0));
     }
 
     // --- Keypad ---

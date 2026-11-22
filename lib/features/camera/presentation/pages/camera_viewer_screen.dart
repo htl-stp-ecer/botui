@@ -59,7 +59,7 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Channel: ${Channels.camFrame}',
+            'Channel: ${channels.camera.state.frame}',
             style: const TextStyle(color: Colors.white38, fontSize: 12),
           ),
           if (detections != null) ...[

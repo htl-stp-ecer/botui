@@ -124,11 +124,9 @@ class BusServoSensor extends _$BusServoSensor with HasLogger {
 
   void _startSubscriptions(int port) {
     final transport = ref.read(transportServiceProvider);
-    const retained = SubscribeOptions(requestRetained: true);
 
     _feedbackSub = transport
-        .subscribeAs<Vector3fT>(Channels.servoFeedback(port), Vector3fT.decode,
-            options: retained)
+        .subscribeAs<Vector3fT>(channels.hardware.servo.state.feedback(port), Vector3fT.decode)
         .listen(
       (decoded) {
         final m = decoded.value;
@@ -139,8 +137,7 @@ class BusServoSensor extends _$BusServoSensor with HasLogger {
     );
 
     _healthSub = transport
-        .subscribeAs<Vector3fT>(Channels.servoHealth(port), Vector3fT.decode,
-            options: retained)
+        .subscribeAs<Vector3fT>(channels.hardware.servo.state.health(port), Vector3fT.decode)
         .listen(
       (decoded) {
         final m = decoded.value;
@@ -152,8 +149,7 @@ class BusServoSensor extends _$BusServoSensor with HasLogger {
     );
 
     _doneSub = transport
-        .subscribeAs<ScalarI32T>(Channels.servoDone(port), ScalarI32T.decode,
-            options: retained)
+        .subscribeAs<ScalarI32T>(channels.hardware.servo.state.done(port), ScalarI32T.decode)
         .listen(
       (decoded) {
         state =

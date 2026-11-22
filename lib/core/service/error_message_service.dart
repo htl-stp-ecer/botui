@@ -37,10 +37,8 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
         .subscribeAs<StringT>(
-          Channels.errorMessages,
-          StringT.decode,
-          options: const SubscribeOptions(requestRetained: true),
-        )
+          channels.messages.error,
+          StringT.decode)
         .listen(
       (decoded) {
         final message = decoded.value.value;

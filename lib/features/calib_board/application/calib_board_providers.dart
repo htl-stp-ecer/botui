@@ -11,7 +11,6 @@ import 'package:stpvelox/core/logging/logging.dart';
 import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/transport/domain/services/transport_service.dart'
     show kUiSensorSampleRate;
-import 'package:stpvelox/features/calib_board/domain/calib_channels.dart';
 import 'package:stpvelox/features/calib_board/domain/entities/calib_board_status.dart';
 
 /// Aggregierter Board-Status — subscribt alle vier Status-Channels und
@@ -40,7 +39,7 @@ class CalibBoardStatusNotifier extends Notifier<CalibBoardStatus> {
     final t = ref.read(transportServiceProvider);
 
     _subs.add(
-      t.subscribeAs<StringT>(CalibChannels.statusBoard, StringT.decode, throttle: kUiSensorSampleRate).listen(
+      t.subscribeAs<StringT>(channels.hardware.calibBoard.state.board, StringT.decode, throttle: kUiSensorSampleRate).listen(
         (d) => state = state.copyWith(
           boardConnected: d.value.value == 'connected',
         ),
@@ -49,14 +48,14 @@ class CalibBoardStatusNotifier extends Notifier<CalibBoardStatus> {
     );
 
     _subs.add(
-      t.subscribeAs<StringT>(CalibChannels.statusPort, StringT.decode, throttle: kUiSensorSampleRate).listen(
+      t.subscribeAs<StringT>(channels.hardware.calibBoard.state.port, StringT.decode, throttle: kUiSensorSampleRate).listen(
         (d) => state = state.copyWith(port: d.value.value),
         onError: (e) => _log.warning('status/port stream error: $e'),
       ),
     );
 
     _subs.add(
-      t.subscribeAs<StringT>(CalibChannels.statusIcm, StringT.decode, throttle: kUiSensorSampleRate).listen(
+      t.subscribeAs<StringT>(channels.hardware.calibBoard.state.icm, StringT.decode, throttle: kUiSensorSampleRate).listen(
         (d) {
           final v = d.value.value;
           state = state.copyWith(
@@ -69,7 +68,7 @@ class CalibBoardStatusNotifier extends Notifier<CalibBoardStatus> {
     );
 
     _subs.add(
-      t.subscribeAs<StringT>(CalibChannels.statusPaa, StringT.decode, throttle: kUiSensorSampleRate).listen(
+      t.subscribeAs<StringT>(channels.hardware.calibBoard.state.paa, StringT.decode, throttle: kUiSensorSampleRate).listen(
         (d) {
           final v = d.value.value;
           state = state.copyWith(
@@ -116,49 +115,49 @@ final calibBoardStatusProvider =
 final calibIcmAccelProvider = StreamProvider.autoDispose<Vector3fT>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<Vector3fT>(CalibChannels.icmAccel, Vector3fT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<Vector3fT>(channels.hardware.calibBoard.icm.state.accel, Vector3fT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value);
 });
 
 final calibIcmGyroProvider = StreamProvider.autoDispose<Vector3fT>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<Vector3fT>(CalibChannels.icmGyro, Vector3fT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<Vector3fT>(channels.hardware.calibBoard.icm.state.gyro, Vector3fT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value);
 });
 
 final calibIcmTempProvider = StreamProvider.autoDispose<ScalarFT>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarFT>(CalibChannels.icmTemperature, ScalarFT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarFT>(channels.hardware.calibBoard.icm.state.temperature, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value);
 });
 
 final calibPaaDxProvider = StreamProvider.autoDispose<ScalarI32T>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarI32T>(CalibChannels.paaDeltaX, ScalarI32T.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarI32T>(channels.hardware.calibBoard.paa.state.deltaX, ScalarI32T.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value);
 });
 
 final calibPaaDyProvider = StreamProvider.autoDispose<ScalarI32T>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarI32T>(CalibChannels.paaDeltaY, ScalarI32T.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarI32T>(channels.hardware.calibBoard.paa.state.deltaY, ScalarI32T.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value);
 });
 
 final calibPaaSqualProvider = StreamProvider.autoDispose<ScalarI32T>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarI32T>(CalibChannels.paaSqual, ScalarI32T.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarI32T>(channels.hardware.calibBoard.paa.state.squal, ScalarI32T.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value);
 });
 
 final calibPaaShutterProvider = StreamProvider.autoDispose<ScalarI32T>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarI32T>(CalibChannels.paaShutter, ScalarI32T.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarI32T>(channels.hardware.calibBoard.paa.state.shutter, ScalarI32T.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value);
 });
 
@@ -168,28 +167,28 @@ final calibPaaShutterProvider = StreamProvider.autoDispose<ScalarI32T>((ref) {
 final calibPaaCalCxProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarFT>(CalibChannels.paaCalCx, ScalarFT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarFT>(channels.hardware.calibBoard.paa.state.calCxPerCm, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 
 final calibPaaCalCyProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarFT>(CalibChannels.paaCalCy, ScalarFT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarFT>(channels.hardware.calibBoard.paa.state.calCyPerCm, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 
 final calibPaaCalHeightProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarFT>(CalibChannels.paaCalHeight, ScalarFT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarFT>(channels.hardware.calibBoard.paa.state.calHeightMm, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 
 final calibPaaCalValidProvider = StreamProvider.autoDispose<bool>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarI32T>(CalibChannels.paaCalValid, ScalarI32T.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarI32T>(channels.hardware.calibBoard.paa.state.calValid, ScalarI32T.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value != 0);
 });
 
@@ -197,14 +196,14 @@ final calibPaaCalValidProvider = StreamProvider.autoDispose<bool>((ref) {
 final calibPaaCalOffXProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarFT>(CalibChannels.paaCalOffX, ScalarFT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarFT>(channels.hardware.calibBoard.paa.state.calOffXMm, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 
 final calibPaaCalOffYProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarFT>(CalibChannels.paaCalOffY, ScalarFT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarFT>(channels.hardware.calibBoard.paa.state.calOffYMm, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 
@@ -213,14 +212,14 @@ final calibPaaCalOffYProvider = StreamProvider.autoDispose<double>((ref) {
 final calibPaaPosXProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarFT>(CalibChannels.paaPosCmX, ScalarFT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarFT>(channels.hardware.calibBoard.paa.state.cmPosX, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 
 final calibPaaPosYProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
   return t
-      .subscribeAs<ScalarFT>(CalibChannels.paaPosCmY, ScalarFT.decode, throttle: kUiSensorSampleRate)
+      .subscribeAs<ScalarFT>(channels.hardware.calibBoard.paa.state.cmPosY, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 
@@ -244,7 +243,7 @@ class CalibCommandPublisher {
         '"cy_per_cm":${cyPerCm.toStringAsFixed(4)},'
         '"height_mm":${heightMm.toStringAsFixed(2)}}';
     t.publish(
-      CalibChannels.cmdPaaSetCal,
+      channels.hardware.calibBoard.paa.cmd.setCalibration,
       StringT(timestamp: DateTime.now().microsecondsSinceEpoch, value: json),
     );
   }
@@ -260,7 +259,7 @@ class CalibCommandPublisher {
         '{"off_x_mm":${offXmm.toStringAsFixed(2)},'
         '"off_y_mm":${offYmm.toStringAsFixed(2)}}';
     t.publish(
-      CalibChannels.cmdPaaSetOffset,
+      channels.hardware.calibBoard.paa.cmd.setOffset,
       StringT(timestamp: DateTime.now().microsecondsSinceEpoch, value: json),
     );
   }
@@ -268,7 +267,7 @@ class CalibCommandPublisher {
   void sendResetPosition() {
     final t = _ref.read(transportServiceProvider);
     t.publish(
-      CalibChannels.cmdPaaResetPos,
+      channels.hardware.calibBoard.paa.cmd.resetPosition,
       ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: 1),
     );
   }
@@ -276,7 +275,7 @@ class CalibCommandPublisher {
   void sendSaveGyroBias() {
     final t = _ref.read(transportServiceProvider);
     t.publish(
-      CalibChannels.cmdIcmSaveBias,
+      channels.hardware.calibBoard.icm.cmd.saveGyroBias,
       ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: 1),
     );
   }
@@ -284,7 +283,7 @@ class CalibCommandPublisher {
   void sendResetGyroBias() {
     final t = _ref.read(transportServiceProvider);
     t.publish(
-      CalibChannels.cmdIcmResetBias,
+      channels.hardware.calibBoard.icm.cmd.resetGyroBias,
       ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: 1),
     );
   }
@@ -292,7 +291,7 @@ class CalibCommandPublisher {
   void sendOdomReset() {
     final t = _ref.read(transportServiceProvider);
     t.publish(
-      CalibChannels.cmdOdomReset,
+      channels.hardware.calibBoard.odom.cmd.reset,
       ScalarI32T(timestamp: DateTime.now().microsecondsSinceEpoch, value: 1),
     );
   }
@@ -316,62 +315,62 @@ class IcmQuat {
 
 final calibIcmEulerRollProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.icmEulerRoll, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.icm.state.eulerRoll, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 final calibIcmEulerPitchProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.icmEulerPitch, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.icm.state.eulerPitch, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 final calibIcmEulerYawProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.icmEulerYaw, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.icm.state.eulerYaw, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 
 final calibIcmQuatWProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.icmQuatW, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.icm.state.quatW, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 final calibIcmQuatXProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.icmQuatX, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.icm.state.quatX, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 final calibIcmQuatYProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.icmQuatY, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.icm.state.quatY, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 final calibIcmQuatZProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.icmQuatZ, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.icm.state.quatZ, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 
 final calibIcmGyroCorrProvider = StreamProvider.autoDispose<Vector3fT>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<Vector3fT>(CalibChannels.icmGyroCorr, Vector3fT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<Vector3fT>(channels.hardware.calibBoard.icm.state.gyroCorrected, Vector3fT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value);
 });
 
 final calibIcmGyroBiasProvider = StreamProvider.autoDispose<Vector3fT>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<Vector3fT>(CalibChannels.icmGyroBias, Vector3fT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<Vector3fT>(channels.hardware.calibBoard.icm.state.gyroBias, Vector3fT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value);
 });
 
 final calibIcmAtRestProvider = StreamProvider.autoDispose<bool>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarI32T>(CalibChannels.icmAtRest, ScalarI32T.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarI32T>(channels.hardware.calibBoard.icm.state.atRest, ScalarI32T.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value != 0);
 });
 
 final calibIcmBiasPersistedProvider = StreamProvider.autoDispose<bool>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarI32T>(CalibChannels.icmBiasValid, ScalarI32T.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarI32T>(channels.hardware.calibBoard.icm.state.biasPersisted, ScalarI32T.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value != 0);
 });
 
@@ -379,16 +378,16 @@ final calibIcmBiasPersistedProvider = StreamProvider.autoDispose<bool>((ref) {
 
 final calibOdomPosXProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.odomPosX, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.odom.state.posX, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 final calibOdomPosYProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.odomPosY, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.odom.state.posY, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });
 final calibOdomHeadingProvider = StreamProvider.autoDispose<double>((ref) {
   final t = ref.watch(transportServiceProvider);
-  return t.subscribeAs<ScalarFT>(CalibChannels.odomHeading, ScalarFT.decode, throttle: kUiSensorSampleRate)
+  return t.subscribeAs<ScalarFT>(channels.hardware.calibBoard.odom.state.heading, ScalarFT.decode, throttle: kUiSensorSampleRate)
       .map((d) => d.value.value);
 });

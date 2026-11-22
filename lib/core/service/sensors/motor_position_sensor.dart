@@ -32,8 +32,7 @@ class MotorPositionSensor extends _$MotorPositionSensor with HasLogger {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
         .subscribeAs<ScalarI32T>(
-            Channels.motorPosition(port), ScalarI32T.decode,
-            options: const SubscribeOptions(requestRetained: true))
+            channels.hardware.motor.state.position(port), ScalarI32T.decode)
         .listen(
       (decoded) {
         _currentValue = decoded.value.value;

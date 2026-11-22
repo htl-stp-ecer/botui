@@ -30,8 +30,7 @@ class HeadingSensor extends _$HeadingSensor with HasLogger {
   void _startSubscription() {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
-        .subscribeAs<ScalarFT>(Channels.heading, ScalarFT.decode,
-            options: const SubscribeOptions(requestRetained: true))
+        .subscribeAs<ScalarFT>(channels.hardware.imu.state.heading, ScalarFT.decode)
         .listen(
               (decoded) {
             _currentValue = decoded.value.value;

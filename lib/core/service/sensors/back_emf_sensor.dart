@@ -31,8 +31,7 @@ class BackEmfSensor extends _$BackEmfSensor with HasLogger {
   void _startSubscription(int port) {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
-        .subscribeAs<ScalarI32T>(Channels.backEmf(port), ScalarI32T.decode,
-            options: const SubscribeOptions(requestRetained: true))
+        .subscribeAs<ScalarI32T>(channels.hardware.motor.state.bemf(port), ScalarI32T.decode)
         .listen(
       (decoded) {
         _currentValue = decoded.value.value;

@@ -29,11 +29,11 @@ class ScreenRenderProvider extends _$ScreenRenderProvider with HasLogger {
 
   void _startSubscription() {
     final transport = ref.read(transportServiceProvider);
-    log.info('[ScreenRenderProvider] Starting transport subscription on ${Channels.screenRender}');
+    log.info('[ScreenRenderProvider] Starting transport subscription on ${channels.ui.screen.render}');
 
     _subscription = transport
         .subscribeAs<ScreenRenderT>(
-      Channels.screenRender,
+      channels.ui.screen.render,
       ScreenRenderT.decode,
       // Coalesce the multi-Hz push storm the calibration backend emits
       // (observed 64 frames in 17 ms). Each frame otherwise tears down and

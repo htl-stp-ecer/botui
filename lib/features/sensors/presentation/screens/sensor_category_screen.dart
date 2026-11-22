@@ -46,19 +46,16 @@ class SensorCategoryScreen extends ConsumerWidget {
         category.name == 'Orientation' ||
         category.name == 'Heading';
 
-    const reliable = PublishOptions(reliable: true);
-
     Future<void> disableAllServos() async {
       for (int i = 0; i < 4; i++) {
         // servoModeCommand is the dedicated COMMAND channel — using
         // servoMode here would round-trip through the reader's own
         // state publisher (5 ms self-loopback floor).
         transportService.publish(
-            Channels.servoModeCommand(i),
+            channels.hardware.servo.cmd.mode(i),
             ScalarI8T(
                 timestamp: DateTime.now().microsecondsSinceEpoch,
-                dir: ServoMode.fullyDisabled.value),
-            options: reliable);
+                dir: ServoMode.fullyDisabled.value));
       }
     }
 
@@ -66,7 +63,7 @@ class SensorCategoryScreen extends ConsumerWidget {
       for (int i = 0; i < 4; i++) {
         // motorPowerCommand uses plain delivery (continuous control loop)
         transportService.publish(
-            Channels.motorPowerCommand(i),
+            channels.hardware.motor.cmd.power(i),
             ScalarI32T(
                 timestamp: DateTime.now().microsecondsSinceEpoch, value: 0));
       }
@@ -74,9 +71,7 @@ class SensorCategoryScreen extends ConsumerWidget {
 
     /// Check if shutdown is blocking this category and show dialog if so
     Future<bool> checkShutdownAndNavigate(Sensor sensorItem) async {
-      final isShutdownBlocking =
-          (isMotorCategory && shutdownStatus.motorShutdown) ||
-              (isServoCategory && shutdownStatus.servoShutdown);
+      final isShutdownBlocking = isMotorCategory && shutdownStatus.motorShutdown;
 
       if (!isShutdownBlocking) {
         return true; // Allow navigation
@@ -84,7 +79,7 @@ class SensorCategoryScreen extends ConsumerWidget {
 
       // Show shutdown warning dialog; "Disable" turns shutdown off, then
       // navigation continues.
-      final actorType = isMotorCategory ? 'Motors' : 'Servos';
+      const actorType = 'Motors';
       return showRaccoonConfirmDialog(
         context,
         title: '$actorType Disabled',

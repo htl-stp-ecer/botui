@@ -31,8 +31,7 @@ class ServoPositionSensor extends _$ServoPositionSensor with HasLogger {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
         .subscribeAs<ScalarFT>(
-            Channels.servoPosition(port), ScalarFT.decode,
-            options: const SubscribeOptions(requestRetained: true))
+            channels.hardware.servo.state.position(port), ScalarFT.decode)
         .listen(
       (decoded) {
         _currentValue = decoded.value.value;

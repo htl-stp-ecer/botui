@@ -30,7 +30,7 @@ class CpuTemperatureSensor extends _$CpuTemperatureSensor with HasLogger {
   void _startSubscription() {
     final transport = ref.read(transportServiceProvider);
     _subscription =
-        transport.subscribeAs<ScalarFT>(Channels.cpuTemperature, ScalarFT.decode).listen(
+        transport.subscribeAs<ScalarFT>(channels.system.state.cpuTemperature, ScalarFT.decode).listen(
               (decoded) {
             _currentValue = decoded.value.value;
             state = _currentValue;

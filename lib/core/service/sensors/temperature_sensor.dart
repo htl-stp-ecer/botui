@@ -30,7 +30,7 @@ class TemperatureSensor extends _$TemperatureSensor with HasLogger {
   void _startSubscription() {
     final transport = ref.read(transportServiceProvider);
     _subscription =
-        transport.subscribeAs<ScalarFT>(Channels.temperature, ScalarFT.decode).listen(
+        transport.subscribeAs<ScalarFT>(channels.hardware.imu.state.temperature, ScalarFT.decode).listen(
               (decoded) {
             _currentValue = decoded.value.value;
             state = _currentValue;

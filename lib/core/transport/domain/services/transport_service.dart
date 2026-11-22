@@ -22,7 +22,6 @@ class TransportService with HasLogger {
   Completer<void>? _initCompleter;
   final Map<String, StreamController<TransportDecodedRaw>> _controllers = {};
   final Map<String, TransportSubscription> _subscriptions = {};
-  final Map<String, SubscribeOptions> _subscribeOptions = {};
 
   bool get isInitialized => _transport != null;
 
@@ -66,15 +65,13 @@ class TransportService with HasLogger {
     }
   }
 
-  Stream<TransportDecodedRaw> subscribe(String channel,
-      {SubscribeOptions options = const SubscribeOptions()}) {
+  /// Frames of [channel]. Whether the channel is retained (a new subscriber first gets its
+  /// latest frame) is a property of the channel table.
+  Stream<TransportDecodedRaw> subscribe(String channel) {
     final existing = _controllers[channel];
     if (existing != null) {
-      _subscribeOptions[channel] = options;
       return existing.stream;
     }
-
-    _subscribeOptions[channel] = options;
 
     late StreamController<TransportDecodedRaw> controller;
     controller = StreamController<TransportDecodedRaw>.broadcast(
@@ -96,8 +93,6 @@ class TransportService with HasLogger {
     final controller = _controllers[channel];
     if (controller == null || !controller.hasListener) return;
 
-    final options = _subscribeOptions[channel] ?? const SubscribeOptions();
-
     final sub = _transport!.subscribe(channel, (ch, data) {
       if (!controller.isClosed) {
         controller.add(TransportDecodedRaw(
@@ -108,7 +103,7 @@ class TransportService with HasLogger {
       }
     });
     _subscriptions[channel] = sub;
-    log.fine('Subscribed to: $channel (retain=${options.requestRetained})');
+    log.fine('Subscribed to: $channel');
   }
 
   void _teardownSubscription(String channel) {
@@ -123,9 +118,8 @@ class TransportService with HasLogger {
   }
 
   Stream<TransportDecoded<T>> subscribeAs<T>(String channel, TransportDecoder<T> decode,
-      {SubscribeOptions options = const SubscribeOptions(),
-      Duration? throttle}) {
-    var raw = subscribe(channel, options: options);
+      {Duration? throttle}) {
+    var raw = subscribe(channel);
     if (throttle != null) {
       raw = raw.throttleTime(throttle, trailing: true);
     }
@@ -148,13 +142,14 @@ class TransportService with HasLogger {
 
     final controller = _controllers.remove(channel);
     controller?.close();
-    _subscribeOptions.remove(channel);
 
     log.fine('Unsubscribed from: $channel');
   }
 
-  Future<void> publish(String channel, LcmMessage message,
-      {PublishOptions options = const PublishOptions()}) async {
+  /// Publish [message] on [channel]. The result says whether the frame is in the ring; a
+  /// reliable channel (see the channel table) is repeated until the receiver acknowledges it.
+  Future<PublishResult> publish(String channel, LcmMessage message,
+      {bool deduplicate = false}) async {
     await _ensureReady();
     try {
       final dyn = message as dynamic;
@@ -166,13 +161,20 @@ class TransportService with HasLogger {
     final buf = LcmBuffer(65536);
     message.encode(buf);
     final data = Uint8List.sublistView(buf.uint8List, 0, buf.position);
-    _transport!.publish(channel, data, deduplicate: options.deduplicate);
+    return _logResult(channel, _transport!.publish(channel, data, deduplicate: deduplicate));
   }
 
-  Future<void> publishRaw(String channel, Uint8List data,
-      {PublishOptions options = const PublishOptions()}) async {
+  Future<PublishResult> publishRaw(String channel, Uint8List data,
+      {bool deduplicate = false}) async {
     await _ensureReady();
-    _transport!.publish(channel, data, deduplicate: options.deduplicate);
+    return _logResult(channel, _transport!.publish(channel, data, deduplicate: deduplicate));
+  }
+
+  PublishResult _logResult(String channel, PublishResult result) {
+    if (result != PublishResult.ok) {
+      log.warning('Publish on $channel refused: ${result.name}');
+    }
+    return result;
   }
 
   void dispose() {
@@ -181,7 +183,6 @@ class TransportService with HasLogger {
     }
     _controllers.clear();
     _subscriptions.clear();
-    _subscribeOptions.clear();
     _transport?.dispose();
     _transport = null;
     log.info('Transport disposed');

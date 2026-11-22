@@ -33,7 +33,7 @@ class DigitalSensor extends _$DigitalSensor with HasLogger {
   void _startSubscription(int bit) {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
-        .subscribeAs<ScalarI32T>(Channels.digital(bit), ScalarI32T.decode)
+        .subscribeAs<ScalarI32T>(channels.hardware.digital.state.value(bit), ScalarI32T.decode)
         .listen(
       (decoded) {
         _currentValue = decoded.value.value != 0;

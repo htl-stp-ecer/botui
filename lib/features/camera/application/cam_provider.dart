@@ -63,7 +63,7 @@ class CamDetectionStream extends _$CamDetectionStream {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
         .subscribeAs<CamDetectionsT>(
-      Channels.camDetections,
+      channels.camera.state.detections,
       CamDetectionsT.decode,
       throttle: _kUiCameraDetectionThrottle,
     )
@@ -102,7 +102,7 @@ class CamFrameStream extends _$CamFrameStream {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
         .subscribeAs<CamFrameT>(
-      Channels.camFrame,
+      channels.camera.state.frame,
       CamFrameT.decode,
       throttle: _kUiCameraFrameThrottle,
     )

@@ -35,7 +35,7 @@ class GyroSensor extends _$GyroSensor with HasLogger {
   void _startSubscription() {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
-        .subscribeAs<Vector3fT>(Channels.gyro, Vector3fT.decode)
+        .subscribeAs<Vector3fT>(channels.hardware.imu.state.gyro, Vector3fT.decode)
         .listen(
           (decoded) {
         _currentValue = Gyro(decoded.value.x, decoded.value.y, decoded.value.z);

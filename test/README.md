@@ -14,7 +14,7 @@ flutter test --name "stddev"       # one test by description
 | File | Use for |
 |------|---------|
 | `pump_app.dart` | `pumpScreen(tester, widget, overrides: [...])` — wraps in `ProviderScope` + dark `MaterialApp`, sizes the test view to the 800×480 Wombat panel. Call `resetScreen()` in `tearDown`. |
-| `fake_lcm.dart` | `fakeLcmOverrides()` — replaces `lcmServiceProvider` with an in-memory `FakeLcmService`. **Required** for any widget that uses `createTopBar` (its `BatteryStatus` indirectly subscribes to LCM) or any screen watching LCM-backed providers. Without it the real service tries to `dlopen` `libraccoon_ring_bridge.so` and the test errors out. |
+| `fake_lcm.dart` | `fakeLcmOverrides()` — replaces `lcmServiceProvider` with an in-memory `FakeLcmService`. **Required** for any widget that uses `createTopBar` (its `BatteryStatus` indirectly subscribes to LCM) or any screen watching LCM-backed providers. Without it the real service tries to `dlopen` `libraccoon_transport_bridge.so` and the test errors out. |
 | `mocks.dart` | `MockSensorRepository`, `MockWifiRepository` (mocktail). Call `registerCommonFallbacks()` in `setUpAll` when stubbing methods that take non-nullable enums. |
 
 ## Patterns

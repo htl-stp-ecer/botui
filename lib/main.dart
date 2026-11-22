@@ -355,13 +355,12 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
     final title =
         byWatchdog ? 'Hardware Watchdog Tripped' : 'Hardware Shutdown Active';
     final reason = byWatchdog
-        ? 'No heartbeat from the user program — motors and servos '
+        ? 'No heartbeat from the user program — the motors '
             'have been shut off as a safety measure.'
-        : 'Motors and servos have been latched off (user-initiated '
-            'shutdown). Servo and motor commands will be acknowledged '
+        : 'The motors have been latched off (user-initiated '
+            'shutdown). Motor commands will be acknowledged '
             'but will not move the hardware until you recover.';
     final outputs = [
-      if (status.servoShutdown) 'servos',
       if (status.motorShutdown) 'motors',
     ].join(' + ');
 

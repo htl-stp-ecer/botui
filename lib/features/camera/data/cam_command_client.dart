@@ -89,9 +89,7 @@ class CamCommandClient {
       for (var attempt = 1; attempt <= attempts; attempt++) {
         await _transport.publish(
           kCamCommandChannel,
-          StringT(timestamp: 0, value: message),
-          options: const PublishOptions(reliable: true),
-        );
+          StringT(timestamp: 0, value: message));
         try {
           return await completer.future.timeout(timeout);
         } on TimeoutException {

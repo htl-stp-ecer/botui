@@ -19,7 +19,7 @@ class FakeLcmService extends LcmService {
 
   @override
   Stream<LcmDecodedRaw> subscribe(String channel,
-      {SubscribeOptions options = const SubscribeOptions()}) {
+      ) {
     return controllers
         .putIfAbsent(channel,
             () => StreamController<LcmDecodedRaw>.broadcast())

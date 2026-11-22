@@ -35,7 +35,7 @@ class MagnetometerSensor extends _$MagnetometerSensor with HasLogger {
   void _startSubscription() {
     final transport = ref.read(transportServiceProvider);
     _subscription =
-        transport.subscribeAs<Vector3fT>(Channels.magnetometer, Vector3fT.decode).listen(
+        transport.subscribeAs<Vector3fT>(channels.hardware.imu.state.mag, Vector3fT.decode).listen(
               (decoded) {
             _currentValue = Magnetometer(decoded.value.x, decoded.value.y, decoded.value.z);
             state = _currentValue;

@@ -32,7 +32,7 @@ class AnalogSensor extends _$AnalogSensor with HasLogger {
   void _startSubscription(int port) {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
-        .subscribeAs<ScalarI32T>(Channels.analog(port), ScalarI32T.decode)
+        .subscribeAs<ScalarI32T>(channels.hardware.analog.state.value(port), ScalarI32T.decode)
         .listen(
       (decoded) {
         _currentValue = decoded.value.value;

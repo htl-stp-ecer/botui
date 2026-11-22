@@ -31,7 +31,7 @@ class ServoCommandSensor extends _$ServoCommandSensor with HasLogger {
     final transport = ref.read(transportServiceProvider);
 
     _positionSub = transport
-        .subscribeAs<ScalarFT>(Channels.servoPositionCommand(port), ScalarFT.decode)
+        .subscribeAs<ScalarFT>(channels.hardware.servo.cmd.position(port), ScalarFT.decode)
         .listen(
       (decoded) {
         _currentValue = decoded.value.value;
@@ -41,7 +41,7 @@ class ServoCommandSensor extends _$ServoCommandSensor with HasLogger {
     );
 
     _smoothSub = transport
-        .subscribeAs<Vector3fT>(Channels.servoSmoothPositionCommand(port), Vector3fT.decode)
+        .subscribeAs<Vector3fT>(channels.hardware.servo.cmd.smooth(port), Vector3fT.decode)
         .listen(
       (decoded) {
         _currentValue = decoded.value.x;

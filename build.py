@@ -175,17 +175,17 @@ def run_in_container(version: str, owner: str) -> None:
     run(["flutterpi_tool", "build",
          "--arch=arm64", "--cpu=pi3", "--release", f"--dart-define=APP_VERSION={version}"])
 
-    # The bridge statically embeds raccoon_ring (the shared-memory transport), so beyond
+    # The bridge statically embeds the C++ transport (the shared-memory rings), so beyond
     # libc/libstdc++/libgcc_s it needs nothing next to it. Always rebuilt: it takes a second
     # and a stale .so after a submodule bump has bitten us before.
     run(["bash", "build.sh"], cwd=work / BRIDGE_DIR)
-    bridge = work / BRIDGE_DIR / "libraccoon_ring_bridge.so"
+    bridge = work / BRIDGE_DIR / "libraccoon_transport_bridge.so"
     if not bridge.is_file():
         fail(f"{bridge.name} could not be built")
     output_dir = work / FLUTTER_OUTPUT
     shutil.copy(bridge, output_dir)
     # Stale libraries of the earlier iceoryx2 bridge must never be dlopen()ed.
-    for stale in ("libiox2_bridge.so", "libiceoryx2_ffi_c.so"):
+    for stale in ("libiox2_bridge.so", "libiceoryx2_ffi_c.so", "libraccoon_ring_bridge.so"):
         (output_dir / stale).unlink(missing_ok=True)
     if not (output_dir / "app.so").is_file():
         fail(f"no flutter-pi build in {FLUTTER_OUTPUT} (missing app.so)")

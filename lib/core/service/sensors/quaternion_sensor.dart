@@ -60,7 +60,7 @@ class QuaternionSensor extends _$QuaternionSensor with HasLogger {
   void _startSubscription() {
     final transportService = ref.read(transportServiceProvider);
     _subscription = transportService
-        .subscribeAs<QuaternionT>(Channels.orientation, QuaternionT.decode)
+        .subscribeAs<QuaternionT>(channels.hardware.imu.state.quaternion, QuaternionT.decode)
         .listen(
       (decoded) {
         log.fine('Received quaternion: w=${decoded.value.w}, x=${decoded.value.x}, y=${decoded.value.y}, z=${decoded.value.z}');

@@ -35,7 +35,7 @@ class AccelerometerSensor extends _$AccelerometerSensor with HasLogger {
   void _startSubscription() {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
-        .subscribeAs<Vector3fT>(Channels.accelerometer, Vector3fT.decode)
+        .subscribeAs<Vector3fT>(channels.hardware.imu.state.accel, Vector3fT.decode)
         .listen(
           (decoded) {
         _currentValue = Accel(decoded.value.x, decoded.value.y, decoded.value.z);

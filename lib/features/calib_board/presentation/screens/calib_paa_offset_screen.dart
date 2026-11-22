@@ -10,7 +10,6 @@ import 'package:stpvelox/core/transport/domain/services/transport_service.dart'
     show kUiSensorSampleRate;
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/calib_board/application/calib_board_providers.dart';
-import 'package:stpvelox/features/calib_board/domain/calib_channels.dart';
 import 'package:stpvelox/features/dynamic_ui/presentation/widgets/numeric_keypad_widget.dart';
 
 /// PAA-Montageoffset konfigurieren.  Der PAA sitzt nicht im Drehzentrum des
@@ -143,15 +142,15 @@ class _CalibPaaOffsetScreenState extends ConsumerState<CalibPaaOffsetScreen> {
     if (_posXSub != null) return;
     final t = ref.read(transportServiceProvider);
     _posXSub = t
-        .subscribeAs<ScalarFT>(CalibChannels.odomPosX, ScalarFT.decode,
+        .subscribeAs<ScalarFT>(channels.hardware.calibBoard.odom.state.posX, ScalarFT.decode,
             throttle: kUiSensorSampleRate)
         .listen((d) => _onPos(x: d.value.value));
     _posYSub = t
-        .subscribeAs<ScalarFT>(CalibChannels.odomPosY, ScalarFT.decode,
+        .subscribeAs<ScalarFT>(channels.hardware.calibBoard.odom.state.posY, ScalarFT.decode,
             throttle: kUiSensorSampleRate)
         .listen((d) => _onPos(y: d.value.value));
     _headingSub = t
-        .subscribeAs<ScalarFT>(CalibChannels.odomHeading, ScalarFT.decode,
+        .subscribeAs<ScalarFT>(channels.hardware.calibBoard.odom.state.heading, ScalarFT.decode,
             throttle: kUiSensorSampleRate)
         .listen((d) => _onHeading(d.value.value));
   }

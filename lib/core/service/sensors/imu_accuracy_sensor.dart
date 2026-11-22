@@ -65,8 +65,7 @@ class ImuAccuracySensor extends _$ImuAccuracySensor with HasLogger {
     log.info('Starting IMU accuracy subscriptions');
 
     _gyroSub = transport
-        .subscribeAs<ScalarI8T>(Channels.gyroAccuracy, ScalarI8T.decode,
-            options: const SubscribeOptions(requestRetained: true))
+        .subscribeAs<ScalarI8T>(channels.hardware.imu.state.gyroAccuracy, ScalarI8T.decode)
         .listen(
       (decoded) {
         if (decoded.value.dir != _currentValue.gyro) {
@@ -81,8 +80,7 @@ class ImuAccuracySensor extends _$ImuAccuracySensor with HasLogger {
     );
 
     _accelSub = transport
-        .subscribeAs<ScalarI8T>(Channels.accelAccuracy, ScalarI8T.decode,
-            options: const SubscribeOptions(requestRetained: true))
+        .subscribeAs<ScalarI8T>(channels.hardware.imu.state.accelAccuracy, ScalarI8T.decode)
         .listen(
       (decoded) {
         if (decoded.value.dir != _currentValue.accel) {
@@ -97,8 +95,7 @@ class ImuAccuracySensor extends _$ImuAccuracySensor with HasLogger {
     );
 
     _magSub = transport
-        .subscribeAs<ScalarI8T>(Channels.compassAccuracy, ScalarI8T.decode,
-            options: const SubscribeOptions(requestRetained: true))
+        .subscribeAs<ScalarI8T>(channels.hardware.imu.state.magAccuracy, ScalarI8T.decode)
         .listen(
       (decoded) {
         if (decoded.value.dir != _currentValue.mag) {
@@ -114,8 +111,7 @@ class ImuAccuracySensor extends _$ImuAccuracySensor with HasLogger {
 
     _quatSub = transport
         .subscribeAs<ScalarI8T>(
-            Channels.quaternionAccuracy, ScalarI8T.decode,
-            options: const SubscribeOptions(requestRetained: true))
+            channels.hardware.imu.state.quaternionAccuracy, ScalarI8T.decode)
         .listen(
       (decoded) {
         if (decoded.value.dir != _currentValue.quaternion) {

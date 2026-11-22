@@ -18,7 +18,7 @@ class _FakeLcmService extends LcmService {
 
   @override
   Stream<LcmDecodedRaw> subscribe(String channel,
-      {SubscribeOptions options = const SubscribeOptions()}) {
+      ) {
     return controllers
         .putIfAbsent(channel,
             () => StreamController<LcmDecodedRaw>.broadcast())
@@ -66,7 +66,7 @@ void main() {
         fireImmediately: true);
     expect(container.read(errorMessageServiceProvider), isNull);
 
-    fake.emitString(Channels.errorMessages, 'motor stalled');
+    fake.emitString(channels.messages.error, 'motor stalled');
     // Let the broadcast controller dispatch.
     await drain();
 
@@ -83,9 +83,9 @@ void main() {
     container.listen(errorMessageServiceProvider, (_, __) {},
         fireImmediately: true);
 
-    fake.emitString(Channels.errorMessages, 'first');
+    fake.emitString(channels.messages.error, 'first');
     await drain();
-    fake.emitString(Channels.errorMessages, 'second');
+    fake.emitString(channels.messages.error, 'second');
     await drain();
 
     expect(container.read(errorMessageServiceProvider), 'second');
@@ -100,10 +100,10 @@ void main() {
     container.listen(errorMessageServiceProvider, (_, __) {},
         fireImmediately: true);
     // Trigger lazy stream attachment.
-    fake.emitString(Channels.errorMessages, 'init');
+    fake.emitString(channels.messages.error, 'init');
     await drain();
 
-    final controller = fake.controllers[Channels.errorMessages]!;
+    final controller = fake.controllers[channels.messages.error]!;
     expect(controller.hasListener, isTrue);
 
     container.dispose();

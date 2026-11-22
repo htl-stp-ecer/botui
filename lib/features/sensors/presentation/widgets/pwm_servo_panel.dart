@@ -79,15 +79,12 @@ class PwmServoPanel extends HookConsumerWidget {
       return null;
     }, [externalCommand]);
 
-    const reliable = PublishOptions(reliable: true);
-
     void setServoPosition(double degrees) {
       // Position command automatically enables the servo on the STM32 side
       transportService.publish(
-        Channels.servoPositionCommand(port),
+        channels.hardware.servo.cmd.position(port),
         ScalarFT(
-            timestamp: DateTime.now().microsecondsSinceEpoch, value: degrees),
-        options: reliable,
+            timestamp: DateTime.now().microsecondsSinceEpoch, value: degrees)
       );
     }
 
@@ -97,11 +94,10 @@ class PwmServoPanel extends HookConsumerWidget {
       // Publish on the COMMAND channel so the reader can't echo our
       // request back to itself via its state-feedback publisher.
       transportService.publish(
-        Channels.servoModeCommand(port),
+        channels.hardware.servo.cmd.mode(port),
         ScalarI8T(
             timestamp: DateTime.now().microsecondsSinceEpoch,
-            dir: ServoMode.fullyDisabled.value),
-        options: reliable,
+            dir: ServoMode.fullyDisabled.value)
       );
     }
 

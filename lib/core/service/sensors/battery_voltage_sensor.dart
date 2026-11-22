@@ -30,8 +30,7 @@ class BatteryVoltageSensor extends _$BatteryVoltageSensor with HasLogger {
   void _startSubscription() {
     final transport = ref.read(transportServiceProvider);
     _subscription = transport
-        .subscribeAs<ScalarFT>(Channels.batteryVoltage, ScalarFT.decode,
-            options: const SubscribeOptions(requestRetained: true))
+        .subscribeAs<ScalarFT>(channels.hardware.battery.state.voltage, ScalarFT.decode)
         .listen(
       (decoded) {
         _currentValue = decoded.value.value;

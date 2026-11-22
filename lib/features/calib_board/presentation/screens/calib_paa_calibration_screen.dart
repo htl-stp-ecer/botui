@@ -9,7 +9,6 @@ import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/transport/domain/services/transport_service.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/calib_board/application/calib_board_providers.dart';
-import 'package:stpvelox/features/calib_board/domain/calib_channels.dart';
 
 /// PAA-Kalibrier-Wizard.  Ein Schritt = ein Vollbild, kein Scrollen, wenig
 /// Text.  Der Nutzer wählt eine Strecke, schiebt den Roboter sauber je
@@ -93,11 +92,11 @@ class _CalibPaaCalibrationScreenState
 
   void _subscribe(TransportService transport) {
     _accXSub = transport
-        .subscribeAs<ScalarI32T>(CalibChannels.paaAccX, ScalarI32T.decode,
+        .subscribeAs<ScalarI32T>(channels.hardware.calibBoard.paa.state.accX, ScalarI32T.decode,
             throttle: kUiSensorSampleRate)
         .listen((d) => _onAcc(_SensorAxis.dx, d.value.value));
     _accYSub = transport
-        .subscribeAs<ScalarI32T>(CalibChannels.paaAccY, ScalarI32T.decode,
+        .subscribeAs<ScalarI32T>(channels.hardware.calibBoard.paa.state.accY, ScalarI32T.decode,
             throttle: kUiSensorSampleRate)
         .listen((d) => _onAcc(_SensorAxis.dy, d.value.value));
   }

@@ -37,11 +37,9 @@ class SensorServoScreen extends HookConsumerWidget {
       final mode =
           selected == ServoType.bus ? ServoMode.bus : ServoMode.disabled;
       transportService.publish(
-        Channels.servoModeCommand(port),
+        channels.hardware.servo.cmd.mode(port),
         ScalarI8T(
-            timestamp: DateTime.now().microsecondsSinceEpoch, dir: mode.value),
-        options: const PublishOptions(reliable: true),
-      );
+            timestamp: DateTime.now().microsecondsSinceEpoch, dir: mode.value));
     }
 
     return Scaffold(

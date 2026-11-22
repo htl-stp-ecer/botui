@@ -52,19 +52,16 @@ class BusServoPanel extends HookConsumerWidget {
     }, [servo.position]);
 
     int now() => DateTime.now().microsecondsSinceEpoch;
-    const reliable = PublishOptions(reliable: true);
 
     void moveTo(double degrees) {
       final speed = moveSpeed.value;
       if (speed == null) {
-        transport.publish(Channels.servoPositionCommand(port),
-            ScalarFT(timestamp: now(), value: degrees),
-            options: reliable);
+        transport.publish(channels.hardware.servo.cmd.position(port),
+            ScalarFT(timestamp: now(), value: degrees));
       } else {
         // Easing 0: the servo holds the speed with a short ramp.
-        transport.publish(Channels.servoSmoothPositionCommand(port),
-            Vector3fT(timestamp: now(), x: degrees, y: speed, z: 0),
-            options: reliable);
+        transport.publish(channels.hardware.servo.cmd.smooth(port),
+            Vector3fT(timestamp: now(), x: degrees, y: speed, z: 0));
       }
       lastSent.value = DateTime.now();
       spinning.value = false;
@@ -72,9 +69,8 @@ class BusServoPanel extends HookConsumerWidget {
     }
 
     void spin(double degPerSec) {
-      transport.publish(Channels.servoVelocityCommand(port),
-          ScalarFT(timestamp: now(), value: degPerSec),
-          options: reliable);
+      transport.publish(channels.hardware.servo.cmd.velocity(port),
+          ScalarFT(timestamp: now(), value: degPerSec));
       spinning.value = degPerSec != 0;
     }
 
@@ -87,9 +83,8 @@ class BusServoPanel extends HookConsumerWidget {
     void relax() {
       // Re-entering bus mode drops the servo to relaxed (torque off); the
       // port stays a bus port and keeps reporting its position.
-      transport.publish(Channels.servoModeCommand(port),
-          ScalarI8T(timestamp: now(), dir: ServoMode.bus.value),
-          options: reliable);
+      transport.publish(channels.hardware.servo.cmd.mode(port),
+          ScalarI8T(timestamp: now(), dir: ServoMode.bus.value));
       spinning.value = false;
       spinSpeed.value = 0;
     }
