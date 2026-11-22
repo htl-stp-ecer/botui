@@ -6,10 +6,6 @@ import 'package:raccoon_transport/raccoon_transport.dart';
 import 'package:stpvelox/core/transport/domain/services/transport_service.dart';
 import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 
-/// Where the camera service takes its commands, and where it answers.
-const String kCamCommandChannel = 'raccoon/cam/cmd';
-const String kCamResponseChannel = 'raccoon/cam/response';
-
 /// The camera service refused a command, or did not answer it.
 class CamCommandException implements Exception {
   const CamCommandException(this.message);
@@ -21,13 +17,11 @@ class CamCommandException implements Exception {
 }
 
 /// Talks to the camera service the way its own clients do: a JSON command in
-/// a `string_t` on `raccoon/cam/cmd`, the answer (matched by `request_id`) on
-/// `raccoon/cam/response`.
+/// a `string_t` on `channels.camera.cmd.request`, the answer (matched by
+/// `request_id`) on `channels.camera.response`.
 ///
-/// The robot UI's transport neither retries a command nor acknowledges an
-/// answer, so a command is sent again if no answer arrives (the commands used
-/// here are safe to repeat), and the service is told not to repeat its answers
-/// (`reliable_reply: false`), which nobody would acknowledge.
+/// Both channels are reliable in the channel table: the transport repeats a
+/// command or an answer until it is acknowledged, so a command is sent once.
 class CamCommandClient {
   CamCommandClient(this._transport);
 
@@ -38,7 +32,7 @@ class CamCommandClient {
 
   void _listen() {
     _responses ??= _transport
-        .subscribeAs<StringT>(kCamResponseChannel, StringT.decode)
+        .subscribeAs<StringT>(channels.camera.response, StringT.decode)
         .listen(_onResponse);
   }
 
@@ -67,13 +61,12 @@ class CamCommandClient {
       List.generate(16, (_) => _random.nextInt(16).toRadixString(16)).join();
 
   /// Sends [command] and returns the answer's data. Throws a
-  /// [CamCommandException] with the service's own message if it refuses, or
-  /// if nothing answers after [attempts] tries of [timeout] each.
+  /// [CamCommandException] with the service's own message if it refuses, if
+  /// the transport refuses to send it, or if nothing answers within [timeout].
   Future<Map<String, dynamic>> call(
     String command, [
     Map<String, dynamic> data = const {},
-    Duration timeout = const Duration(seconds: 3),
-    int attempts = 3,
+    Duration timeout = const Duration(seconds: 9),
   ]) async {
     _listen();
     final id = _newId();
@@ -83,20 +76,22 @@ class CamCommandClient {
       'request_id': id,
       'command': command,
       'data': data,
-      'reliable_reply': false,
     });
     try {
-      for (var attempt = 1; attempt <= attempts; attempt++) {
-        await _transport.publish(
-          kCamCommandChannel,
-          StringT(timestamp: 0, value: message));
-        try {
-          return await completer.future.timeout(timeout);
-        } on TimeoutException {
-          // try again
-        }
+      final result = await _transport.publish(
+        channels.camera.cmd.request,
+        StringT(timestamp: 0, value: message),
+      );
+      if (result != PublishResult.ok) {
+        throw CamCommandException(
+          'the command "$command" could not be sent: ${result.name}',
+        );
       }
-      throw CamCommandException('the camera service did not answer "$command"');
+      try {
+        return await completer.future.timeout(timeout);
+      } on TimeoutException {
+        throw CamCommandException('the camera service did not answer "$command"');
+      }
     } finally {
       _pending.remove(id);
     }

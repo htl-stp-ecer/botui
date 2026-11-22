@@ -109,7 +109,6 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
         'renew',
         {'lease': lease, 'ttl': leaseSeconds},
         const Duration(seconds: 2),
-        1,
       );
       await _watchFailure(generation);
     } on CamCommandException catch (error) {
@@ -134,7 +133,6 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
       'status',
       const {},
       const Duration(seconds: 2),
-      1,
     );
     final failed = status['failed'];
     if (failed is String && failed.isNotEmpty && _current(generation)) {
@@ -170,7 +168,6 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
           'status',
           const {},
           const Duration(seconds: 3),
-          1,
         );
         final failed = status['failed'];
         if (failed is String && failed.isNotEmpty) {
@@ -218,13 +215,11 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
           'quality': previous?['quality'] ?? streamQuality,
         },
         const Duration(seconds: 2),
-        1,
       );
       await _commands.call(
         'release',
         {'lease': lease},
         const Duration(seconds: 2),
-        1,
       );
     } on CamCommandException catch (error) {
       // The service gives the camera back by itself when the lease runs out.
