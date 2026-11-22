@@ -7,20 +7,24 @@ import 'package:stpvelox/core/transport/domain/providers.dart';
 import 'package:stpvelox/core/transport/models/transport_decoded.dart';
 import 'package:stpvelox/core/logging/has_logging.dart';
 import 'package:stpvelox/core/router/app_router.dart' show rootNavigatorKey;
+import 'package:stpvelox/core/service/notice_queue.dart';
 import 'package:stpvelox/core/widgets/raccoon_dialog.dart';
 
 part 'error_message_service.g.dart';
 
+/// Shows the messages that components send on `messages/error` and
+/// `messages/warn` (a [MessageT]: a title and a text) as a dialog that has to
+/// be acknowledged. One dialog is on screen at a time; the others wait.
 @riverpod
 class ErrorMessageService extends _$ErrorMessageService with HasLogger {
-  StreamSubscription<TransportDecoded<StringT>>? _subscription;
-  bool _dialogVisible = false;
+  final List<StreamSubscription<TransportDecoded<MessageT>>> _subscriptions = [];
+  final NoticeQueue _queue = NoticeQueue();
   BuildContext? _context;
 
   @override
   String? build() {
     ref.onDispose(_dispose);
-    _startSubscription();
+    _startSubscriptions();
     return null;
   }
 
@@ -31,90 +35,79 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
   void stop() {
     _context = null;
     _dismissIfVisible();
+    _queue.clear();
   }
 
-  void _startSubscription() {
+  void _startSubscriptions() {
     final transport = ref.read(transportServiceProvider);
-    _subscription = transport
-        .subscribeAs<StringT>(
-          channels.messages.error,
-          StringT.decode)
-        .listen(
-      (decoded) {
-        final message = decoded.value.value;
-        log.warning('Error received via transport: $message');
-        state = message;
-
-        // Prefer the long-lived rootNavigatorKey (lives for the lifetime
-        // of GoRouter) over the BuildContext that start() was called
-        // with (that one becomes stale as soon as its widget rebuilds).
-        // Fall back to _context only if the navigator key isn't attached
-        // yet (very early app startup).
-        final ctx = rootNavigatorKey.currentContext ?? _context;
-        if (ctx != null) {
-          try {
-            _showErrorDialog(ctx, message);
-          } catch (e, st) {
-            log.severe('Failed to show error dialog (suppressed to keep '
-                'subscription alive): $e\n$st');
-            _dialogVisible = false;
-          }
-        }
-      },
-      onError: (error) {
-        log.severe('Error in error message subscription: $error');
-      },
-    );
+    for (final (channel, kind) in [
+      (channels.messages.error, NoticeKind.error),
+      (channels.messages.warn, NoticeKind.warning),
+    ]) {
+      _subscriptions.add(
+        transport.subscribeAs<MessageT>(channel, MessageT.decode).listen(
+          (decoded) => _onMessage(kind, decoded.value),
+          onError: (error) {
+            log.severe('Error in $channel subscription: $error');
+          },
+        ),
+      );
+    }
   }
 
-  void _showErrorDialog(BuildContext context, String message) {
-    // _context can become stale between the LCM frame arriving and this
-    // callback firing — the widget that registered it may have been
-    // unmounted (Navigator state torn down). When that happens
-    // `Navigator.of(context)` throws "Null check operator used on a
-    // null value" and kills the whole subscription. Guard with mounted
-    // and try/catch so a flaky context never takes down error reporting
-    // for the rest of the session.
-    if (context is Element && !context.mounted) {
-      _dialogVisible = false;
+  void _onMessage(NoticeKind kind, MessageT message) {
+    log.warning('${kind.name} received via transport: '
+        '${message.title}: ${message.content}');
+    state = '${message.title}: ${message.content}';
+
+    final now = _queue.add(Notice(kind, message.title, message.content));
+    if (now != null) _present(now);
+  }
+
+  void _present(Notice notice) {
+    // Prefer the long-lived rootNavigatorKey (lives for the lifetime of
+    // GoRouter) over the BuildContext that start() was called with (that one
+    // becomes stale as soon as its widget rebuilds). Fall back to _context
+    // only if the navigator key isn't attached yet (very early app startup).
+    final context = rootNavigatorKey.currentContext ?? _context;
+    // A stale context would make Navigator.of throw and end the subscription.
+    if (context == null || (context is Element && !context.mounted)) {
+      _finished();
       return;
     }
-    // Strict at-most-one dialog: if one is already up, drop the new
-    // error rather than stacking modals on top of each other. The
-    // previous "pop the old then show the new" path produced an
-    // overlap window because Navigator.pop is async and showDialog
-    // fired immediately after — users saw two stacked alerts and the
-    // bottom one could never be reached after the top was dismissed.
-    // The dropped message is still logged + reflected in `state` so
-    // any in-app banner / log viewer sees the latest text. If multiple
-    // errors fire while one is open, the user dismisses once and the
-    // NEXT incoming error opens the next dialog.
-    if (_dialogVisible) {
-      log.warning('Suppressing duplicate error dialog (one already open): '
-          '$message');
-      return;
+    try {
+      final shown = notice.kind == NoticeKind.error
+          ? showRaccoonErrorDialog(context, notice.content,
+              title: notice.title)
+          : showRaccoonWarningDialog(context, notice.content,
+              title: notice.title);
+      shown.whenComplete(_finished);
+    } catch (e, st) {
+      log.severe('Failed to show the message dialog (suppressed to keep the '
+          'subscription alive): $e\n$st');
+      _finished();
     }
+  }
 
-    _dialogVisible = true;
-
-    // Non-dismissible one-button error dialog (shared raccoon dialog).
-    showRaccoonErrorDialog(context, message).whenComplete(() {
-      _dialogVisible = false;
-    });
+  void _finished() {
+    final next = _queue.next();
+    if (next != null) _present(next);
   }
 
   void _dismissIfVisible() {
-    if (_dialogVisible && _context != null) {
-      if (Navigator.of(_context!).canPop()) {
-        Navigator.of(_context!).pop();
+    final context = _context;
+    if (_queue.showing != null && context != null) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
       }
-      _dialogVisible = false;
     }
   }
 
   void _dispose() {
-    _subscription?.cancel();
-    _subscription = null;
+    for (final subscription in _subscriptions) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
     _context = null;
   }
 }
