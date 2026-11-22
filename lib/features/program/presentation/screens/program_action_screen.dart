@@ -31,10 +31,8 @@ class ProgramActionScreen extends HookConsumerWidget {
       appBar: createTopBar(
         context,
         current.name,
-        trailing: Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: ProgramVersionChip(syncState: syncState),
-        ),
+        // No padding of its own: the top bar already keeps its distance to the battery.
+        trailing: ProgramVersionChip(syncState: syncState),
       ),
       body: SingleChildScrollView(
         child: Column(
