@@ -309,64 +309,70 @@ class RaccoonNoticeDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = this.title;
+    // The same frame as RaccoonDialog (card, padding, centred column, button row), so every
+    // popup has the same width.
     return Dialog(
       backgroundColor: Colors.grey[900],
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, color: accent, size: 32),
-                  const SizedBox(width: 10),
-                  Text(
-                    heading,
-                    style: TextStyle(
-                      color: accent,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              if (title != null && title.isNotEmpty) ...[
-                const SizedBox(height: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, color: accent, size: 32),
+                const SizedBox(width: 10),
                 Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
+                  heading,
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
-              const SizedBox(height: 12),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Text(
-                    message,
-                    style: TextStyle(color: Colors.grey[300], fontSize: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              _DialogButton(
-                action: RaccoonDialogAction(
-                  label: buttonLabel,
-                  color: buttonColor,
-                  textColor: buttonTextColor,
-                  onPressed: onAcknowledge,
+            ),
+            if (title != null && title.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
-          ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[300], fontSize: 16),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: _DialogButton(
+                    action: RaccoonDialogAction(
+                      label: buttonLabel,
+                      color: buttonColor,
+                      textColor: buttonTextColor,
+                      onPressed: onAcknowledge,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -36,7 +36,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 IMAGE = "botui-desktop"
-CPP_DIR = Path("packages/raccoon-transport/cpp")
+TRANSPORT_DIR = Path("packages/raccoon-transport")
 
 
 def fail(message: str) -> None:
@@ -59,7 +59,9 @@ def build_bridge() -> Path:
     """
     target = Path("/cache/bridge")
     shutil.rmtree(target, ignore_errors=True)
-    shutil.copytree(Path("/src") / CPP_DIR, target / "cpp")
+    # build.sh reads the C++ sources and the message types, both next to each other in the package.
+    for part in ("cpp", "messages"):
+        shutil.copytree(Path("/src") / TRANSPORT_DIR / part, target / part)
     bridge = target / "cpp" / "bridge"
     run(["bash", "build.sh"], cwd=bridge, env={**os.environ, "CXX": "g++", "CC_CROSS": "gcc"})
     return bridge

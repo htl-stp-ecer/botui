@@ -68,9 +68,10 @@ class _ScreenshotsScreenState extends ConsumerState<ScreenshotsScreen> {
       appBar: createTopBar(
         context,
         'Screenshots',
-        trailing: Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: GreyBadge('Triple-Click to take a Screenshot'),
+        // No padding of its own: the top bar already keeps its distance to the battery.
+        trailing: const Text(
+          'Triple-Click to take a Screenshot',
+          style: TextStyle(color: Colors.white60, fontSize: 14),
         ),
       ),
       body: SafeArea(
