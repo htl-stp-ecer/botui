@@ -21,6 +21,9 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
   final NoticeQueue _queue = NoticeQueue();
   BuildContext? _context;
 
+  /// The text of the dialog that is on screen; a message with the same kind and title changes it.
+  ValueNotifier<NoticeText>? _visible;
+
   @override
   String? build() {
     ref.onDispose(_dispose);
@@ -36,6 +39,7 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
     _context = null;
     _dismissIfVisible();
     _queue.clear();
+    _visible = null;
   }
 
   void _startSubscriptions() {
@@ -60,8 +64,16 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
         '${message.title}: ${message.content}');
     state = '${message.title}: ${message.content}';
 
-    final now = _queue.add(Notice(kind, message.title, message.content));
-    if (now != null) _present(now);
+    final notice = Notice(kind, message.title, message.content);
+    switch (_queue.add(notice)) {
+      case NoticeResult.shownNow:
+        _present(notice);
+      case NoticeResult.updatedShowing:
+        _visible?.value = (title: notice.title, message: notice.content);
+      case NoticeResult.updatedWaiting:
+      case NoticeResult.queued:
+        break;
+    }
   }
 
   void _present(Notice notice) {
@@ -75,18 +87,26 @@ class ErrorMessageService extends _$ErrorMessageService with HasLogger {
       _finished();
       return;
     }
+    final text = ValueNotifier<NoticeText>(
+        (title: notice.title, message: notice.content));
+    _visible = text;
     try {
-      final shown = notice.kind == NoticeKind.error
-          ? showRaccoonErrorDialog(context, notice.content,
-              title: notice.title)
-          : showRaccoonWarningDialog(context, notice.content,
-              title: notice.title);
-      shown.whenComplete(_finished);
+      showRaccoonNoticeDialog(
+        context,
+        warning: notice.kind == NoticeKind.warning,
+        text: text,
+      ).whenComplete(() => _dialogClosed(text));
     } catch (e, st) {
       log.severe('Failed to show the message dialog (suppressed to keep the '
           'subscription alive): $e\n$st');
-      _finished();
+      _dialogClosed(text);
     }
+  }
+
+  void _dialogClosed(ValueNotifier<NoticeText> text) {
+    // The notifier is not disposed: the dialog may still be fading out and listen to it.
+    if (identical(_visible, text)) _visible = null;
+    _finished();
   }
 
   void _finished() {

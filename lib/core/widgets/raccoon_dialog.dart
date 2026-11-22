@@ -216,6 +216,11 @@ Future<void> showRaccoonMessageDialog(
   );
 }
 
+/// The text of an error or warning dialog. Replace the value of the
+/// [ValueNotifier] that was given to [showRaccoonNoticeDialog] to change the
+/// text of a dialog that is open.
+typedef NoticeText = ({String? title, String message});
+
 /// One-button error popup that has to be acknowledged: a red "Error" header,
 /// the optional [title], the [message] and a red button.
 Future<void> showRaccoonErrorDialog(
@@ -223,15 +228,10 @@ Future<void> showRaccoonErrorDialog(
   String message, {
   String? title,
 }) {
-  return _showNotice(
+  return showRaccoonNoticeDialog(
     context,
-    heading: 'Error',
-    icon: Icons.cancel_outlined,
-    accent: Colors.redAccent,
-    buttonColor: _confirmRed,
-    buttonTextColor: Colors.white,
-    title: title,
-    message: message,
+    warning: false,
+    text: ValueNotifier<NoticeText>((title: title, message: message)),
   );
 }
 
@@ -242,39 +242,31 @@ Future<void> showRaccoonWarningDialog(
   String message, {
   String? title,
 }) {
-  return _showNotice(
+  return showRaccoonNoticeDialog(
     context,
-    heading: 'Warning',
-    icon: Icons.warning_amber_rounded,
-    accent: _warningYellow,
-    buttonColor: _warningYellow,
-    buttonTextColor: Colors.black87,
-    title: title,
-    message: message,
+    warning: true,
+    text: ValueNotifier<NoticeText>((title: title, message: message)),
   );
 }
 
-Future<void> _showNotice(
+/// An error or warning dialog whose text follows [text]: the caller changes
+/// the value while the dialog is open (a fault that repeats shows its latest
+/// text in the one dialog).
+Future<void> showRaccoonNoticeDialog(
   BuildContext context, {
-  required String heading,
-  required IconData icon,
-  required Color accent,
-  required Color buttonColor,
-  required Color buttonTextColor,
-  required String? title,
-  required String message,
+  required bool warning,
+  required ValueListenable<NoticeText> text,
 }) {
   return showRaccoonDialog<void>(
     context,
     dismissible: false,
     builder: (ctx) => RaccoonNoticeDialog(
-      heading: heading,
-      icon: icon,
-      accent: accent,
-      buttonColor: buttonColor,
-      buttonTextColor: buttonTextColor,
-      title: title,
-      message: message,
+      heading: warning ? 'Warning' : 'Error',
+      icon: warning ? Icons.warning_amber_rounded : Icons.cancel_outlined,
+      accent: warning ? _warningYellow : Colors.redAccent,
+      buttonColor: warning ? _warningYellow : _confirmRed,
+      buttonTextColor: warning ? Colors.black87 : Colors.white,
+      text: text,
       onAcknowledge: () => Navigator.of(ctx).pop(),
     ),
   );
@@ -288,8 +280,7 @@ class RaccoonNoticeDialog extends StatelessWidget {
   final Color accent;
   final Color buttonColor;
   final Color buttonTextColor;
-  final String? title;
-  final String message;
+  final ValueListenable<NoticeText> text;
   final String buttonLabel;
   final VoidCallback onAcknowledge;
 
@@ -300,15 +291,13 @@ class RaccoonNoticeDialog extends StatelessWidget {
     required this.accent,
     required this.buttonColor,
     required this.buttonTextColor,
-    required this.message,
+    required this.text,
     required this.onAcknowledge,
-    this.title,
     this.buttonLabel = 'Acknowledge',
   });
 
   @override
   Widget build(BuildContext context) {
-    final title = this.title;
     // The same frame as RaccoonDialog (card, padding, centred column, button row), so every
     // popup has the same width.
     return Dialog(
@@ -316,63 +305,69 @@ class RaccoonNoticeDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+        child: ValueListenableBuilder<NoticeText>(
+          valueListenable: text,
+          builder: (context, value, _) {
+            final title = value.title;
+            return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, color: accent, size: 32),
-                const SizedBox(width: 10),
-                Text(
-                  heading,
-                  style: TextStyle(
-                    color: accent,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: accent, size: 32),
+                    const SizedBox(width: 10),
+                    Text(
+                      heading,
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                if (title != null && title.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            if (title != null && title.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[300], fontSize: 16),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: _DialogButton(
-                    action: RaccoonDialogAction(
-                      label: buttonLabel,
-                      color: buttonColor,
-                      textColor: buttonTextColor,
-                      onPressed: onAcknowledge,
+                ],
+                const SizedBox(height: 12),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      value.message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[300], fontSize: 16),
                     ),
                   ),
                 ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DialogButton(
+                        action: RaccoonDialogAction(
+                          label: buttonLabel,
+                          color: buttonColor,
+                          textColor: buttonTextColor,
+                          onPressed: onAcknowledge,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
