@@ -364,66 +364,28 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
       if (status.motorShutdown) 'motors',
     ].join(' + ');
 
+    // The same dialog frame as every other popup (RaccoonDialog), so it has the same size.
     return ColoredBox(
       color: Colors.black87,
       child: Center(
-        child: Material(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  byWatchdog
-                      ? Icons.shield_moon_rounded
-                      : Icons.power_off_rounded,
-                  color: Colors.orange,
-                  size: 48,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '$reason\n'
-                  'Latched outputs: ${outputs.isEmpty ? "(none)" : outputs}.\n'
-                  'Recovering will re-enable outputs and re-arm the watchdog.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  height: 56,
-                  width: 220,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      await ref
-                          .read(shutdownStatusServiceProvider.notifier)
-                          .setShutdown(false);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Recover',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
+        child: RaccoonDialog(
+          icon: byWatchdog ? Icons.shield_moon_rounded : Icons.power_off_rounded,
+          iconColor: Colors.orange,
+          title: title,
+          message: '$reason\n'
+              'Latched outputs: ${outputs.isEmpty ? "(none)" : outputs}.\n'
+              'Recovering will re-enable outputs and re-arm the watchdog.',
+          actions: [
+            RaccoonDialogAction(
+              label: 'Recover',
+              color: Colors.green[700]!,
+              onPressed: () async {
+                await ref
+                    .read(shutdownStatusServiceProvider.notifier)
+                    .setShutdown(false);
+              },
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -442,104 +404,47 @@ class _LowBatteryOverlayState extends ConsumerState<_LowBatteryOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    // The same dialog frame as every other popup (RaccoonDialog), so it has the same size. The
+    // voltage in the text follows the sensor.
     return ColoredBox(
       color: Colors.black87,
       child: Center(
-        child: Material(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.battery_alert_rounded,
-                  color: Colors.orange,
-                  size: 48,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Low Battery',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Consumer(builder: (context, ref, _) {
-                  final voltage =
-                      ref.watch(batteryVoltageSensorProvider) ?? 0.0;
-                  return Text(
-                    'Battery voltage is ${voltage.toStringAsFixed(2)}V.\n'
-                    'The robot may restart at any time.\n'
-                    'Please switch the battery now.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                  );
-                }),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      height: 56,
-                      width: 160,
-                      child: ElevatedButton(
-                        onPressed: _ignoreConfirmPending
-                            ? () {
-                                ref
-                                    .read(lowBatteryIgnoredProvider.notifier)
-                                    .ignore();
-                              }
-                            : () {
-                                setState(() => _ignoreConfirmPending = true);
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[700],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          _ignoreConfirmPending ? 'Confirm Ignore' : 'Ignore',
-                          style: const TextStyle(
-                              fontSize: 18, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    SizedBox(
-                      height: 56,
-                      width: 160,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final reboot = ref.read(rebootDeviceProvider);
-                          final ok = await reboot.call(true);
-                          if (!ok && context.mounted) {
-                            await showRaccoonErrorDialog(context,
-                                "Missing passwordless sudo, can't shut down");
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[700],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Shutdown',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+        child: Consumer(builder: (context, ref, _) {
+          final voltage = ref.watch(batteryVoltageSensorProvider) ?? 0.0;
+          return RaccoonDialog(
+            icon: Icons.battery_alert_rounded,
+            iconColor: Colors.orange,
+            title: 'Low Battery',
+            message: 'Battery voltage is ${voltage.toStringAsFixed(2)}V.\n'
+                'The robot may restart at any time.\n'
+                'Please switch the battery now.',
+            actions: [
+              RaccoonDialogAction(
+                label: _ignoreConfirmPending ? 'Confirm Ignore' : 'Ignore',
+                color: Colors.grey[700]!,
+                onPressed: _ignoreConfirmPending
+                    ? () {
+                        ref.read(lowBatteryIgnoredProvider.notifier).ignore();
+                      }
+                    : () {
+                        setState(() => _ignoreConfirmPending = true);
+                      },
+              ),
+              RaccoonDialogAction(
+                label: 'Shutdown',
+                color: Colors.red[700]!,
+                onPressed: () async {
+                  final reboot = ref.read(rebootDeviceProvider);
+                  final ok = await reboot.call(true);
+                  if (!ok && context.mounted) {
+                    await showRaccoonErrorDialog(
+                        context, "Missing passwordless sudo, can't shut down");
+                  }
+                },
+              ),
+            ],
+          );
+        }),
       ),
     );
   }
