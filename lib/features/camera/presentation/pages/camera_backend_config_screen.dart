@@ -268,13 +268,12 @@ class _OptionField extends StatelessWidget {
     return '${option.name}$unit${option.required ? ' *' : ''}';
   }
 
-  InputDecoration _decoration({String? label, IconData icon = Icons.tune_rounded, bool hint = true}) {
+  InputDecoration _decoration({String? label, IconData icon = Icons.tune_rounded}) {
     return themedFieldDecoration(
       theme,
       index,
       label: label ?? _label,
       icon: icon,
-      hint: !hint || option.description.isEmpty ? null : option.description,
     ).copyWith(errorText: error);
   }
 
@@ -286,10 +285,6 @@ class _OptionField extends StatelessWidget {
           value: value == true,
           onChanged: onChanged,
           title: Text(option.name, style: const TextStyle(color: Colors.white)),
-          subtitle: option.description.isEmpty
-              ? null
-              : Text(option.description,
-                  style: const TextStyle(color: Colors.white54)),
         );
       case 'choice':
         return DropdownButtonFormField<Object?>(
@@ -353,10 +348,8 @@ class _OptionField extends StatelessWidget {
         current is List &&
         current.every((entry) => entry is String)) {
       final picked = current.cast<String>();
-      // No hint: an InputDecorator lays its hint out even when it is not shown, and the description of
-      // the option is long, so it made the field three times as high as its chips.
       return InputDecorator(
-        decoration: _decoration(hint: false),
+        decoration: _decoration(),
         child: Wrap(
           spacing: 8,
           runSpacing: 4,
