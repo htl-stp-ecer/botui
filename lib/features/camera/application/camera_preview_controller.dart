@@ -27,6 +27,9 @@ class CameraPreviewStatus {
 /// (renewing it every two seconds), turns the stream on, and on leaving
 /// restores the stream setting it found and gives the lease back. A program
 /// that uses the camera at the same time keeps working: leases add up.
+///
+/// Several screens can ask for the preview: [start] and [stop] are counted,
+/// the camera is given back when the last one calls [stop].
 class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
   CameraPreviewController(this._commands)
       : super(const CameraPreviewStatus(CameraPreviewPhase.idle));
@@ -42,6 +45,8 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
   String? _lease;
   Map<String, dynamic>? _previousStream;
   bool _wanted = false;
+  int _users = 0;
+  Future<void>? _releasing;  // a stop that is still giving the camera back
   bool _renewing = false;
   bool _disposed = false;
   int _generation = 0;
@@ -62,11 +67,16 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
       );
 
   Future<void> start() async {
+    _users++;
     if (_wanted) return;
     _wanted = true;
     final generation = ++_generation;
     _set(const CameraPreviewStatus(CameraPreviewPhase.starting));
     try {
+      // A screen that was closed a moment ago may still be giving the camera back: its restore of the
+      // stream setting must not come after the new start.
+      await _releasing;
+      if (!_current(generation)) return;
       final status = await _commands.call('status');
       if (!_current(generation)) return;
       final streaming = status['streaming'];
@@ -192,11 +202,15 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
 
   /// Leaves the camera as it was found. Safe to call when it never started.
   Future<void> stop() async {
-    if (!_wanted) return;
+    if (_users > 0) _users--;
+    if (_users > 0 || !_wanted) return;
     _wanted = false;
     _generation++;
-    await _release();
-    _set(const CameraPreviewStatus(CameraPreviewPhase.idle));
+    final releasing = _release();
+    _releasing = releasing;
+    await releasing;
+    if (identical(_releasing, releasing)) _releasing = null;
+    if (!_wanted) _set(const CameraPreviewStatus(CameraPreviewPhase.idle));
   }
 
   Future<void> _release() async {

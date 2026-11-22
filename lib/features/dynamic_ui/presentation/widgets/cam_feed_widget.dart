@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:stpvelox/features/camera/application/cam_provider.dart';
+import 'package:stpvelox/features/camera/application/camera_preview_controller.dart';
 import 'package:stpvelox/features/camera/presentation/widgets/uncached_memory_image.dart';
 
 /// Inline camera feed widget for use in dynamic UI screens.
@@ -31,9 +33,27 @@ class CamFeedWidget extends ConsumerStatefulWidget {
 }
 
 class _CamFeedWidgetState extends ConsumerState<CamFeedWidget> {
+  late final CameraPreviewController _preview;
   Offset? _tapNorm;
   Uint8List? _cachedBytes;
   int _cachedTimestamp = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // The camera service opens the camera and publishes frames only while somebody holds a
+    // lease and has the stream on: the widget does that while it is on screen, so a program
+    // only puts CamFeed into its screen. Kept here: `ref` must not be used in dispose.
+    _preview = ref.read(cameraPreviewControllerProvider);
+    CamMessageGate.openNow();  // the last pictures of an earlier session are still in the transport
+    unawaited(_preview.start());
+  }
+
+  @override
+  void dispose() {
+    unawaited(_preview.stop());
+    super.dispose();
+  }
 
   Uint8List? _bytesFor(CamFrameData frame) {
     if (frame.data.frame_size == 0) return null;
