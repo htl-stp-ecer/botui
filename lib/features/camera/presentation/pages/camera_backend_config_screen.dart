@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -8,13 +10,17 @@ import 'package:stpvelox/core/widgets/large_dropdown.dart';
 import 'package:stpvelox/core/widgets/themed_field.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/camera/application/camera_backend_form.dart';
+import 'package:stpvelox/features/camera/data/camera_config_api.dart';
 import 'package:stpvelox/features/camera/domain/camera_models.dart';
 import 'package:stpvelox/features/camera/presentation/widgets/retry_button.dart';
 
-/// Choose the camera backend (built-in or from a project) and set its options.
-/// A vertical stack: the backend on top, its options below, Save and Reset.
+/// Choose the camera backend or the processor (built-in or from a project) and set its options.
+/// A vertical stack: the choice on top, its options below, Save and Reset.
 class CameraBackendConfigScreen extends ConsumerStatefulWidget {
-  const CameraBackendConfigScreen({super.key});
+  const CameraBackendConfigScreen({super.key, this.kind = CamConfigKind.backend});
+
+  /// What is configured: the backend or the processor.
+  final CamConfigKind kind;
 
   @override
   ConsumerState<CameraBackendConfigScreen> createState() =>
@@ -23,22 +29,27 @@ class CameraBackendConfigScreen extends ConsumerStatefulWidget {
 
 class _CameraBackendConfigScreenState
     extends ConsumerState<CameraBackendConfigScreen> {
+  NotifierProvider<CameraBackendForm, CameraBackendFormState> get _provider =>
+      widget.kind == CamConfigKind.backend
+          ? cameraBackendFormProvider
+          : cameraProcessorFormProvider;
+
   @override
   void initState() {
     super.initState();
     // What was loaded before stays in memory: it is shown at once and
     // refreshed in the background.
-    Future.microtask(() => ref.read(cameraBackendFormProvider.notifier).open());
+    Future.microtask(() => ref.read(_provider.notifier).open());
   }
 
   @override
   Widget build(BuildContext context) {
-    final form = ref.watch(cameraBackendFormProvider);
-    final notifier = ref.read(cameraBackendFormProvider.notifier);
+    final form = ref.watch(_provider);
+    final notifier = ref.read(_provider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: createTopBar(context, 'Camera backend'),
+      appBar: createTopBar(context, widget.kind.title),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
@@ -60,10 +71,10 @@ class _CameraBackendConfigScreenState
       return _Failure(message: form.error!, onRetry: notifier.load);
     }
     if (form.backends.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'No camera backends found.',
-          style: TextStyle(color: Colors.white70, fontSize: 16),
+          'No camera ${widget.kind.noun}s found.',
+          style: const TextStyle(color: Colors.white70, fontSize: 16),
         ),
       );
     }
@@ -112,7 +123,7 @@ class _CameraBackendConfigScreenState
             ),
           )
         else
-          _OptionsForm(form: form, notifier: notifier),
+          _OptionsForm(form: form, notifier: notifier, noun: widget.kind.noun),
         const SizedBox(height: 16),
         Row(
           children: [
@@ -175,22 +186,27 @@ class _Failure extends StatelessWidget {
 
 /// One field per option of the selected backend.
 class _OptionsForm extends ConsumerWidget {
-  const _OptionsForm({required this.form, required this.notifier});
+  const _OptionsForm({
+    required this.form,
+    required this.notifier,
+    required this.noun,
+  });
 
   final CameraBackendFormState form;
   final CameraBackendForm notifier;
+  final String noun;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final backend = form.selected;
     if (backend == null) return const SizedBox.shrink();
     if (backend.options.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 32),
         child: Center(
           child: Text(
-            'This backend has no options.',
-            style: TextStyle(color: Colors.white54, fontSize: 15),
+            'This $noun has no options.',
+            style: const TextStyle(color: Colors.white54, fontSize: 15),
           ),
         ),
       );
@@ -312,6 +328,8 @@ class _OptionField extends StatelessWidget {
             ),
           ],
         );
+      case 'json':
+        return _jsonField();
       case 'int':
         return _numberField(_label, value as num?, true, onChanged);
       case 'float':
@@ -325,6 +343,53 @@ class _OptionField extends StatelessWidget {
           onChanged: onChanged,
         );
     }
+  }
+
+  /// A list of names that the option offers (`choices`): chips to switch on and off. Anything else: the JSON itself.
+  Widget _jsonField() {
+    final current = value;
+    final offered = option.choices.whereType<String>().toList();
+    if (offered.isNotEmpty &&
+        current is List &&
+        current.every((entry) => entry is String)) {
+      final picked = current.cast<String>();
+      return InputDecorator(
+        decoration: _decoration(),
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final name in offered)
+              FilterChip(
+                label: Text(name),
+                selected: picked.contains(name),
+                onSelected: (on) => onChanged([
+                  for (final other in offered)
+                    if (other == name ? on : picked.contains(other)) other,
+                ]),
+              ),
+          ],
+        ),
+      );
+    }
+    return TextFormField(
+      initialValue: current == null ? '' : jsonEncode(current),
+      decoration: _decoration(icon: Icons.data_object_rounded),
+      style: const TextStyle(color: Colors.white, fontSize: 16),
+      minLines: 1,
+      maxLines: 4,
+      onChanged: (text) {
+        if (text.trim().isEmpty) {
+          onChanged(null);
+          return;
+        }
+        try {
+          onChanged(jsonDecode(text));
+        } on FormatException {
+          onInvalid('Not valid JSON');
+        }
+      },
+    );
   }
 
   Widget _numberField(

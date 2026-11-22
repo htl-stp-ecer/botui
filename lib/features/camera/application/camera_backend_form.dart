@@ -8,7 +8,7 @@ import 'package:stpvelox/features/camera/domain/camera_models.dart';
 
 final _log = getLogger('CameraBackendForm');
 
-/// The "Configure backend" screen: which backend, and the values of its options.
+/// The "Configure backend" and "Configure processor" screens: which one, and the values of its options.
 class CameraBackendFormState {
   const CameraBackendFormState({
     this.loading = true,
@@ -72,8 +72,13 @@ class CameraBackendFormState {
 }
 
 class CameraBackendForm extends Notifier<CameraBackendFormState> {
+  CameraBackendForm({this.kind = CamConfigKind.backend});
+
+  /// What is configured here: the backend or the processor.
+  final CamConfigKind kind;
   CameraConfigApi? _api;
-  final CameraBackendSettingsStore _store = CameraBackendSettingsStore();
+  late final CameraBackendSettingsStore _store =
+      CameraBackendSettingsStore(folder: kind.settingsFolder);
   bool _disposed = false;
 
   /// Counts the describe calls. A describe that is not the newest when it
@@ -131,8 +136,8 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
     if (!silent) _emit(state.copyWith(loading: true, clearError: true));
     try {
       final api = await _client();
-      final backends = await api.listBackends();
-      final saved = await api.savedChoice();
+      final backends = await api.list(kind);
+      final saved = await api.savedChoice(kind);
       final first = _pick(backends, saved);
       _emit(state.copyWith(
         loading: false,
@@ -149,7 +154,7 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
     } on RaccoonApiException catch (error) {
       if (!silent) _emit(state.copyWith(loading: false, error: error.message));
     } catch (error, stack) {
-      _log.severe('Could not load the camera backends: $error', error, stack);
+      _log.severe('Could not load the camera ${kind.noun}s: $error', error, stack);
       if (!silent) {
         _emit(state.copyWith(
             loading: false, error: 'The robot server is not reachable.'));
@@ -184,7 +189,7 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
       ));
     }
     try {
-      final described = known ? backend : await (await _client()).describe(backend);
+      final described = known ? backend : await (await _client()).describe(kind, backend);
       if (generation != _describeGeneration) return;
       final values = <String, Object?>{
         for (final option in described.options)
@@ -274,16 +279,16 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
     _emit(state.copyWith(busy: true));
     try {
       final cfg = _config();
-      final saved = await (await _client()).save(backend, cfg);
+      final saved = await (await _client()).save(kind, backend, cfg);
       if (backend.isBuiltIn) await _store.save(backend.path, cfg);
       changes++;
       _emit(state.copyWith(busy: false, saved: saved));
-      AppToast.success('Camera backend saved');
+      AppToast.success('${kind.title} saved');
     } on RaccoonApiException catch (error) {
       _emit(state.copyWith(busy: false));
       AppToast.error(error.message);
     } catch (error, stack) {
-      _log.severe('Could not save the camera backend: $error', error, stack);
+      _log.severe('Could not save the camera ${kind.noun}: $error', error, stack);
       _emit(state.copyWith(busy: false));
       AppToast.error('The robot server is not reachable.');
     }
@@ -294,19 +299,19 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
     if (state.busy) return;
     _emit(state.copyWith(busy: true));
     try {
-      await (await _client()).clear();
+      await (await _client()).clear(kind);
       final shown = state.selected;
       if (shown != null && shown.isBuiltIn) await _store.delete(shown.path);
       changes++;
       _emit(state.copyWith(busy: false, clearSaved: true));
       final backend = state.selected;
       if (backend != null) await _describe(backend);
-      AppToast.success('Camera backend reset');
+      AppToast.success('${kind.title} reset');
     } on RaccoonApiException catch (error) {
       _emit(state.copyWith(busy: false));
       AppToast.error(error.message);
     } catch (error, stack) {
-      _log.severe('Could not reset the camera backend: $error', error, stack);
+      _log.severe('Could not reset the camera ${kind.noun}: $error', error, stack);
       _emit(state.copyWith(busy: false));
       AppToast.error('The robot server is not reachable.');
     }
@@ -319,4 +324,11 @@ class CameraBackendForm extends Notifier<CameraBackendFormState> {
 final cameraBackendFormProvider =
     NotifierProvider<CameraBackendForm, CameraBackendFormState>(
   CameraBackendForm.new,
+);
+
+
+/// The same for the processor that runs on the frames while the UI uses the camera.
+final cameraProcessorFormProvider =
+    NotifierProvider<CameraBackendForm, CameraBackendFormState>(
+  () => CameraBackendForm(kind: CamConfigKind.processor),
 );

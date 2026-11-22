@@ -7,7 +7,6 @@ import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
-import 'package:stpvelox/core/widgets/app_toast.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:stpvelox/features/camera/application/cam_provider.dart';
 import 'package:stpvelox/features/camera/application/camera_backend_form.dart';
@@ -96,9 +95,8 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
                       icon: Icons.filter_center_focus_rounded,
                       color: theme.tileColor(TileColor.purple, 1),
                       foreground: theme.textColor,
-                      // Processors cannot be configured here yet.
                       onPressed: () =>
-                          AppToast.info('Processors can be configured later.'),
+                          context.push(AppRoutes.cameraProcessorConfig),
                     ),
                   ),
                 ],

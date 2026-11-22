@@ -17,7 +17,8 @@ class CamOption {
 
   final String name;
 
-  /// `int`, `float`, `str`, `bool`, `choice` or `size` (`[width, height]`).
+  /// `int`, `float`, `str`, `bool`, `choice`, `size` (`[width, height]`) or `json` (a list or an object; with
+  /// `choices` and a list of strings it is a pick from the choices).
   final String type;
   final Object? defaultValue;
   final bool required;

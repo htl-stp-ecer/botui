@@ -6,20 +6,20 @@ import 'package:stpvelox/core/logging/logging.dart';
 final _log = getLogger('CameraBackendSettings');
 
 /// The values typed into "Configure backend", kept per built-in backend in
-/// `~/.raccoon/botui-cam-settings/backends/<backend>.json`, so switching to
+/// `~/.raccoon/botui-cam-settings/<folder>/<backend>.json` (`backends` or `processors`), so switching to
 /// another backend and back (or an app update) does not lose them.
 ///
 /// A plain file, because only the UI reads it. The robot server's saved choice
 /// (which backend runs) stays where it is.
 class CameraBackendSettingsStore {
-  CameraBackendSettingsStore({Directory? directory})
-      : _directory = directory ?? _defaultDirectory();
+  CameraBackendSettingsStore({Directory? directory, String folder = 'backends'})
+      : _directory = directory ?? _defaultDirectory(folder);
 
   final Directory _directory;
 
-  static Directory _defaultDirectory() {
+  static Directory _defaultDirectory(String folder) {
     final home = Platform.environment['HOME'] ?? '/home/pi';
-    return Directory('$home/.raccoon/botui-cam-settings/backends');
+    return Directory('$home/.raccoon/botui-cam-settings/$folder');
   }
 
   /// `module:Class` or a name, as a safe file name.

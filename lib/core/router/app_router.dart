@@ -77,6 +77,8 @@ import 'package:stpvelox/features/camera/presentation/pages/camera_viewer_screen
     show CameraViewerScreen;
 import 'package:stpvelox/features/camera/presentation/pages/camera_backend_config_screen.dart'
     show CameraBackendConfigScreen;
+import 'package:stpvelox/features/camera/data/camera_config_api.dart'
+    show CamConfigKind;
 
 // Other
 import 'package:stpvelox/presentation/screens/robot_face_screen.dart';
@@ -164,6 +166,7 @@ abstract class AppRoutes {
   // Camera
   static const camera = '/camera';
   static const cameraBackendConfig = '/camera/backend';
+  static const cameraProcessorConfig = '/camera/processor';
 
   // Screensaver
   static const robotFace = '/robot-face';
@@ -539,6 +542,12 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.cameraBackendConfig,
         name: 'cameraBackendConfig',
         builder: (context, state) => const CameraBackendConfigScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.cameraProcessorConfig,
+        name: 'cameraProcessorConfig',
+        builder: (context, state) =>
+            const CameraBackendConfigScreen(kind: CamConfigKind.processor),
       ),
 
       // Screensaver
