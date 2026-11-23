@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -9,6 +11,7 @@ import 'package:stpvelox/core/widgets/imu_accuracy_display.dart';
 
 class QuaternionVisualization extends HookConsumerWidget {
   static const int maxPoints = 250;
+  static const Duration sampleInterval = Duration(milliseconds: 20);
   static const double graphMin = -180;
   static const double graphMax = 180;
 
@@ -24,10 +27,17 @@ class QuaternionVisualization extends HookConsumerWidget {
     final pitchData = useState<List<double>>([]);
     final yawData = useState<List<double>>([]);
 
-    // Update data when quaternion changes - keep last maxPoints for scrolling effect
+    // The reader publishes a value only while it changes, so the graph is driven
+    // by a timer that appends the latest known orientation. It keeps scrolling
+    // while the robot stands still.
+    final latest = useRef<Quaternion?>(null);
+    latest.value = quaternion;
+
     useEffect(() {
-      if (quaternion != null) {
-        final euler = quaternion.toEulerAngles();
+      final timer = Timer.periodic(sampleInterval, (_) {
+        final q = latest.value;
+        if (q == null) return;
+        final euler = q.toEulerAngles();
 
         // Add new data and keep only the last maxPoints
         final newRoll = [...rollData.value, euler.roll];
@@ -43,9 +53,9 @@ class QuaternionVisualization extends HookConsumerWidget {
         yawData.value = newYaw.length > maxPoints
             ? newYaw.sublist(newYaw.length - maxPoints)
             : newYaw;
-      }
-      return null;
-    }, [quaternion]);
+      });
+      return timer.cancel;
+    }, const []);
 
     if (quaternion == null) {
       return const Center(

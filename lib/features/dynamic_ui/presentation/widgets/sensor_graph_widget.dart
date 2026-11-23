@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -6,6 +7,8 @@ import 'package:stpvelox/features/sensors/presentation/utils/sensor_strategy_fac
 import 'package:stpvelox/features/sensors/domain/entities/sensor_type.dart';
 
 class SensorGraphWidget extends HookConsumerWidget {
+  static const Duration sampleInterval = Duration(milliseconds: 50);
+
   final int port;
   final String sensorType;
   final int maxPoints;
@@ -27,14 +30,22 @@ class SensorGraphWidget extends HookConsumerWidget {
 
     final history = useState<List<double>>([]);
 
+    // The reader publishes a value only while it changes, so the graph is driven
+    // by a timer that appends the latest reading. It keeps scrolling while the
+    // value is stable.
+    final latest = useRef<double>(reading);
+    latest.value = reading;
+
     useEffect(() {
-      final newHistory = [...history.value, reading];
-      if (newHistory.length > maxPoints) {
-        newHistory.removeAt(0);
-      }
-      history.value = newHistory;
-      return null;
-    }, [reading]);
+      final timer = Timer.periodic(sampleInterval, (_) {
+        final newHistory = [...history.value, latest.value];
+        if (newHistory.length > maxPoints) {
+          newHistory.removeAt(0);
+        }
+        history.value = newHistory;
+      });
+      return timer.cancel;
+    }, const []);
 
     return SizedBox(
       height: 120,
