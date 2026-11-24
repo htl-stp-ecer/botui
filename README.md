@@ -30,11 +30,12 @@ botui is the graphical environment that runs directly on the [KIPR Wombat](https
 |:-------|:-------------|
 | **Dashboard** | Live sensor overview grid — IMU, analog/digital ports, battery |
 | **Programs** | Browse, launch, and monitor robot programs with a live terminal |
-| **Sensors** | Real-time charts for gyro, accelerometer, magnetometer, and analog inputs |
-| **Camera** | Live camera feed from the robot's vision system |
+| **Sensors** | Real-time charts for gyro, accelerometer, magnetometer, and analog inputs, plus motor, servo and bus servo screens |
+| **Camera** | Live camera feed from the robot's vision system, choice of backend and of the processor that runs for the UI, with the detections drawn in the colour the processor set |
 | **WiFi** | Scan, connect, and manage networks via Linux NetworkManager |
 | **Settings** | Display, theme, hostname, keyboard layout, screen rotation, touch calibration, service status and logs, program run logs |
-| **Screen renderer / dynamic UI** | Screens that the robot program requests at runtime (`screen_render` messages) and the answers go back to it |
+| **Screen renderer / dynamic UI** | Screens that the robot program requests at runtime (`screen_render` messages) and the answers go back to it; a screen can contain the camera picture (`CamFeed`) |
+| **Messages** | Errors and warnings of the robot (`messages/error`, `messages/warn`) appear as dialogs with a title and a text; a repeated message updates the open dialog |
 | **Calibration board** | Guided calibration with the calibration board |
 | **Dev menu** | Developer tools, plus the small games Tilt Maze and Flappy Wombat |
 
@@ -105,7 +106,7 @@ lib/
 └── main.dart
 ```
 
-**Hardware data** flows in via [raccoon-transport](https://github.com/htl-stp-ecer/raccoon-transport) (shared-memory ring under `/dev/shm`, reached through the `raccoon_ring` bridge) — sensor values, motor state, and IMU readings are published by stm32-data-reader and consumed by the UI in real time. At startup botui checks that its transport contract matches the installed bundle.
+**Hardware data** flows in via [raccoon-transport](https://github.com/htl-stp-ecer/raccoon-transport) (shared-memory rings under `/dev/shm`, reached through the `raccoon_ring` bridge). Every channel is an entry of the transport's channel table: sensor values, motor state and IMU readings are published by stm32-data-reader and consumed by the UI in real time, and commands for the camera service go out on the camera channels of the table. At startup botui checks that its transport contract matches the installed bundle.
 
 **Program execution** uses a pseudoterminal so program stdout/stderr stream live into the terminal widget (`xterm`).
 
