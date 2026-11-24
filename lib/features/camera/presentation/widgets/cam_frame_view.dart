@@ -64,9 +64,11 @@ class _CamFrameViewState extends State<CamFrameView> {
       );
     }
 
-    final allDetections = widget.frame.data.detections.isNotEmpty
-        ? widget.frame.data.detections
-        : (widget.detections?.data.detections ?? const <CamBlobT>[]);
+    // The detections come on their own channel (frame_id names the frame they
+    // belong to). The latest ones are drawn over the latest frame: they can be a
+    // frame behind when the processor is slower than the camera.
+    final allDetections =
+        widget.detections?.data.detections ?? const <CamBlobT>[];
 
     return Stack(
       children: [

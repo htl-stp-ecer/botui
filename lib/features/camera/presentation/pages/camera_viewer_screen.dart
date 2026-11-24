@@ -77,7 +77,7 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
   Widget _buildFrameView(CamFrameData frame, CamDetectionData? detections) {
     _updateFps();
 
-    final detectionCount = frame.data.num_detections;
+    final detectionCount = detections?.data.num_detections ?? 0;
 
     return Column(
       children: [
