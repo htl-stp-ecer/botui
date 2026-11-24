@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/screensaver/keep_screensaver_off.dart';
 import 'package:stpvelox/core/utils/colors/colors.dart';
 import 'package:stpvelox/core/widgets/top_bar.dart';
 import 'package:raccoon_transport/raccoon_transport.dart';
@@ -23,13 +24,15 @@ class _CameraViewerScreenState extends ConsumerState<CameraViewerScreen> {
     final frame = ref.watch(camFrameStreamProvider);
     final detections = ref.watch(camDetectionStreamProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: createTopBar(context, 'Camera'),
-      body: SafeArea(
-        child: frame != null
-            ? _buildFrameView(frame, detections)
-            : _buildLoadingView(detections),
+    return KeepScreensaverOff(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: createTopBar(context, 'Camera'),
+        body: SafeArea(
+          child: frame != null
+              ? _buildFrameView(frame, detections)
+              : _buildLoadingView(detections),
+        ),
       ),
     );
   }

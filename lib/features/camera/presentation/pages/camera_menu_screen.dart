@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:stpvelox/application/screensaver/keep_screensaver_off.dart';
 import 'package:stpvelox/application/theme/color_theme_provider.dart';
 import 'package:stpvelox/core/router/app_router.dart';
 import 'package:stpvelox/core/theme/app_theme.dart';
@@ -66,45 +67,47 @@ class _CameraMenuScreenState extends ConsumerState<CameraMenuScreen> {
   Widget build(BuildContext context) {
     final theme = ref.watch(colorThemeProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: createTopBar(context, 'Camera'),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Buttons like the ones on the scanned networks screen: the colors
-              // come from the theme (in the colorful theme: teal and purple).
-              Row(
-                children: [
-                  Expanded(
-                    child: _MenuButton(
-                      label: 'Configure backend',
-                      icon: Icons.tune_rounded,
-                      color: theme.tileColor(TileColor.teal, 0),
-                      foreground: theme.textColor,
-                      onPressed: _openBackendConfig,
+    return KeepScreensaverOff(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: createTopBar(context, 'Camera'),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Buttons like the ones on the scanned networks screen: the colors
+                // come from the theme (in the colorful theme: teal and purple).
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MenuButton(
+                        label: 'Configure backend',
+                        icon: Icons.tune_rounded,
+                        color: theme.tileColor(TileColor.teal, 0),
+                        foreground: theme.textColor,
+                        onPressed: _openBackendConfig,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _MenuButton(
-                      label: 'Configure processor',
-                      icon: Icons.filter_center_focus_rounded,
-                      color: theme.tileColor(TileColor.purple, 1),
-                      foreground: theme.textColor,
-                      onPressed: () =>
-                          context.push(AppRoutes.cameraProcessorConfig),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _MenuButton(
+                        label: 'Configure processor',
+                        icon: Icons.filter_center_focus_rounded,
+                        color: theme.tileColor(TileColor.purple, 1),
+                        foreground: theme.textColor,
+                        onPressed: () =>
+                            context.push(AppRoutes.cameraProcessorConfig),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Takes what is left of the screen; no scrolling.
-              const Expanded(child: _PreviewBox()),
-            ],
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Takes what is left of the screen; no scrolling.
+                const Expanded(child: _PreviewBox()),
+              ],
+            ),
           ),
         ),
       ),

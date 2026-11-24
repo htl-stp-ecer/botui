@@ -68,3 +68,21 @@ final screensaverShowingProvider =
     NotifierProvider<ScreensaverShowingNotifier, bool>(
   ScreensaverShowingNotifier.new,
 );
+
+/// How many open screens keep the screensaver off (see `KeepScreensaverOff`).
+/// While it is above 0 the inactivity timer does not run.
+class ScreensaverBlockNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void block() => state++;
+
+  void unblock() {
+    if (state > 0) state--;
+  }
+}
+
+final screensaverBlockProvider =
+    NotifierProvider<ScreensaverBlockNotifier, int>(
+  ScreensaverBlockNotifier.new,
+);

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 
 class InactivityNotifier extends Notifier<bool> {
   Timer? _timer;
@@ -9,7 +10,15 @@ class InactivityNotifier extends Notifier<bool> {
   @override
   bool build() {
     ref.onDispose(() => _timer?.cancel());
-    _startTimer();
+    // A screen that keeps the screensaver off stops the timer; leaving it starts it again.
+    ref.listen<int>(screensaverBlockProvider, (_, blockers) {
+      if (blockers > 0) {
+        _timer?.cancel();
+      } else {
+        userActivityDetected();
+      }
+    });
+    if (ref.read(screensaverBlockProvider) == 0) _startTimer();
     return false;
   }
 
@@ -23,7 +32,7 @@ class InactivityNotifier extends Notifier<bool> {
   // Call on any user interaction
   void userActivityDetected() {
     state = false;
-    _startTimer();
+    if (ref.read(screensaverBlockProvider) == 0) _startTimer();
   }
 }
 

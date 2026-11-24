@@ -71,6 +71,12 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
     if (_wanted) return;
     _wanted = true;
     final generation = ++_generation;
+    await _open(generation);
+  }
+
+  /// Takes the lease and turns the stream on. Shows "starting" meanwhile and
+  /// "failed" when the service refuses.
+  Future<void> _open(int generation) async {
     _set(const CameraPreviewStatus(CameraPreviewPhase.starting));
     try {
       // A screen that was closed a moment ago may still be giving the camera back: its restore of the
@@ -171,6 +177,14 @@ class CameraPreviewController extends ValueNotifier<CameraPreviewStatus> {
     _set(const CameraPreviewStatus(CameraPreviewPhase.starting));
     // The service looks at the saved choice twice a second, then restarts the camera.
     await Future<void>.delayed(const Duration(milliseconds: 1500));
+    if (!_current(generation)) return;
+    if (_lease == null) {
+      // The start failed (for example no backend was chosen yet) and the lease was given back. The
+      // service opens the camera only while somebody holds a lease, so it never becomes ready by
+      // itself: start again with the backend that is saved now.
+      await _open(generation);
+      return;
+    }
     final deadline = DateTime.now().add(const Duration(seconds: 60));
     while (_current(generation) && DateTime.now().isBefore(deadline)) {
       try {
