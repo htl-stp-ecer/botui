@@ -7,6 +7,7 @@ import 'package:logging/logging.dart';
 import 'package:stpvelox/application/inactivity/inactivity_listener.dart';
 import 'package:stpvelox/application/ethernet_prompt/ethernet_plug_prompt.dart';
 import 'package:stpvelox/application/inactivity/inactivity_notifier.dart';
+import 'package:stpvelox/application/screensaver/keep_screensaver_off.dart';
 import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 import 'package:stpvelox/core/framerate/frame_stall_watchdog.dart';
 import 'package:stpvelox/core/contract/contract_check.dart';
@@ -355,37 +356,37 @@ class _WatchdogShutdownOverlay extends ConsumerWidget {
     final title =
         byWatchdog ? 'Hardware Watchdog Tripped' : 'Hardware Shutdown Active';
     final reason = byWatchdog
-        ? 'No heartbeat from the user program — the motors '
-            'have been shut off as a safety measure.'
-        : 'The motors have been latched off (user-initiated '
-            'shutdown). Motor commands will be acknowledged '
-            'but will not move the hardware until you recover.';
+        ? 'No heartbeat from the user program — the motors have been shut off as a safety measure.'
+        : 'The motors have been latched off (user-initiated shutdown). '
+            'Motor commands will be acknowledged but will not move the hardware until you recover.';
     final outputs = [
       if (status.motorShutdown) 'motors',
     ].join(' + ');
 
     // The same dialog frame as every other popup (RaccoonDialog), so it has the same size.
-    return ColoredBox(
-      color: Colors.black87,
-      child: Center(
-        child: RaccoonDialog(
-          icon: byWatchdog ? Icons.shield_moon_rounded : Icons.power_off_rounded,
-          iconColor: Colors.orange,
-          title: title,
-          message: '$reason\n'
-              'Latched outputs: ${outputs.isEmpty ? "(none)" : outputs}.\n'
-              'Recovering will re-enable outputs and re-arm the watchdog.',
-          actions: [
-            RaccoonDialogAction(
-              label: 'Recover',
-              color: Colors.green[700]!,
-              onPressed: () async {
-                await ref
-                    .read(shutdownStatusServiceProvider.notifier)
-                    .setShutdown(false);
-              },
-            ),
-          ],
+    return KeepScreensaverOff(
+      child: ColoredBox(
+        color: Colors.black87,
+        child: Center(
+          child: RaccoonDialog(
+            icon: byWatchdog ? Icons.shield_moon_rounded : Icons.power_off_rounded,
+            iconColor: Colors.orange,
+            title: title,
+            message: '$reason\n\n'
+                'Latched outputs: ${outputs.isEmpty ? "(none)" : outputs}.\n'
+                'Recovering will re-enable outputs and re-arm the watchdog.',
+            actions: [
+              RaccoonDialogAction(
+                label: 'Recover',
+                color: Colors.green[700]!,
+                onPressed: () async {
+                  await ref
+                      .read(shutdownStatusServiceProvider.notifier)
+                      .setShutdown(false);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,12 +1,13 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:stpvelox/application/inactivity/inactivity_notifier.dart';
 import 'package:stpvelox/application/screensaver/screensaver_settings_provider.dart';
 
-/// No screensaver while this widget is in the tree.
+/// No screensaver while this widget is in the tree; one that is up is closed.
 ///
-/// For screens that show something live that the user watches without
-/// touching the display (the camera picture). Wrap the screen's content in it;
-/// the screensaver timer runs again after the screen is left.
+/// For content that has to stay visible without anyone touching the display
+/// (the camera picture, the hardware shutdown popup). Wrap that content in it;
+/// the screensaver timer runs again once it is gone.
 class KeepScreensaverOff extends ConsumerStatefulWidget {
   const KeepScreensaverOff({super.key, required this.child});
 
@@ -30,12 +31,14 @@ class _KeepScreensaverOffState extends ConsumerState<KeepScreensaverOff> {
       if (!mounted) return;
       _blocking = true;
       _block.block();
+      ref.read(inactivityProvider.notifier).userActivityDetected();
     });
   }
 
   @override
   void dispose() {
-    if (_blocking) _block.unblock();
+    // Deferred for the same reason as in initState.
+    if (_blocking) Future.microtask(_block.unblock);
     super.dispose();
   }
 
