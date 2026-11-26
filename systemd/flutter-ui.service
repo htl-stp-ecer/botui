@@ -1,8 +1,13 @@
 [Unit]
 Description=Flutter UI with flutter-pi
-After=network.target
+After=network.target getty@tty1.service
 
 [Service]
+# Keyboard off on tty1 (KDSKBMODE=K_OFF) while the UI runs: key presses must not
+# reach the login shell behind it. flutter-pi reads evdev and is not affected.
+ExecStartPre=-+/usr/bin/python3 -c "import fcntl, os; fcntl.ioctl(os.open('/dev/tty1', os.O_RDWR | os.O_NOCTTY), 0x4B45, 4)"
+# Back to K_UNICODE on every stop (Hide UI, crash), so the console is usable.
+ExecStopPost=-+/usr/bin/python3 -c "import fcntl, os; fcntl.ioctl(os.open('/dev/tty1', os.O_RDWR | os.O_NOCTTY), 0x4B45, 3)"
 ExecStart=flutter-pi -r 0 --videomode 800x480 --release /home/pi/stp-velox/
 WorkingDirectory=/home/pi
 User=pi
